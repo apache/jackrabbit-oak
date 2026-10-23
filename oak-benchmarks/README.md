@@ -153,6 +153,156 @@ could expect with (the current state of) Oak. Instead they are
 designed to isolate implementation-level bottlenecks and to help
 measure and profile the performance of specific, isolated features.
 
+Document node-cache maintenance benchmark
+-----------------------------------------
+
+`DocumentCacheBenchmark` measures the node cache obtained from a production
+`DocumentNodeStoreBuilder` with a memory document store. Persistent caching is enabled by default.
+CacheLIRS and Caffeine SYNC use the original metadata path; only Caffeine ASYNC
+uses entry-owned metadata and includes its weight overhead. All modes receive
+the same node-cache memory budget; ASYNC entry overhead reduces the number of
+entries fitting that budget. Working-set ratios use the raw-value base capacity. The loader creates fixed-weight node
+states and reports loader calls; this measures cache behavior, without simulating
+MongoDB or RDB latency.
+
+Run each policy in a fresh Java 17 process. Cache implementation selection is
+sampled from `oak.documentMK.caffeineCache` when the document builder class loads.
+CACHE_LIRS also requires `oak.documentMK.guavaCache=false`.
+The shared API defaults to ASYNC, while DocumentNodeStore defaults to SYNC; the
+benchmark explicitly selects each node-cache maintenance mode and checks the effective mode.
+ASYNC requires the explicit startup opt-in `-Doak.documentMK.asyncCacheMaintenance=true`
+for `FT_OAK-12437`, together with `-Doak.documentMK.caffeineCache=true`.
+Without the Caffeine opt-in the benchmark defaults to CacheLIRS; with Caffeine
+enabled and the ASYNC FT off it selects SYNC and rejects an ASYNC label.
+
+```sh
+mvn package -pl oak-benchmarks -Dtest=DocumentCacheBenchmarkTest
+
+java -Xms2g -Xmx2g -Doak.documentMK.caffeineCache=false \
+  -Ddocument.cache.policies=CACHE_LIRS \
+  -jar oak-benchmarks/target/oak-benchmarks-2.7-SNAPSHOT.jar \
+  benchmark DocumentCacheBenchmark Oak-MemoryNS
+
+java -Xms2g -Xmx2g -Doak.documentMK.caffeineCache=true \
+  -Ddocument.cache.policies=CAFFEINE_SYNC \
+  -jar oak-benchmarks/target/oak-benchmarks-2.7-SNAPSHOT.jar \
+  benchmark DocumentCacheBenchmark Oak-MemoryNS
+
+java -Xms2g -Xmx2g -Doak.documentMK.caffeineCache=true \
+  -Doak.documentMK.asyncCacheMaintenance=true \
+  -Ddocument.cache.policies=CAFFEINE_ASYNC \
+  -jar oak-benchmarks/target/oak-benchmarks-2.7-SNAPSHOT.jar \
+  benchmark DocumentCacheBenchmark Oak-MemoryNS
+```
+
+Use the same JVM, heap, machine and workload properties for all three commands.
+Defaults are 10,000 cache entries, 2,000,000 measured operations, at least 10,000
+warmup operations, a seed of 42, and working-set/cache-size ratios of 0.5, 1, 2, 5
+and 10. `document.cache.entries`, `.operations`, `.warmup` and `.threads` adjust
+those settings. `.scenarios` accepts STEADY_STATE, CHURN, INVALIDATION and
+CONCURRENT; `.states` accepts WARM and COLD. COLD clears memory and persistent
+state after warming the code, before collecting measurements.
+
+All policies use the same production value weigher; ASYNC additionally charges its
+entry metadata against the same memory budget.
+Persistent writes remain ASYNC independently of maintenance mode. Set
+`document.cache.persistent.enabled=false` for a separate comparison without the
+persistent cache, or `document.cache.caffeine.maximumWeightMultiplier` for an
+explicitly different Caffeine memory allocation (default 1.0).
+
+Output includes throughput, batch time divided by completed operations, p95 of
+one independently seeded latency sample per block of up to 64 operations, hit
+rate, misses, evictions and loader calls. Worker counters and sample buffers are
+local; their aggregation and percentile calculation run outside the batch timer.
+Timed batches include memory-cache cleanup; persistent background writes are not drained at
+the end of the batch. Run several repetitions before comparing results.
+
+Record matching scenario, cache state and ratio rows in this format:
+
+| Scenario/state/ratio | Policy | Operations/s | ns/op | Sampled p95 ns | Hit % | Misses | Evictions | Loader calls |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| same workload | CACHE_LIRS | measured | measured | measured | measured | measured | measured | measured |
+| same workload | CAFFEINE_SYNC | measured | measured | measured | measured | measured | measured | measured |
+| same workload | CAFFEINE_ASYNC | measured | measured | measured | measured | measured | measured | measured |
+
+For a quick smoke run, add `-Ddocument.cache.entries=64
+-Ddocument.cache.operations=2048 -Ddocument.cache.warmup=256
+-Ddocument.cache.threads=3` before `-jar` in all three commands. These short runs
+verify configuration and workload accounting; they are too short to establish
+performance or choose a maintenance policy.
+
+### Repository workloads complement the direct-cache results
+
+`DocumentCacheRepositoryBenchmark` exercises real DocumentNodeStore operations:
+POINT_READ reads populated values; CHILDREN_SCAN enumerates and checks complete
+child groups; COMMIT_DIFF merges property updates and compares actual revisions;
+COMMIT_ONLY merges and verifies the saved property without an explicit group diff;
+CONCURRENT_MIXED runs one writer alongside readers; CONCURRENT_WRITERS runs
+writers on distinct nodes; REOPEN_READ disposes and reconstructs the store while
+retaining the same document backend and persistent-cache files.
+
+Use the same three startup opt-ins above, replacing `DocumentCacheBenchmark`
+with `DocumentCacheRepositoryBenchmark`. This benchmark explicitly selects the
+policy for NODE, CHILDREN, DIFF, LOCAL_DIFF, DOCUMENT and PREV_DOCUMENT, retaining
+the production cache distribution. Both Caffeine policies include LOCAL_DIFF
+in their named implementation and maintenance mode.
+Effective-mode checks reject missing startup opt-ins and mismatched cache modes.
+Defaults: `document.repository.nodes=10000`,
+`.operations=20000`, `.cacheMB=256`, `.childrenPerGroup=100`,
+`.backgroundMillis=1000`, `.warmupSeconds=20`, `.durationSeconds=60`; `document.cache.threads` and
+`document.cache.persistent.enabled` also apply. Each logical child scan covers up
+to the configured group width; each commit verifies its saved value; COMMIT_DIFF
+additionally compares revisions. Concurrent writers also request explicit diffs.
+Concurrent work includes every completed read/write, with an uneven final batch.
+
+Each scenario first warms its own code for the configured interval in a disposable
+store, then builds a fresh store for measurement. Initial reads alone do not warm
+commit/diff code. `.operations` is a minimum operation count; the scenario continues
+until it also reaches `.durationSeconds`, reporting actual completed work and elapsed
+time. Set both timing options to zero only for fixed-count smoke tests.
+Select workloads with `.scenarios=POINT_READ,COMMIT_ONLY,COMMIT_DIFF`. Run each policy
+and selected scenario in a separate JVM for comparisons. Duration-based concurrent
+workers continue for the interval so readers overlap writers throughout the run.
+
+Data nodes are grouped below `/benchmark/bucket-N/group-N/node-N`, with at most
+100 groups per bucket. `nodes` is the total data-node count, not a sibling count.
+At the default width, 10,000 nodes occupy 100 groups in one bucket; 120,000 occupy
+1,200 groups in 12 buckets. These synthetic trees are explicit workload assumptions,
+not a measured production traffic distribution. Use `.childrenPerGroup=1000` only
+as a wide-folder stress case. The setting is sampled at class initialization.
+
+Data setup and initial reads run outside timing. Reopen also runs outside timing,
+retains disk contents, and reports subsequent persistent hits rather than
+assuming disk reuse. Values vary in size instead of using the fixed synthetic
+loader. Output reports throughput, completed reads/writes, document finds and
+queries, node-cache hit rate, persistent-node-cache hits, and local-diff memory
+hits/misses. These counters include wrapper rechecks, so they are underlying
+lookups rather than unique logical requests or lost revision pairs.
+Merge, explicit diff and value-readback times sum worker time;
+concurrent totals can exceed elapsed wall time. A local-diff memory miss can
+still be satisfied by persistence and does not alone prove reconstruction.
+Document counters include calls to the MemoryDocumentStore, not remote database I/O. Persistent
+writes remain asynchronous; their pending queue is not explicitly drained.
+Repository background work uses the production one-second interval, including
+during population and measurement. `.backgroundMillis=0` deliberately disables
+it for diagnostics: unflushed bulk-load journal paths can greatly amplify diff
+cache misses, so such runs must not be labeled normal production behavior.
+
+Both benchmarks use an in-memory document backend, irrespective of the supplied
+fixture label. Neither measures remote MongoDB/RDB latency, cluster invalidation,
+failover, or application throughput. Run these workloads separately and repeat
+measurements; do not pool logical repository operations with cache microbenchmark
+operations or extrapolate their ratios to application performance.
+
+The default 256 MB repository budget matches Oak's default. Use `.cacheMB=384`
+for 50% more memory. Explicit 16/24 MB runs are memory-pressure diagnostics.
+Initial 500-node setup commits followed by small updates model
+bulk loading followed by editing; the forced COMMIT_DIFF comparison tests diff
+consumers separately from COMMIT_ONLY. EmptyHook omits application-specific
+validators and index hooks. These are targeted repository scenarios, not a
+production traffic distribution. A 10,000-node working set at 256 MB does not
+represent cache pressure on a large repository; size the working set separately.
+
 How to add a new benchmark
 --------------------------
 
