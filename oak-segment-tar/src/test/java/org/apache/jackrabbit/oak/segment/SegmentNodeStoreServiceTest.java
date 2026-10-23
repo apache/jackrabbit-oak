@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -47,6 +49,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
 
 public class SegmentNodeStoreServiceTest {
@@ -191,6 +194,64 @@ public class SegmentNodeStoreServiceTest {
 
         unregisterSegmentNodeStoreService();
         unregisterBlobStore();
+    }
+
+    /** The Segment toggle survives service restarts, re-enables ASYNC and leaves other caches independent. */
+    @Test
+    public void registeredMaintenanceToggleOnlyControlsSegmentCaches()
+            throws InterruptedException, InvalidSyntaxException {
+        boolean incomingAsync = SegmentCacheMaintenance.ASYNC_ENABLED.getAndSet(true);
+        boolean activated = false;
+        FeatureToggle registeredToggle = null;
+        try {
+            registerSegmentNodeStoreService(false);
+            activated = true;
+            FeatureToggle toggle = context.bundleContext().getServiceReferences(FeatureToggle.class, null).stream()
+                    .map(context.bundleContext()::getService)
+                    .filter(feature -> SegmentCacheMaintenance.FT_OAK_12290.equals(feature.getName()))
+                    .findFirst().orElse(null);
+            assertNotNull(toggle);
+            registeredToggle = toggle;
+            assertTrue(toggle.isEnabled());
+            toggle.setEnabled(false);
+            assertFalse(SegmentCacheMaintenance.ASYNC_ENABLED.get());
+
+            SegmentCacheMaintenanceTest.assertSegmentCacheCallbackMode(false);
+            SegmentCacheMaintenanceTest.assertRecordCacheCallbackMode(false);
+            SegmentCacheMaintenanceTest.assertIndependentCacheRemainsAsync();
+
+            unregisterSegmentNodeStoreService();
+            activated = false;
+            assertFalse(Arrays.asList(context.getServices(FeatureToggle.class, null)).contains(toggle));
+            registerSegmentNodeStoreService(false);
+            activated = true;
+            assertServiceActivated();
+            FeatureToggle restartedToggle = Arrays.stream(context.getServices(FeatureToggle.class, null))
+                    .filter(feature -> SegmentCacheMaintenance.FT_OAK_12290.equals(feature.getName()))
+                    .findFirst().orElse(null);
+            assertNotNull(restartedToggle);
+            registeredToggle = restartedToggle;
+            assertFalse(restartedToggle.isEnabled());
+            assertFalse(SegmentCacheMaintenance.ASYNC_ENABLED.get());
+            SegmentCacheMaintenanceTest.assertSegmentCacheCallbackMode(false);
+            SegmentCacheMaintenanceTest.assertRecordCacheCallbackMode(false);
+
+            restartedToggle.setEnabled(true);
+            assertTrue(restartedToggle.isEnabled());
+            assertTrue(SegmentCacheMaintenance.ASYNC_ENABLED.get());
+            SegmentCacheMaintenanceTest.assertSegmentCacheCallbackMode(true);
+            SegmentCacheMaintenanceTest.assertRecordCacheCallbackMode(true);
+            SegmentCacheMaintenanceTest.assertIndependentCacheRemainsAsync();
+        } finally {
+            try {
+                if (activated) {
+                    unregisterSegmentNodeStoreService();
+                }
+            } finally {
+                SegmentCacheMaintenance.ASYNC_ENABLED.set(incomingAsync);
+            }
+        }
+        assertFalse(Arrays.asList(context.getServices(FeatureToggle.class, null)).contains(registeredToggle));
     }
 
     private SegmentNodeStoreService segmentNodeStoreService;
