@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.auth.signer.AwsS3V4Signer;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
@@ -556,12 +555,12 @@ public final class Utils {
     }
 
     @NotNull
-    private static AwsCredentialsProvider getAwsCredentials(Properties prop) {
+    static AwsCredentialsProvider getAwsCredentials(Properties prop) {
         String accessKey = prop.getProperty(S3Constants.ACCESS_KEY);
         String secretKey = prop.getProperty(S3Constants.SECRET_KEY);
         if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(secretKey)) {
-            LOG.info("Configuring Amazon Client from environment");
-            return DefaultCredentialsProvider.builder().build();
+            LOG.info("Using AWS default credentials (IMDSv2 preferred)");
+            return new ImdsV2CredentialsProvider();
         } else {
             LOG.info("Configuring Amazon Client from property file.");
             final AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
