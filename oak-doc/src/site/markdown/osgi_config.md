@@ -260,8 +260,8 @@ prevDocCachePercentage | 4 | Percentage of `cache` allocated for `prevDocCache`.
 childrenCachePercentage | 15 (was 10 until 1.5.14) | Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache] | 1.0.12
 diffCachePercentage | 30 (was 5 until 1.5.14) | Percentage of `cache` allocated for `diffCache`. See [Caching][doc-cache] | 1.0.12
 docChildrenCachePercentage | 0 (was 3 until 1.5.6) | Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache] (Removed since 1.5.6) | 1.0.12
-cacheSegmentCount | 16 | The number of segments in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
-cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
+cacheSegmentCount | 16 | The number of segments in the LIRS cache (ignored by the opt-in Caffeine cache, see `FT_CAFFEINE_CACHE_OAK-12425`; toggling it requires a DocumentNodeStore restart) | 1.0.15, 1.2.3, 1.3.0
+cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache (ignored by the opt-in Caffeine cache, see `FT_CAFFEINE_CACHE_OAK-12425`; toggling it requires a DocumentNodeStore restart) | 1.0.15, 1.2.3, 1.3.0
 sharedDSRepoId | "" | Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore. | 1.2.11
 blobTrackSnapshotIntervalInSecs | 0 | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. A value of `0` disables blob ID tracking (default since Oak 2.4.0). See [Blob tracker][blobtracker]. | 1.5.6 
 updateLimit | 100000 | The number of updates kept in memory until changes are written to a branch in the DocumentStore | 1.7.0  
