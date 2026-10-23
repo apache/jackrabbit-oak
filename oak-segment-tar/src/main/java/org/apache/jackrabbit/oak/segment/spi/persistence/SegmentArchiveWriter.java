@@ -32,7 +32,8 @@ import org.jetbrains.annotations.Nullable;
  * <ol>
  *     <li>phase 1:
  *         <ul>
- *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}
+ *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)} or
+ *                 {@link #recoverSegment(long, long, byte[], int, int, GCGeneration)}
  *             <li>{@link #flush()}
  *         </ul>
  *         repeated in an unspecified order
@@ -65,6 +66,23 @@ public interface SegmentArchiveWriter {
      */
     @NotNull
     void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
+
+    /**
+     * Recover a segment into the archive. Implementations may reuse an already
+     * persisted segment instead of writing its data again. The default
+     * implementation writes the segment normally.
+     *
+     * @param msb the most significant bits of the identifier of the segment
+     * @param lsb the least significant bits of the identifier of the segment
+     * @param data the data.
+     * @param offset the start offset in the data.
+     * @param size the number of bytes to write.
+     * @param generation the segment's full GCGeneration generation
+     * @throws IOException error recovering segment
+     */
+    default void recoverSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+        writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
+    }
 
     /**
      * Read the segment.
