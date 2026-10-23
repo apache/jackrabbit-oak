@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -100,7 +103,8 @@ public class RevisionsCommand implements Command {
             "  sweep          clean up uncommitted changes",
             "  fullGC         perform full garbage collection i.e. remove unmerged branch commits, old ",
             "                 revisions, deleted properties etc. Use the --entireRepo to run it on the entire",
-            "                 repository, or --path argument to perform the fullGC only on the specific document"
+            "                 repository, or --path argument to perform the fullGC only on the specific document,",
+            "                 or --pathsFile to perform it on each document listed (one path per line)"
     );
 
     private static final List<String> LOGGER_NAMES = of(
@@ -148,6 +152,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> fullGcGeneration;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
+        final OptionSpec<String> pathsFile;
         final OptionSpec<String> includePaths;
         final OptionSpec<String> excludePaths;
         final OptionSpec<?> entireRepo;
@@ -193,6 +198,9 @@ public class RevisionsCommand implements Command {
                     .accepts("verbose", "print INFO messages to the console");
             path = parser
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
+            pathsFile = parser
+                    .accepts("pathsFile", "file with the paths of the documents to be cleaned up, one per line")
+                    .withRequiredArg();
             includePaths = parser
                     .accepts("includePaths", "Paths which should be included in fullGC. " +
                             "Paths should be separated with '::'. Example: --includePaths=/content::/var")
@@ -297,6 +305,10 @@ public class RevisionsCommand implements Command {
             return path.value(options);
         }
 
+        String getPathsFile() {
+            return pathsFile.value(options);
+        }
+
         String[] getIncludePaths() {
             return includePaths.value(options).split("::");
         }
@@ -362,9 +374,11 @@ public class RevisionsCommand implements Command {
                 if (entireRepo) {
                     collect(options, closer, true);
                 } else if (isNotEmpty(path)) {
-                    collectDocument(options, closer, path);
+                    collectDocuments(options, closer, Collections.singletonList(path));
+                } else if (isNotEmpty(options.getPathsFile())) {
+                    collectDocuments(options, closer, readPaths(options.getPathsFile()));
                 } else {
-                    System.err.println("--path or --entireRepo option is required for " +
+                    System.err.println("--path, --pathsFile or --entireRepo option is required for " +
                         RevisionsOptions.CMD_FULL_GC + " command");
                 }
             } else {
@@ -652,14 +666,20 @@ public class RevisionsCommand implements Command {
         SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
     }
 
-    private void collectDocument(RevisionsOptions options, Closer closer, String path) throws IOException {
+    private static List<String> readPaths(String file) throws IOException {
+        return Files.readAllLines(Paths.get(file), StandardCharsets.UTF_8).stream()
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    private void collectDocuments(RevisionsOptions options, Closer closer, List<String> paths) throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             return;
         }
 
-        System.out.println("running fullGC on the document: " + path);
         DocumentStore documentStore = builder.getDocumentStore();
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
@@ -671,16 +691,30 @@ public class RevisionsCommand implements Command {
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
         // Set a default statistics provider
         gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
-        // Run fullGC on the given document
-        NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
-        if (workingDocument == null) {
-            System.err.println("Document not found: " + path);
-            return;
-        }
-        gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
+        long start = System.currentTimeMillis();
+        int notFound = 0;
+        for (int i = 0; i < paths.size(); i++) {
+            String path = paths.get(i);
+            long elapsed = System.currentTimeMillis() - start;
+            long etaMs = i == 0 ? 0 : elapsed * (paths.size() - i) / i;
+            System.out.printf("[%d/%d] elapsed %s, ETA %s - running fullGC on the document: %s%n",
+                    i + 1, paths.size(), fmtDuration(elapsed), fmtDuration(etaMs), path);
+            // Run fullGC on the given document
+            NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
+            if (workingDocument == null) {
+                System.err.println("Document not found: " + path);
+                notFound++;
+                continue;
+            }
+            gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
-        System.out.println("Full GC Stats:");
-        System.out.println("    " + gc.getFullGCStatsReport());
+            System.out.println("Full GC Stats (cumulative):");
+            System.out.println("    " + gc.getFullGCStatsReport());
+        }
+        if (paths.size() > 1) {
+            System.out.printf("Processed %d documents (%d not found) in %s%n",
+                    paths.size(), notFound, fmtDuration(System.currentTimeMillis() - start));
+        }
     }
 
     private String fmtTimestamp(long ts) {
