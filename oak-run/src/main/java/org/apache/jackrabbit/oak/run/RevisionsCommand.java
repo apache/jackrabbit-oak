@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -692,12 +693,15 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         DocumentNodeStore documentNodeStore = builder.build();
+        closer.register(asCloseable(documentNodeStore));
 
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
         // Set a LoggingGC monitor that will output the fullGC operations
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
         // Set a default statistics provider
-        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
+        ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
+        closer.register(statsExecutor::shutdownNow);
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(statsExecutor));
         long start = System.currentTimeMillis();
         int notFound = 0;
         for (int i = 0; i < paths.size(); i++) {
