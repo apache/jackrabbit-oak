@@ -371,6 +371,13 @@ public class RevisionsCommand implements Command {
             } else if (RevisionsOptions.CMD_FULL_GC.equals(subCmd)) {
                 boolean entireRepo = options.isEntireRepo();
                 String path = options.getPath();
+                int selectors = (entireRepo ? 1 : 0) + (isNotEmpty(path) ? 1 : 0)
+                        + (isNotEmpty(options.getPathsFile()) ? 1 : 0);
+                if (selectors > 1) {
+                    System.err.println("--path, --pathsFile and --entireRepo options are mutually exclusive for " +
+                        RevisionsOptions.CMD_FULL_GC + " command");
+                    return;
+                }
                 if (entireRepo) {
                     collect(options, closer, true);
                 } else if (isNotEmpty(path)) {
