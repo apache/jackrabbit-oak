@@ -112,6 +112,63 @@ Depending on requirements one of the following can be used
   in Amazon AWS
 * AzureDataStore - This should be used when binaries are stored in Microsoft Azure Blob storage
 
+#### S3 credentials and EC2 instance metadata
+
+From **Oak 2.10.0**, `oak-blob-cloud` tries **IMDSv2 first by default** for EC2
+instance-role credentials. **IMDSv1 fallback is allowed by default**, unless AWS
+settings disable it. No extra Oak setting is needed.
+
+This policy applies when S3 `accessKey` and `secretKey` are not provided. If both
+are configured, Oak uses those credentials instead. Other valid AWS credentials,
+such as environment or profile credentials, also take precedence over metadata.
+
+The credential lookup works as follows:
+
+1. Oak uses the default AWS credential chain, trying IMDSv2 without IMDSv1 fallback
+   when the chain reaches EC2 metadata, including through nested `source_profile`
+   configurations.
+2. If credential lookup fails, Oak retries with standard AWS settings. This retry
+   still prefers IMDSv2, but allows IMDSv1 fallback unless disabled.
+3. After a successful retry, Oak logs it once and reuses that provider. The SDK
+   handles credential caching and refresh.
+
+To disable IMDSv1 fallback in the SDK, use one of these AWS settings:
+
+* Environment: `AWS_EC2_METADATA_V1_DISABLED=true`
+* JVM: `-Daws.disableEc2MetadataV1=true`
+* AWS profile used for metadata credentials: `ec2_metadata_v1_disabled=true`
+
+System and environment settings take precedence over profile settings. Explicitly
+setting the IMDSv1-disable system or environment setting to `false` overrides Oak's
+first attempt and permits the SDK's ordinary fallback without Oak's retry message.
+See [AWS credential settings](https://docs.aws.amazon.com/sdkref/latest/guide/feature-imds-credentials.html).
+
+To use EC2 instance-role credentials, attach an IAM role with the required S3
+permissions. The metadata endpoint must be reachable from the application, and
+`AWS_EC2_METADATA_DISABLED` must be unset or `false`. Configure the instance in AWS:
+
+1. Open **EC2 → Instances** and select the instance.
+2. Choose **Actions → Instance settings → Modify instance metadata options**.
+3. Enable **Instance metadata service**.
+4. Set **IMDSv2** to **Optional** to allow both versions, or **Required** to prevent
+   IMDSv1 fallback for the whole instance, then save.
+
+**Required** sets `HttpTokens=required`. Before enforcing it, check that the
+CloudWatch `MetadataNoToken` metric shows no IMDSv1 use. For Auto Scaling, also
+update the launch template so new instances use the same setting. See the
+[AWS setup instructions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-IMDS-existing-instances.html)
+and [Auto Scaling guidance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html).
+
+Oak logs `Using AWS default credentials (IMDSv2 preferred)` at INFO when selecting
+this policy. A successful retry logs the following ERROR once per provider:
+
+```text
+Credential lookup recovered after retrying with standard AWS settings. Set EC2 HttpTokens=required to prevent IMDSv1 fallback.
+```
+
+These messages describe the credential policy and retry; they do not prove which
+metadata version was used. Failed retries do not produce the recovery message.
+
 #### Caching DataStore
 
 The DataStore implementations `S3DataStore`,`CachingFileDataStore` and `AzureDataStore` support local file system caching for the 
