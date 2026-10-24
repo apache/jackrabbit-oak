@@ -24,7 +24,16 @@
     <detector class="org.apache.tika.detect.TypeDetector"/>
   </detectors>
   <parsers>
-    <parser class="org.apache.tika.parser.DefaultParser"/>
+    <parser class="org.apache.tika.parser.DefaultParser">
+       <!-- the PDF parser is configured below -->
+      <parser-exclude class="org.apache.tika.parser.pdf.PDFParser"/>
+    </parser>
+    <parser class="org.apache.tika.parser.pdf.PDFParser">
+      <params>
+        <!-- Disable XFA/AcroForm extraction -->
+        <param name="extractAcroFormContent" type="bool">false</param>
+      </params>
+    </parser>
     <parser class="org.apache.tika.parser.EmptyParser">
       <!-- Disable package extraction as it's too resource-intensive -->
       <mime>application/x-archive</mime>
