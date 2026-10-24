@@ -125,7 +125,8 @@ such as environment or profile credentials, also take precedence over metadata.
 The credential lookup works as follows:
 
 1. Oak uses the default AWS credential chain, trying IMDSv2 without IMDSv1 fallback
-   when the chain reaches EC2 metadata.
+   when the chain reaches EC2 metadata, including through nested `source_profile`
+   configurations.
 2. If credential lookup fails, Oak retries with standard AWS settings. This retry
    still prefers IMDSv2, but allows IMDSv1 fallback unless disabled.
 3. After a successful retry, Oak logs it once and reuses that provider. The SDK
@@ -135,7 +136,7 @@ To disable IMDSv1 fallback in the SDK, use one of these AWS settings:
 
 * Environment: `AWS_EC2_METADATA_V1_DISABLED=true`
 * JVM: `-Daws.disableEc2MetadataV1=true`
-* Selected AWS profile: `ec2_metadata_v1_disabled=true`
+* AWS profile used for metadata credentials: `ec2_metadata_v1_disabled=true`
 
 System and environment settings take precedence over profile settings. Explicitly
 setting the IMDSv1-disable system or environment setting to `false` overrides Oak's

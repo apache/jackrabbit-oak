@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
@@ -57,8 +59,15 @@ final class ImdsV2CredentialsProvider implements AwsCredentialsProvider, SdkAuto
         if (cached != null && cached.source() == profiles && cached.profileName().equals(profileName)) {
             return cached.augmented();
         }
+        Set<String> profileNames = new LinkedHashSet<>(profiles.profiles().keySet());
+        profileNames.add(profileName);
+        StringBuilder overrideContent = new StringBuilder();
+        // The SDK reads IMDS settings from the source profile when resolving nested roles.
+        for (String name : profileNames) {
+            overrideContent.append("[profile ").append(name).append("]\nec2_metadata_v1_disabled=true\n");
+        }
         ProfileFile override = ProfileFile.builder()
-                .content("[profile " + profileName + "]\nec2_metadata_v1_disabled=true\n")
+                .content(overrideContent.toString())
                 .type(ProfileFile.Type.CONFIGURATION)
                 .build();
         ProfileFile augmented = ProfileFile.aggregator().addFile(override).addFile(profiles).build();
