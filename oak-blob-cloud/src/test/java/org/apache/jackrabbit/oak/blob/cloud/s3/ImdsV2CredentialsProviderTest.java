@@ -48,6 +48,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.profiles.ProfileFile;
 
@@ -158,6 +159,66 @@ public class ImdsV2CredentialsProviderTest {
         Assert.assertEquals(1, errorCount());
         Assert.assertTrue(logs.list.stream().anyMatch(event ->
                 event.getFormattedMessage().contains("HttpTokens=required")));
+    }
+
+    /** Nested role profiles still obtain metadata credentials through IMDSv2. */
+    @Test
+    public void nestedSourceProfileUsesV2() {
+        ProfileFile profiles = nestedProfiles();
+        provider = new ImdsV2CredentialsProvider();
+        ProfileFile firstAttempt = provider.withImdsV1Disabled(profiles);
+        Assert.assertEquals("intermediate", firstAttempt.profile("application").orElseThrow()
+                .property("source_profile").orElseThrow());
+        Assert.assertEquals("bootstrap", firstAttempt.profile("intermediate").orElseThrow()
+                .property("source_profile").orElseThrow());
+        Assert.assertEquals("Ec2InstanceMetadata", firstAttempt.profile("bootstrap").orElseThrow()
+                .property("credential_source").orElseThrow());
+        try (InstanceProfileCredentialsProvider source = InstanceProfileCredentialsProvider.builder()
+                .profileFile(firstAttempt).profileName("bootstrap").build()) {
+            Assert.assertEquals("test-imds-key", source.resolveCredentials().accessKeyId());
+            Assert.assertEquals(1, tokenRequests.get());
+            Assert.assertEquals(0, tokenlessRequests.get());
+        }
+    }
+
+    /** The first attempt must fail before a nested source can silently use IMDSv1. */
+    @Test
+    public void nestedSourceProfileCannotSilentlyFallback() {
+        tokenStatus = 403;
+        ProfileFile profiles = nestedProfiles();
+        provider = new ImdsV2CredentialsProvider();
+        // Mirrors the SDK's metadata provider for a role's credential_source profile.
+        try (InstanceProfileCredentialsProvider source = InstanceProfileCredentialsProvider.builder()
+                .profileFile(provider.withImdsV1Disabled(profiles)).profileName("bootstrap").build()) {
+            Assert.assertThrows(SdkClientException.class, source::resolveCredentials);
+            Assert.assertTrue(tokenRequests.get() > 0);
+            Assert.assertEquals(0, tokenlessRequests.get());
+        }
+        try (InstanceProfileCredentialsProvider fallback = InstanceProfileCredentialsProvider.builder()
+                .profileFile(profiles).profileName("bootstrap").build()) {
+            Assert.assertEquals("test-imds-key", fallback.resolveCredentials().accessKeyId());
+            Assert.assertTrue(tokenlessRequests.get() > 0);
+        }
+    }
+
+    /** An operator's IMDSv1 prohibition also applies to a nested source's retry. */
+    @Test
+    public void nestedSourceProfileRespectsV1Disable() {
+        tokenStatus = 403;
+        ProfileFile profiles = ProfileFile.aggregator()
+                .addFile(ProfileFile.builder().type(ProfileFile.Type.CONFIGURATION)
+                        .content("[profile bootstrap]\nec2_metadata_v1_disabled=true\n").build())
+                .addFile(nestedProfiles()).build();
+        provider = new ImdsV2CredentialsProvider();
+        try (InstanceProfileCredentialsProvider source = InstanceProfileCredentialsProvider.builder()
+                .profileFile(provider.withImdsV1Disabled(profiles)).profileName("bootstrap").build();
+             InstanceProfileCredentialsProvider fallback = InstanceProfileCredentialsProvider.builder()
+                     .profileFile(profiles).profileName("bootstrap").build()) {
+            Assert.assertThrows(SdkClientException.class, source::resolveCredentials);
+            Assert.assertThrows(SdkClientException.class, fallback::resolveCredentials);
+            Assert.assertTrue(tokenRequests.get() > 0);
+            Assert.assertEquals(0, tokenlessRequests.get());
+        }
     }
 
     /** A hard operator prohibition must not issue tokenless requests or claim a fallback. */
@@ -322,6 +383,22 @@ public class ImdsV2CredentialsProviderTest {
         provider = (ImdsV2CredentialsProvider) credentialsProvider;
         Assert.assertEquals("test-imds-key", provider.resolveCredentials().accessKeyId());
         Assert.assertEquals(0, tokenlessRequests.get());
+    }
+
+    private ProfileFile nestedProfiles() {
+        setProperty("aws.profile", "application");
+        return ProfileFile.builder().type(ProfileFile.Type.CONFIGURATION).content("""
+                [profile application]
+                role_arn=arn:aws:iam::123456789012:role/Application
+                source_profile=intermediate
+                [profile intermediate]
+                role_arn=arn:aws:iam::123456789012:role/Intermediate
+                source_profile=bootstrap
+                [profile bootstrap]
+                role_arn=arn:aws:iam::123456789012:role/Bootstrap
+                credential_source=Ec2InstanceMetadata
+                ec2_metadata_v1_disabled=false
+                """).build();
     }
 
     private long errorCount() {
