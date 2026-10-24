@@ -68,6 +68,8 @@ public class CheckHelper {
 
         private boolean failFast;
 
+        private boolean continueOnError;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -175,6 +177,23 @@ public class CheckHelper {
         }
 
         /**
+         * Instruct the command to keep traversing a revision after an
+         * inconsistent node is found, so that all inconsistent nodes are
+         * reported instead of only the first one. Unlike fail-fast, this does
+         * not affect whether further revisions are checked. This parameter is
+         * not required and defaults to {@code false}.
+         *
+         * @param continueOnError {@code true} to report all inconsistent
+         *                        nodes of a revision, {@code false} to stop at
+         *                        the first one.
+         * @return this builder.
+         */
+        public Builder withContinueOnError(boolean continueOnError) {
+            this.continueOnError = continueOnError;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link CheckHelper} command.
          *
          * @return an instance of {@link CheckHelper}.
@@ -196,6 +215,8 @@ public class CheckHelper {
     private final Set<String> filterPaths;
 
     private final boolean failFast;
+
+    private final boolean continueOnError;
 
     private final long debugInterval;
 
@@ -222,6 +243,7 @@ public class CheckHelper {
         this.out = builder.outWriter;
         this.err = builder.errWriter;
         this.failFast = builder.failFast;
+        this.continueOnError = builder.continueOnError;
         this.revisionsCount = builder.revisionsCount;
     }
 
@@ -285,6 +307,11 @@ public class CheckHelper {
 
     private ConsistencyChecker newConsistencyChecker() {
         return new ConsistencyChecker() {
+
+            @Override
+            protected boolean continueOnError() {
+                return continueOnError;
+            }
 
             @Override
             protected void onCheckRevision(String revision) {

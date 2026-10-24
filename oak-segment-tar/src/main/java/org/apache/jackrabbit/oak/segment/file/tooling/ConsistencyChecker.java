@@ -71,6 +71,22 @@ public class ConsistencyChecker {
 
     }
 
+    /**
+     * Whether the traversal of a tree should go on after an inconsistency is
+     * found, so that every inconsistent node is reported through
+     * {@link #onCheckNodeError(String, Exception)} and
+     * {@link #onCheckTreeError(String, Exception)}. By default the traversal
+     * stops at the first inconsistency. When enabled, inconsistent paths found
+     * in newer revisions are not probed first and every tree is traversed in
+     * full, so that each revision reports every inconsistent node that can be
+     * reached.
+     *
+     * @return {@code true} to continue after an inconsistency.
+     */
+    protected boolean continueOnError() {
+        return false;
+    }
+
     protected void onCheckRevision(String revision) {
         // Do nothing.
     }
@@ -215,7 +231,7 @@ public class ConsistencyChecker {
     }
 
     private String checkTreeConsistency(NodeState root, String path, Set<String> corruptedPaths, boolean binaries, boolean head) {
-        String corruptedPath = findFirstCorruptedPathInSet(root, corruptedPaths, binaries);
+        String corruptedPath = continueOnError() ? null : findFirstCorruptedPathInSet(root, corruptedPaths, binaries);
 
         if (corruptedPath != null) {
             return corruptedPath;
@@ -325,7 +341,9 @@ public class ConsistencyChecker {
     /**
      * Check the consistency of a given subtree and returns the first
      * inconsistent path. If provided, this method probes a set of inconsistent
-     * paths before performing a full traversal of the subtree.
+     * paths before performing a full traversal of the subtree, unless
+     * {@link #continueOnError()} is enabled, in which case the probing is
+     * skipped.
      *
      * @param root           The root node of the subtree.
      * @param corruptedPaths A set of possibly inconsistent paths.
@@ -504,28 +522,38 @@ public class ConsistencyChecker {
      * @param checkBinaries if {@code true} full content of binary properties
      *                      will be scanned
      * @return {@code null}, if the node is consistent, or the path of the first
-     * inconsistency otherwise.
+     * inconsistency otherwise. If {@link #continueOnError()} is enabled, the
+     * traversal does not stop at the first inconsistency and the others are
+     * reported through the callbacks.
      */
     private String checkNodeAndDescendants(NodeState node, String path, boolean checkBinaries) {
-        String result = checkNode(node, path, checkBinaries);
-        if (result != null) {
-            return result;
+        String firstError = checkNode(node, path, checkBinaries);
+        if (firstError != null && !continueOnError()) {
+            return firstError;
         }
 
         try {
             for (ChildNodeEntry cne : node.getChildNodeEntries()) {
                 String childName = cne.getName();
                 NodeState child = cne.getNodeState();
-                result = checkNodeAndDescendants(child, concat(path, childName), checkBinaries);
+                String result = checkNodeAndDescendants(child, concat(path, childName), checkBinaries);
                 if (result != null) {
-                    return result;
+                    if (!continueOnError()) {
+                        return result;
+                    }
+                    if (firstError == null) {
+                        firstError = result;
+                    }
                 }
             }
 
-            return null;
+            return firstError;
         } catch (RuntimeException e) {
-            onCheckTreeError(path, e);
-            return path;
+            // checkNode already reported this path when its own record is unreadable
+            if (!path.equals(firstError)) {
+                onCheckTreeError(path, e);
+            }
+            return firstError != null ? firstError : path;
         }
     }
 

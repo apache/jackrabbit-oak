@@ -82,6 +82,8 @@ public class AzureCheck {
 
         private boolean failFast;
 
+        private boolean continueOnError;
+
         private String persistentCachePath;
 
         private Integer persistentCacheSizeGb;
@@ -265,6 +267,23 @@ public class AzureCheck {
         }
 
         /**
+         * Instruct the command to keep traversing a revision after an
+         * inconsistent node is found, so that all inconsistent nodes are
+         * reported instead of only the first one. Unlike fail-fast, this does
+         * not affect whether further revisions are checked. This parameter is
+         * not required and defaults to {@code false}.
+         *
+         * @param continueOnError {@code true} to report all inconsistent
+         *                        nodes of a revision, {@code false} to stop at
+         *                        the first one.
+         * @return this builder.
+         */
+        public Builder withContinueOnError(boolean continueOnError) {
+            this.continueOnError = continueOnError;
+            return this;
+        }
+
+        /**
          * The path where segments in the persistent cache will be stored.
          *
          * @param persistentCachePath
@@ -358,6 +377,8 @@ public class AzureCheck {
 
     private final boolean failFast;
 
+    private final boolean continueOnError;
+
     private final String persistentCachePath;
 
     private final Integer persistentCacheSizeGb;
@@ -379,6 +400,7 @@ public class AzureCheck {
         this.journal = builder.journal;
         this.revisionsCount = revisionsToCheckCount(builder.revisionsCount);
         this.failFast = builder.failFast;
+        this.continueOnError = builder.continueOnError;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
         this.blobContainerClient = builder.blobContainerClient;
@@ -420,6 +442,7 @@ public class AzureCheck {
                 .withCheckHead(checkHead)
                 .withDebugInterval(debugInterval)
                 .withFailFast(failFast)
+                .withContinueOnError(continueOnError)
                 .withFilterPaths(filterPaths)
                 .withRevisionsCount(revisionsCount)
                 .withErrWriter(err)
