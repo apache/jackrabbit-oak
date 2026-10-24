@@ -19,46 +19,37 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.Arrays;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
-import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
-
 /**
  * A cache consisting of a fast and slow component. The fast cache for small items is based
- * on an array, and a slow one uses a LIRS cache.
+ * on an array, and the slow one is a weight-bounded cache from the Oak Cache API.
  */
 public abstract class ReaderCache<T> {
-
-    @NotNull
-    private final Weigher<CacheKey, T> weigher;
-
-    @NotNull
-    private final String name;
-
     /**
-     * The fast (array based) cache.
+     * The fast (array-based) cache.
      */
-    @Nullable
+    @NotNull
     private final FastCache<T> fastCache;
 
     /**
-     * The slower (LIRS) cache, exposed through the Oak Cache API.
+     * The slower, weight-bounded cache, from the Oak Cache API.
+     * {@code null} when the configured weight is non-positive, i.e. the slow cache is disabled.
      */
-    @NotNull
+    @Nullable
     private final Cache<CacheKey, T> cache;
 
     @NotNull
@@ -68,23 +59,21 @@ public abstract class ReaderCache<T> {
      * Create a new string cache.
      *
      * @param maxWeight the maximum memory in bytes.
-     * @param averageWeight  an estimate for the average weight of the elements in the
-     *                       cache. See {@link CacheLIRS#setAverageMemory(int)}.
      * @param weigher   Needed to provide an estimation of the cache weight in memory
      */
-    protected ReaderCache(long maxWeight, int averageWeight,
-            @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
-        this.name = requireNonNull(name);
-        this.weigher = requireNonNull(weigher);
+    protected ReaderCache(long maxWeight, @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
         fastCache = new FastCache<>();
-        cache = CacheLIRS.<CacheKey, T>newBuilder()
-                .module(name)
-                .maximumWeight(maxWeight)
-                .averageWeight(averageWeight)
-                .weigher(weigher::weigh)
-                .build()
-                .asOakCache();
-        cacheStats = new CacheStatsAdapter(cache, name, weigher, maxWeight);
+        if (maxWeight > 0) {
+            cache = CacheBuilder.<CacheKey, T>newBuilder()
+                    .maximumWeight(maxWeight)
+                    .weigher(weigher)
+                    .recordStats()
+                    .build();
+            cacheStats = new CacheStatsAdapter(cache, name, weigher, maxWeight);
+        } else {
+            cache = null;
+            cacheStats = new EmptyCacheStats(name);
+        }
     }
 
     @NotNull
@@ -92,7 +81,39 @@ public abstract class ReaderCache<T> {
         return cacheStats;
     }
 
-    private static int getEntryHash(long lsb, long msb, int offset) {
+    /**
+     * Zeroed stats used when the slow cache is disabled ({@code maxWeight <= 0}).
+     */
+    private static final class EmptyCacheStats extends AbstractCacheStats {
+        private final CacheStats stats;
+
+        EmptyCacheStats(@NotNull String name) {
+            super(name);
+            this.stats = new CacheStats(0, 0, 0, 0, 0, 0);
+        }
+
+        @Override
+        protected CacheStats getCurrentStats() {
+            return stats;
+        }
+
+        @Override
+        public long getElementCount() {
+            return 0;
+        }
+
+        @Override
+        public long estimateCurrentWeight() {
+            return 0;
+        }
+
+        @Override
+        public long getMaxTotalWeight() {
+            return 0;
+        }
+    }
+
+    private static int getEntryHash(long msb, long lsb, int offset) {
         int hash = (int) (msb ^ lsb) + offset;
         hash = ((hash >>> 16) ^ hash) * 0x45d9f3b;
         return (hash >>> 16) ^ hash;
@@ -108,29 +129,37 @@ public abstract class ReaderCache<T> {
      * @return the value
      */
     @NotNull
-    public T get(long msb, long lsb, int offset, Function<Integer, T> loader) {
-        int hash = getEntryHash(msb, lsb, offset);
-        if (fastCache == null) {
-            // disabled cache
-            T value = loader.apply(offset);
-            assert value != null;
-            return value;
-        }
-
-        T value = fastCache.get(hash, msb, lsb, offset);
+    public T get(long msb, long lsb, int offset, IntFunction<T> loader) {
+        T value = fastCache.get(msb, lsb, offset);
         if (value != null) {
             return value;
         }
-        CacheKey key = new CacheKey(hash, msb, lsb, offset);
-        value = cache.getIfPresent(key);
-        if (value == null) {
+
+        if (cache == null) {
             value = loader.apply(offset);
-            assert value != null;
-            cache.put(key, value);
+            /*
+             * Admission to the fast cache depends on a slow cache hit by default.
+             * If the slow cache is disabled (i.e. there will never be a hit),
+             * we populate it on first access to avoid a perpetually empty fast cache.
+             */
+            if (isSmall(value)) {
+                fastCache.put(msb, lsb, offset, value);
+            }
+            return value;
         }
-        if (isSmall(value)) {
-            fastCache.put(hash, new FastCacheEntry<>(hash, msb, lsb, offset, value));
+
+        CacheKey key = new CacheKey(msb, lsb, offset);
+        value = cache.getIfPresent(key);
+        if (value != null) {
+            // slow-cache hit: promote to fast tier
+            if (isSmall(value)) {
+                fastCache.put(msb, lsb, offset, value);
+            }
+            return value;
         }
+
+        value = loader.apply(offset);
+        cache.put(key, value);
         return value;
     }
 
@@ -138,10 +167,10 @@ public abstract class ReaderCache<T> {
      * Clear the cache.
      */
     public void clear() {
-        if (fastCache != null) {
+        if (cache != null) {
             cache.invalidateAll();
-            fastCache.clear();
         }
+        fastCache.clear();
     }
 
     /**
@@ -168,14 +197,13 @@ public abstract class ReaderCache<T> {
         /**
          * Get the string if it is stored.
          *
-         * @param hash the hash
-         * @param msb
-         * @param lsb
+         * @param msb the msb of the segment
+         * @param lsb the lsb of the segment
          * @param offset the offset
          * @return the string, or null
          */
-        T get(int hash, long msb, long lsb, int offset) {
-            int index = hash & (CACHE_SIZE - 1);
+        T get(long msb, long lsb, int offset) {
+            int index = getEntryHash(msb, lsb, offset) & (CACHE_SIZE - 1);
             FastCacheEntry<T> e = elements[index];
             if (e != null && e.matches(msb, lsb, offset)) {
                 return e.value;
@@ -187,92 +215,36 @@ public abstract class ReaderCache<T> {
             Arrays.fill(elements, null);
         }
 
-        void put(int hash, FastCacheEntry<T> entry) {
-            int index = hash & (CACHE_SIZE - 1);
-            elements[index] = entry;
+        void put(long msb, long lsb, int offset, T value) {
+            int index = getEntryHash(msb, lsb, offset) & (CACHE_SIZE - 1);
+            elements[index] = new FastCacheEntry<>(msb, lsb, offset, value);
         }
 
     }
 
-    static class CacheKey {
-        private final int hash;
-        private final long msb, lsb;
-        private final int offset;
-
-        CacheKey(int hash, long msb, long lsb, int offset) {
-            this.hash = hash;
-            this.msb = msb;
-            this.lsb = lsb;
-            this.offset = offset;
-        }
+    protected record CacheKey(long msb, long lsb, int offset) {
 
         @Override
         public int hashCode() {
-            return hash;
+            return getEntryHash(msb, lsb, offset);
         }
 
         @Override
-        public boolean equals(Object other) {
-            if (other == this) {
-                return true;
-            }
-            if (!(other instanceof ReaderCache.CacheKey)) {
-                return false;
-            }
-            CacheKey o = (CacheKey) other;
-            return o.hash == hash && o.msb == msb && o.lsb == lsb &&
-                    o.offset == offset;
-        }
-
-        @Override
-        public String toString() {
+        public @NotNull String toString() {
             return Long.toHexString(msb) +
                 ':' + Long.toHexString(lsb) +
                 '+' + Integer.toHexString(offset);
         }
 
         public int estimateMemoryUsage() {
-            return OBJECT_HEADER_SIZE + 32;
+            return OBJECT_HEADER_SIZE + (3 * Long.BYTES);
         }
     }
 
-    private static class FastCacheEntry<T> {
-
-        private final int hash;
-        private final long msb, lsb;
-        private final int offset;
-        private final T value;
-
-        FastCacheEntry(int hash, long msb, long lsb, int offset, T value) {
-            this.hash = hash;
-            this.msb = msb;
-            this.lsb = lsb;
-            this.offset = offset;
-            this.value = value;
-        }
-
+    private record FastCacheEntry<T>(long msb, long lsb, int offset, T value) {
         boolean matches(long msb, long lsb, int offset) {
-            return this.offset == offset && this.msb == msb && this.lsb == lsb;
+            return (this.offset == offset) && (this.msb == msb) && (this.lsb == lsb);
         }
-
-        @Override
-        public int hashCode() {
-            return hash;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == this) {
-                return true;
-            }
-            if (!(other instanceof FastCacheEntry)) {
-                return false;
-            }
-            FastCacheEntry<?> o = (FastCacheEntry<?>) other;
-            return o.hash == hash && o.msb == msb && o.lsb == lsb &&
-                    o.offset == offset;
-        }
-
     }
 
 }
