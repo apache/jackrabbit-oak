@@ -30,6 +30,11 @@
   <artifactId>oak-query-spi</artifactId>
   <name>Oak Query SPI</name>
   <packaging>bundle</packaging>
+  <properties>
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.20</minimum.line.coverage>
+    <minimum.branch.coverage>0.24</minimum.branch.coverage>
+  </properties>
 
   <build>
       <plugins>

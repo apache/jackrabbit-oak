@@ -32,6 +32,12 @@
 
     <name>Oak Segment Tar</name>
 
+    <properties>
+        <skip.coverage>false</skip.coverage>
+        <minimum.line.coverage>0.71</minimum.line.coverage>
+        <minimum.branch.coverage>0.64</minimum.branch.coverage>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
