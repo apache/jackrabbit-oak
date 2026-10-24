@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
+import org.apache.jackrabbit.oak.segment.file.JournalReadFailure;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -89,7 +90,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
             } finally {
                 journalReader.close();
             }
-        } catch (IOException e) {
+        } catch (IOException | JournalReadFailure e) {
             e.printStackTrace();
         } finally {
             try {
