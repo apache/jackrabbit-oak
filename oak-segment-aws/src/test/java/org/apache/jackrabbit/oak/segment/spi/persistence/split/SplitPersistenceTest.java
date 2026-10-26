@@ -144,7 +144,7 @@ public class SplitPersistenceTest {
         SegmentArchiveManager manager = splitPersistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         for (String archive : manager.listArchives()) {
             SegmentArchiveReader reader = manager.open(archive);
-            BinaryReferencesIndexLoader.parseBinaryReferencesIndex(reader.getBinaryReferences());
+            BinaryReferencesIndexLoader.parseBinaryReferencesIndex(reader.getBinaryReferences().toByteBuffer());
             reader.close();
         }
     }

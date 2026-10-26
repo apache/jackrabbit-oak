@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.azure.v8;
 
 import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.readBufferFully;
 
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -57,7 +58,7 @@ public class AzureSegmentArchiveReaderV8 extends AbstractRemoteSegmentArchiveRea
 
     @Override
     protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
-        readBufferFully(getBlob(segmentFileName), buffer);
+        readBufferFully(getBlob(segmentFileName), buffer.toByteBuffer());
     }
 
     @Override
@@ -85,9 +86,9 @@ public class AzureSegmentArchiveReaderV8 extends AbstractRemoteSegmentArchiveRea
                 return null;
             }
             long length = blob.getProperties().getLength();
-            Buffer buffer = Buffer.allocate((int) length);
+            ByteBuffer buffer = ByteBuffer.allocate((int) length);
             AzureUtilitiesV8.readBufferFully(blob, buffer);
-            return buffer;
+            return Buffer.wrap(buffer);
         } catch (StorageException e) {
             throw new IOException(e);
         }

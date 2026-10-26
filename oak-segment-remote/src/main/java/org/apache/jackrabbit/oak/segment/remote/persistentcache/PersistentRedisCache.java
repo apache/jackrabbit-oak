@@ -31,11 +31,9 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisException;
 import redis.clients.jedis.params.SetParams;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
+import java.nio.ByteBuffer;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -135,15 +133,10 @@ public class PersistentRedisCache extends AbstractPersistentCache {
                 long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
                 redisCacheIOMonitor.afterSegmentRead(null, msb, lsb, bytes.length, elapsed);
 
-                Buffer buffer;
-                if (OFF_HEAP) {
-                    buffer = Buffer.allocateDirect(bytes.length);
-                } else {
-                    buffer = Buffer.allocate(bytes.length);
+                if (!OFF_HEAP) {
+                    return Buffer.wrap(bytes);
                 }
-                buffer.put(bytes);
-                buffer.flip();
-                return buffer;
+                return Buffer.wrap(ByteBuffer.allocateDirect(bytes.length).put(bytes).flip());
             }
         } catch (Exception e) {
             logger.error("Error loading segment {} from cache", segmentId, e);
@@ -168,18 +161,16 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     @Override
     public void writeSegment(long msb, long lsb, Buffer buffer) {
         String segmentId = new UUID(msb, lsb).toString();
-        Buffer bufferCopy = buffer.duplicate();
+        ByteBuffer bufferCopy = buffer.toByteBuffer().duplicate();
 
         Runnable task = () -> {
             if (writesPending.add(segmentId)) {
-                final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                try (WritableByteChannel channel = Channels.newChannel(bos); Jedis redis = redisPool.getResource()) {
-                    while (bufferCopy.hasRemaining()) {
-                        bufferCopy.write(channel);
-                    }
+                try (Jedis redis = redisPool.getResource()) {
+                    final byte[] bytes = new byte[bufferCopy.remaining()];
+                    bufferCopy.get(bytes);
                     final byte[] key = (REDIS_PREFIX + ":" + segmentId).getBytes();
-                    redis.set(key, bos.toByteArray(), setParamsWithExpire);
-                    cacheSize.addAndGet(bos.size());
+                    redis.set(key, bytes, setParamsWithExpire);
+                    cacheSize.addAndGet(bytes.length);
                 } catch (Throwable t) {
                     logger.debug("Unable to write segment {} to cache: {}", segmentId, t.getMessage());
                 } finally {

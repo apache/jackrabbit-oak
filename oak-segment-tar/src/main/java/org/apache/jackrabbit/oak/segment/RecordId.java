@@ -26,7 +26,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -103,12 +103,12 @@ public final class RecordId implements Comparable<RecordId> {
      * @return  this record id as byte array
      */
     @NotNull
-    Buffer getBytes() {
+    ByteBuffer getBytes() {
         byte[] buffer = new byte[SERIALIZED_RECORD_ID_BYTES];
         BinaryUtils.writeLong(buffer, 0, segmentId.getMostSignificantBits());
         BinaryUtils.writeLong(buffer, 8, segmentId.getLeastSignificantBits());
         BinaryUtils.writeInt(buffer, 16, offset);
-        return Buffer.wrap(buffer);
+        return ByteBuffer.wrap(buffer);
     }
 
     //--------------------------------------------------------< Comparable >--

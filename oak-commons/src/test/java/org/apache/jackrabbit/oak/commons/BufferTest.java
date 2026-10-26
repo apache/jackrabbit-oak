@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.commons;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.BufferOverflowException;
+import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.nio.charset.StandardCharsets;
 
@@ -229,5 +231,15 @@ public class BufferTest {
         buffer2.position(4);
         // Exception thrown here, as the copy is read-only
         buffer2.put(byteArray, 0, 1);
+    }
+
+    @Test
+    public void wrapByteBufferSharesState() {
+        ByteBuffer bb = ByteBuffer.allocate(8);
+        Buffer buffer = Buffer.wrap(bb);
+        assertSame(bb, buffer.toByteBuffer());
+        buffer.putInt(42);
+        assertEquals(4, bb.position());
+        assertEquals(42, bb.getInt(0));
     }
 }

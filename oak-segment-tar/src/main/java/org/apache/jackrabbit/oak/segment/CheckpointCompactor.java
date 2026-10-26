@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
@@ -127,7 +127,7 @@ public class CheckpointCompactor extends Compactor {
                 "softCanceller is only supported for compactDown, i.e. when Objects.equals(after, onto)");
 
         Set<String> superRoots = collectSuperRootPaths(before, after);
-        Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
+        ByteBuffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
 
         NodeBuilder rootBuilder = onto.builder();
 

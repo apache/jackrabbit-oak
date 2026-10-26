@@ -37,7 +37,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
@@ -165,9 +165,9 @@ public class Segment {
         this.id = requireNonNull(id);
         this.info = requireNonNull(info);
         if (id.isDataSegmentId()) {
-            this.data = newSegmentData(Buffer.wrap(buffer));
+            this.data = newSegmentData(ByteBuffer.wrap(buffer));
         } else {
-            this.data = newRawSegmentData(Buffer.wrap(buffer));
+            this.data = newRawSegmentData(ByteBuffer.wrap(buffer));
         }
         this.version = SegmentVersion.fromByte(buffer[3]);
         this.recordNumbers = recordNumbers;
@@ -177,7 +177,7 @@ public class Segment {
 
     public Segment(@NotNull SegmentIdProvider idProvider,
                    @NotNull final SegmentId id,
-        @NotNull final Buffer data) {
+        @NotNull final ByteBuffer data) {
         this.id = requireNonNull(id);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(requireNonNull(data).slice());
@@ -329,7 +329,7 @@ public class Segment {
         readBytes(recordNumber, position, length).get(buffer, offset, length);
     }
 
-    public Buffer readBytes(int recordNumber, int position, int length) {
+    public ByteBuffer readBytes(int recordNumber, int position, int length) {
         return data.readBytes(recordNumbers.getOffset(recordNumber) + position, length);
     }
 

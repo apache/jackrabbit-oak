@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -215,7 +216,7 @@ public class SegmentStoreMigrator implements Closeable  {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         Buffer binaryReferences = future.get();
         if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
+            byte[] array = fetchByteArray(binaryReferences.toByteBuffer());
             RETRIER.execute(() -> writer.writeBinaryReferences(array));
         }
     }
@@ -240,14 +241,15 @@ public class SegmentStoreMigrator implements Closeable  {
 
         final SegmentArchiveEntry entry;
 
-        volatile Buffer data;
+        volatile ByteBuffer data;
 
         Segment(SegmentArchiveEntry entry) {
             this.entry = entry;
         }
 
         void read(SegmentArchiveReader reader) throws IOException {
-            data = reader.readSegment(entry.getMsb(), entry.getLsb());
+            Buffer buffer = reader.readSegment(entry.getMsb(), entry.getLsb());
+            data = buffer == null ? null : buffer.toByteBuffer();
         }
 
         void write(SegmentArchiveWriter writer) throws IOException {

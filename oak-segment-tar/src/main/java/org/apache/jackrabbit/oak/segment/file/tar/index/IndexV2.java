@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 
 import static java.util.Objects.checkIndex;
@@ -29,9 +29,9 @@ class IndexV2 implements Index {
 
     static final int FOOTER_SIZE = 16;
 
-    private final Buffer entries;
+    private final ByteBuffer entries;
 
-    IndexV2(Buffer entries) {
+    IndexV2(ByteBuffer entries) {
         this.entries = entries;
     }
 

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static org.apache.jackrabbit.oak.segment.util.Buffers.toByteBuffer;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 
@@ -40,7 +41,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
@@ -323,8 +324,8 @@ public class TarReader implements Closeable {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file.
      */
-    Buffer readEntry(long msb, long lsb) throws IOException {
-        return archive.readSegment(msb, lsb);
+    ByteBuffer readEntry(long msb, long lsb) throws IOException {
+        return toByteBuffer(archive.readSegment(msb, lsb));
     }
 
     /**
@@ -589,7 +590,7 @@ public class TarReader implements Closeable {
      */
     @Nullable BinaryReferencesIndex getBinaryReferences() {
         try {
-            Buffer binaryReferences = archive.getBinaryReferences();
+            ByteBuffer binaryReferences = toByteBuffer(archive.getBinaryReferences());
             if (binaryReferences == null) {
                 // This can happen because segment files and binary references files are flushed one after another in
                 // {@link TarWriter#flush}

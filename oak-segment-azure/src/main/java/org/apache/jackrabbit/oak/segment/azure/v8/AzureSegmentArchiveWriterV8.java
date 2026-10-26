@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.readBu
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -97,14 +98,10 @@ public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWri
 
     @Override
     protected Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry)  throws IOException {
-        Buffer buffer;
-        if (OFF_HEAP) {
-            buffer = Buffer.allocateDirect(indexEntry.getLength());
-        } else {
-            buffer = Buffer.allocate(indexEntry.getLength());
-        }
+        int length = indexEntry.getLength();
+        ByteBuffer buffer = OFF_HEAP ? ByteBuffer.allocateDirect(length) : ByteBuffer.allocate(length);
         readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);
-        return buffer;
+        return Buffer.wrap(buffer);
     }
 
     @Override

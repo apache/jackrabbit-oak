@@ -57,7 +57,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -196,7 +196,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
     @Override
     @NotNull
-    public RecordId writeNode(@NotNull final NodeState state, @Nullable final Buffer stableIdBytes) throws IOException {
+    public RecordId writeNode(@NotNull final NodeState state, @Nullable final ByteBuffer stableIdBytes) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
                 .writeNode(state, stableIdBytes);
     }
@@ -828,7 +828,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return tid;
         }
 
-        private RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
+        private RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
         throws IOException {
             RecordId compactedId = deduplicateNode(state);
 
@@ -855,7 +855,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(childCount));
         }
 
-        private RecordId writeNodeUncached(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
+        private RecordId writeNodeUncached(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
         throws IOException {
 
             RecordId beforeId = null;
@@ -940,9 +940,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             RecordId stableId;
             if (stableIdBytes != null) {
-                Buffer buffer = stableIdBytes.duplicate();
-                byte[] bytes = new byte[buffer.remaining()];
-                buffer.get(bytes);
+                byte[] bytes = new byte[stableIdBytes.remaining()];
+                stableIdBytes.get(stableIdBytes.position(), bytes);
                 stableId = writeBlock(bytes, 0, bytes.length);
             } else {
                 stableId = null;

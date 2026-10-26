@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.util.Buffers.toByteBuffer;
+import static org.apache.jackrabbit.oak.segment.util.Buffers.toBuffer;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 
@@ -31,7 +33,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -253,7 +255,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     private void writeSegment(UUID id, byte[] data, EntryRecovery w) throws IOException {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
-        Buffer buffer = Buffer.wrap(data);
+        ByteBuffer buffer = ByteBuffer.wrap(data);
         GCGeneration generation = SegmentId.isDataSegmentId(lsb)
                 ? Segment.getGcGeneration(newSegmentData(buffer), id)
                 : GCGeneration.NULL;
@@ -339,10 +341,10 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     Segment readSegmentUncached(SegmentId id) {
-        Buffer buffer;
+        ByteBuffer buffer;
         if (persistentCache != null) {
-            buffer = persistentCache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(),
-                    () -> getTarFiles().readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits()));
+            buffer = toByteBuffer(persistentCache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(),
+                    () -> toBuffer(getTarFiles().readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits()))));
         } else {
             buffer = getTarFiles().readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
         }

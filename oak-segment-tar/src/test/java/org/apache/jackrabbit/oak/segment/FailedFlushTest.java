@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarManager;
@@ -163,7 +163,7 @@ public class FailedFlushTest {
                 throw new IOException("Simulated failure before segment write");
             }
             super.writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, compacted);
-            Buffer segmentData = Buffer.wrap(data, offset, size);
+            ByteBuffer segmentData = ByteBuffer.wrap(data, offset, size);
             segmentId2Size.computeIfAbsent(new UUID(msb, lsb), uuid -> new HashSet<>()).add(size);
             if (store != null) {
                 SegmentId id = new SegmentId(store, msb, lsb);

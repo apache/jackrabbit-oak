@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
@@ -90,7 +90,7 @@ public class SegmentBufferMonitorTest {
 
     @Test
     public void heapBuffer() {
-        Buffer buffer = Buffer.allocate(42);
+        ByteBuffer buffer = ByteBuffer.allocate(42);
         segmentBufferMonitor.trackAllocation(buffer);
 
         assertEquals(0, stats.get(DIRECT_BUFFER_COUNT).getCount());
@@ -109,7 +109,7 @@ public class SegmentBufferMonitorTest {
 
     @Test
     public void directBuffer() {
-        Buffer buffer = Buffer.allocateDirect(42);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(42);
         segmentBufferMonitor.trackAllocation(buffer);
 
         assertEquals(1, stats.get(DIRECT_BUFFER_COUNT).getCount());

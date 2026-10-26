@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -638,14 +638,14 @@ public class TarFiles implements Closeable {
         return false;
     }
 
-    public Buffer readSegment(long msb, long lsb) {
+    public ByteBuffer readSegment(long msb, long lsb) {
         try {
             Node head;
 
             lock.readLock().lock();
             try {
                 if (writer != null) {
-                    Buffer b = writer.readEntry(msb, lsb);
+                    ByteBuffer b = writer.readEntry(msb, lsb);
                     if (b != null) {
                         return b;
                     }
@@ -656,7 +656,7 @@ public class TarFiles implements Closeable {
             }
 
             for (TarReader reader : iterable(head)) {
-                Buffer b = reader.readEntry(msb, lsb);
+                ByteBuffer b = reader.readEntry(msb, lsb);
                 if (b != null) {
                     return b;
                 }

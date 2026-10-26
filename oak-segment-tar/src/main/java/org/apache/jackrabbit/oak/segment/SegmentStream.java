@@ -27,7 +27,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
@@ -55,7 +55,7 @@ public class SegmentStream extends InputStream {
 
     private final RecordId recordId;
 
-    private final Buffer inline;
+    private final ByteBuffer inline;
 
     private final ListRecord blocks;
 
@@ -73,7 +73,7 @@ public class SegmentStream extends InputStream {
         this.length = length;
     }
 
-    SegmentStream(RecordId recordId, Buffer inline, int length) {
+    SegmentStream(RecordId recordId, ByteBuffer inline, int length) {
         this.recordId = requireNonNull(recordId);
         this.inline = inline.duplicate();
         this.blocks = null;
@@ -94,7 +94,7 @@ public class SegmentStream extends InputStream {
 
     public String getString() {
         if (inline != null) {
-            return inline.decode(StandardCharsets.UTF_8).toString();
+            return StandardCharsets.UTF_8.decode(inline.duplicate()).toString();
         } else if (length > Integer.MAX_VALUE) {
             throw new IllegalStateException("Too long value: " + length);
         } else {
@@ -152,8 +152,7 @@ public class SegmentStream extends InputStream {
         }
 
         if (inline != null) {
-            inline.position((int) position);
-            inline.get(b, off, len);
+            inline.get((int) position, b, off, len);
         } else {
             int blockIndex = (int) (position / BLOCK_SIZE);
             int blockOffset = (int) (position % BLOCK_SIZE);

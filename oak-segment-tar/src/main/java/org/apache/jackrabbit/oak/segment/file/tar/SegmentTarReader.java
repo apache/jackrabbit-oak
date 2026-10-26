@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import static org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter.getPaddingSize;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
@@ -29,7 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
@@ -78,10 +79,10 @@ public class SegmentTarReader implements SegmentArchiveReader {
         IndexEntry indexEntry = index.entry(i);
         ioMonitor.beforeSegmentRead(file, msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Buffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
+        ByteBuffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
         long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         ioMonitor.afterSegmentRead(file, msb, lsb, indexEntry.getLength(), elapsed);
-        return buffer;
+        return Buffer.wrap(buffer);
     }
 
     @Override
@@ -114,7 +115,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
             return null;
         }
         ReaderAtEnd r = (whence, size) -> {
-            Buffer buffer = Buffer.allocate(size);
+            ByteBuffer buffer = ByteBuffer.allocate(size);
             file.seek(length - 2 * BLOCK_SIZE - whence);
             file.readFully(buffer.array());
             return buffer;
@@ -142,7 +143,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
     public @NotNull Buffer getBinaryReferences() throws IOException {
         try {
             int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
-            return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
+            return Buffer.wrap(BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount)));
         } catch (InvalidBinaryReferencesIndexException e) {
             throw new IOException(e);
         }

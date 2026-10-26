@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -36,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -556,14 +557,14 @@ public class FileStore extends AbstractFileStore {
             Set<String> binaryReferences = null;
 
             if (id.isDataSegmentId()) {
-                Buffer data;
+                ByteBuffer data;
 
                 if (offset > 4096) {
-                    data = Buffer.allocate(length);
+                    data = ByteBuffer.allocate(length);
                     data.put(buffer, offset, length);
                     data.rewind();
                 } else {
-                    data = Buffer.wrap(buffer, offset, length);
+                    data = ByteBuffer.wrap(buffer, offset, length);
                 }
 
                 segment = new Segment(tracker, id, data);
