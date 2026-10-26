@@ -978,7 +978,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 PropertyDefinition pd = planResult.getOrderedProperty(i);
                 PropertyRestriction orderRest = new PropertyRestriction();
                 orderRest.propertyName = oe.getPropertyName();
-                Query q = createQuery(oe.getPropertyName(), orderRest, pd);
+                Query q = createQuery(oe.getPropertyName(), orderRest, pd, false);
                 if (q != null) {
                     qs.add(q);
                 }
@@ -1191,7 +1191,10 @@ public class LucenePropertyIndex extends FulltextIndex {
                 continue;
             }
 
-            Query q = createQuery(planResult.getPropertyName(pr), pr, pd);
+            boolean notNullForNotEqual = pr.isNotNullRestriction()
+                    && filter.getPropertyRestrictions().stream().anyMatch(other ->
+                    name.equals(other.propertyName) && other.isNot && other.not != null);
+            Query q = createQuery(planResult.getPropertyName(pr), pr, pd, notNullForNotEqual);
             if (q != null) {
                 qs.add(q);
             }
@@ -1224,17 +1227,20 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     @Nullable
     private static Query createQuery(String propertyName, PropertyRestriction pr,
-                                     PropertyDefinition defn) {
+                                     PropertyDefinition defn, boolean notNullForNotEqual) {
         int propType = determinePropertyType(defn, pr);
 
         if (pr.isNullRestriction()) {
             return new TermQuery(new Term(FieldNames.NULL_PROPS, defn.name));
         }
 
-        //If notNullCheckEnabled explicitly enabled use the simple TermQuery
-        //otherwise later fallback to range query
         if (pr.isNotNullRestriction() && defn.notNullCheckEnabled) {
             return new TermQuery(new Term(FieldNames.NOT_NULL_PROPS, defn.name));
+        }
+        if (pr.isNotNullRestriction() && !notNullForNotEqual) {
+            // A typed property index can contain values of other JCR types too.
+            // Match any indexed term for the property rather than only its declared numeric type.
+            return new TermRangeQuery(propertyName, null, null, true, true);
         }
 
         switch (propType) {
@@ -1263,7 +1269,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    // not null. As we are indexing generic dates which can be beyond epoch. So using complete numeric range
+                    // Retain typed semantics when the planner also applies a not-equal restriction.
                     return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
@@ -1299,7 +1305,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    // not null.
+                    // Retain typed semantics when the planner also applies a not-equal restriction.
                     return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
@@ -1334,7 +1340,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    // not null.
+                    // Retain typed semantics when the planner also applies a not-equal restriction.
                     return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]

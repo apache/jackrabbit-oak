@@ -614,6 +614,41 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void typedNotNullQueriesIncludeEveryIndexedPropertyType() throws Exception {
+        Tree idx = createIndex("test1", Set.of("dateProp", "longProp", "doubleProp"));
+        idx.addChild(PROP_NODE).addChild("dateProp").setProperty(PROP_TYPE, PropertyType.TYPENAME_DATE);
+        idx.addChild(PROP_NODE).addChild("longProp").setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
+        idx.addChild(PROP_NODE).addChild("doubleProp").setProperty(PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("date").setProperty("dateProp", createCal("14/02/2014"));
+        test.addChild("dateString").setProperty("dateProp", "not-a-date", Type.STRING);
+        test.addChild("long").setProperty("longProp", 10L);
+        test.addChild("longString").setProperty("longProp", "10", Type.STRING);
+        test.addChild("doublePositive").setProperty("doubleProp", 1.0d);
+        test.addChild("doubleZero").setProperty("doubleProp", 0.0d);
+        test.addChild("doubleNegative").setProperty("doubleProp", -1.0d);
+        root.commit();
+
+        String dateQuery = "select [jcr:path] from [nt:base] where [dateProp] is not null";
+        assertThat(explain(dateQuery), containsString("lucene:test1"));
+        assertQuery(dateQuery, List.of("/test/date", "/test/dateString"));
+
+        String dateOrQuery = "select [jcr:path] from [nt:base] where [dateProp] is not null or [longProp] = 10";
+        assertThat(explain(dateOrQuery), containsString("lucene:test1"));
+        assertQuery(dateOrQuery, List.of("/test/date", "/test/dateString", "/test/long"));
+
+        String longQuery = "select [jcr:path] from [nt:base] where [longProp] is not null";
+        assertThat(explain(longQuery), containsString("lucene:test1"));
+        assertQuery(longQuery, List.of("/test/long", "/test/longString"));
+
+        String doubleQuery = "select [jcr:path] from [nt:base] where [doubleProp] is not null";
+        assertThat(explain(doubleQuery), containsString("lucene:test1"));
+        assertQuery(doubleQuery, List.of("/test/doubleNegative", "/test/doublePositive", "/test/doubleZero"));
+    }
+
+    @Test
     public void rangeQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
@@ -1231,7 +1266,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void orderByOnlyWithNonDateStringValuesWithDateTypeReturnsNoResults() throws Exception {
+    public void orderByOnlyWithNonDateStringValuesWithDateTypeReturnsNodesWithProperty() throws Exception {
         // no evaluatePathRestrictions, so the existence query on the date property drives the query
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("dt").propertyIndex().type(PropertyType.TYPENAME_DATE).ordered();
@@ -1244,9 +1279,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("c").setProperty("dt", "Fri Mar 07 2025 18:30:00 GMT+0000");
         root.commit();
 
-        // TODO OAK-12434 these nodes should be returned
         assertOrderedQuery("select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [dt] desc option(traversal fail)",
-                List.of(), SQL2, true);
+                List.of("/test/a", "/test/b", "/test/c"), SQL2, true);
     }
 
     @Test
