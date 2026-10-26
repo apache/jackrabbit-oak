@@ -130,7 +130,7 @@ The credential lookup works as follows:
 2. If credential lookup fails, Oak retries with standard AWS settings. This retry
    still prefers IMDSv2, but allows IMDSv1 fallback unless disabled.
 3. After a successful retry, Oak logs it once and reuses that provider. The SDK
-   handles credential caching and refresh.
+   caches and refreshes credentials, trying IMDSv2 on each metadata refresh.
 
 To disable IMDSv1 fallback in the SDK, use one of these AWS settings:
 
@@ -163,7 +163,7 @@ Oak logs `Using AWS default credentials (IMDSv2 preferred)` at INFO when selecti
 this policy. A successful retry logs the following ERROR once per provider:
 
 ```text
-Credential lookup recovered after retrying with standard AWS settings. Set EC2 HttpTokens=required to prevent IMDSv1 fallback.
+Credential lookup recovered after retrying with standard AWS settings. Verify IMDSv2 access before setting EC2 HttpTokens=required.
 ```
 
 These messages describe the credential policy and retry; they do not prove which

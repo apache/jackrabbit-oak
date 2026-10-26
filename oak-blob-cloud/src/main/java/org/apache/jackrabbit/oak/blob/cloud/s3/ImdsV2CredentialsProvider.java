@@ -88,7 +88,7 @@ final class ImdsV2CredentialsProvider implements AwsCredentialsProvider, SdkAuto
             AwsCredentials credentials = fallback.resolveCredentials();
             if (useFallback.compareAndSet(false, true)) {
                 LOG.error("Credential lookup recovered after retrying with standard AWS settings. "
-                        + "Set EC2 HttpTokens=required to prevent IMDSv1 fallback.");
+                        + "Verify IMDSv2 access before setting EC2 HttpTokens=required.");
             }
             return credentials;
         }

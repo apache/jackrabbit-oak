@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,8 +47,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.profiles.ProfileFile;
@@ -70,6 +74,10 @@ public class ImdsV2CredentialsProviderTest {
     private HttpServer server;
     private ExecutorService serverExecutor;
     private volatile int tokenStatus = 200;
+    private volatile int credentialsStatus = 200;
+    private volatile long credentialLifetimeSeconds = 3600;
+    private volatile String credentialAccessKey = "test-imds-key";
+    private volatile String credentialSessionToken = "test-session";
     private volatile boolean holdFallback;
     private Path config;
     private Path credentials;
@@ -147,6 +155,18 @@ public class ImdsV2CredentialsProviderTest {
         Assert.assertEquals(0, errorCount());
     }
 
+    /** The SDK selects its default profile when neither profile selector is set. */
+    @Test
+    public void unsetProfileUsesSdkDefault() {
+        Assume.assumeTrue("AWS_PROFILE must be unset", System.getenv("AWS_PROFILE") == null);
+        setProperty("aws.profile", null);
+        provider = new ImdsV2CredentialsProvider();
+        Assert.assertEquals("test-imds-key", provider.resolveCredentials().accessKeyId());
+        Assert.assertEquals(1, tokenRequests.get());
+        Assert.assertEquals(0, tokenlessRequests.get());
+        Assert.assertEquals(0, errorCount());
+    }
+
     /** Keeps the compatibility retry visible for a selected named profile. */
     @Test
     public void namedProfileFallbackIsVisible() throws Exception {
@@ -158,7 +178,8 @@ public class ImdsV2CredentialsProviderTest {
         Assert.assertTrue(tokenlessRequests.get() > 0);
         Assert.assertEquals(1, errorCount());
         Assert.assertTrue(logs.list.stream().anyMatch(event ->
-                event.getFormattedMessage().contains("HttpTokens=required")));
+                event.getFormattedMessage().contains(
+                        "Verify IMDSv2 access before setting EC2 HttpTokens=required.")));
     }
 
     /** Nested role profiles still obtain metadata credentials through IMDSv2. */
@@ -279,6 +300,36 @@ public class ImdsV2CredentialsProviderTest {
         Assert.assertEquals(1, errorCount());
     }
 
+    /** A compatibility provider returns to IMDSv2 when its cached credentials refresh. */
+    @Test
+    public void fallbackRefreshReturnsToV2() {
+        Instant initialTime = Instant.now();
+        Clock sdkClock = Mockito.mock(Clock.class);
+        Mockito.when(sdkClock.instant()).thenReturn(initialTime);
+        try (MockedStatic<Clock> clocks = Mockito.mockStatic(Clock.class, Mockito.CALLS_REAL_METHODS)) {
+            clocks.when(Clock::systemUTC).thenReturn(sdkClock);
+            tokenStatus = 403;
+            provider = new ImdsV2CredentialsProvider();
+            Assert.assertEquals("test-imds-key", provider.resolveCredentials().accessKeyId());
+            int initialTokenRequests = tokenRequests.get();
+            int initialTokenlessRequests = tokenlessRequests.get();
+            Assert.assertTrue(initialTokenlessRequests > 0);
+            Assert.assertEquals(1, errorCount());
+
+            tokenStatus = 200;
+            credentialLifetimeSeconds = 10800;
+            credentialAccessKey = "refreshed-imds-key";
+            credentialSessionToken = "refreshed-session";
+            Mockito.when(sdkClock.instant()).thenReturn(initialTime.plusSeconds(7200));
+            AwsSessionCredentials refreshed = (AwsSessionCredentials) provider.resolveCredentials();
+            Assert.assertEquals("refreshed-imds-key", refreshed.accessKeyId());
+            Assert.assertEquals("refreshed-session", refreshed.sessionToken());
+            Assert.assertTrue(tokenRequests.get() > initialTokenRequests);
+            Assert.assertEquals(initialTokenlessRequests, tokenlessRequests.get());
+            Assert.assertEquals(1, errorCount());
+        }
+    }
+
     /** Concurrent initial failures must emit only one successful-fallback diagnostic. */
     @Test
     public void concurrentFallbackLogsOnce() throws Exception {
@@ -364,6 +415,23 @@ public class ImdsV2CredentialsProviderTest {
         Assert.assertEquals(0, errorCount());
     }
 
+    /** A failed compatibility retry leaves the next lookup on the IMDSv2-first path. */
+    @Test
+    public void doubleFailureRetriesV2OnNextLookup() {
+        tokenStatus = 403;
+        credentialsStatus = 403;
+        provider = new ImdsV2CredentialsProvider();
+        Assert.assertThrows(SdkClientException.class, provider::resolveCredentials);
+        Assert.assertTrue(tokenlessRequests.get() > 0);
+        Assert.assertEquals(0, errorCount());
+        int initialTokenRequests = tokenRequests.get();
+
+        credentialsStatus = 200;
+        Assert.assertEquals("test-imds-key", provider.resolveCredentials().accessKeyId());
+        Assert.assertEquals(initialTokenRequests + 2, tokenRequests.get());
+        Assert.assertEquals(1, errorCount());
+    }
+
     /** Explicit Oak access keys bypass the new environment credential policy. */
     @Test
     public void staticOakCredentialsAreUnchanged() {
@@ -443,10 +511,14 @@ public class ImdsV2CredentialsProviderTest {
                     throw new IOException(e);
                 }
             }
+            if (path.endsWith("/test-role")) {
+                status = credentialsStatus;
+            }
             body = path.endsWith("/") ? "test-role" : """
-                    {"Code":"Success","AccessKeyId":"test-imds-key","SecretAccessKey":"test-secret",
-                    "Token":"test-session","Expiration":"%s"}
-                    """.formatted(Instant.now().plusSeconds(3600));
+                    {"Code":"Success","AccessKeyId":"%s","SecretAccessKey":"test-secret",
+                    "Token":"%s","Expiration":"%s"}
+                    """.formatted(credentialAccessKey, credentialSessionToken,
+                            Instant.now().plusSeconds(credentialLifetimeSeconds));
         }
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(status, bytes.length);
