@@ -88,6 +88,8 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private TreePermission rootPermission = null; // initialized lazily
 
+    private volatile boolean reevaluatePermissions = true;
+
     /**
      * Create the {@code SecureNodeBuilder} for the root node.
      *
@@ -158,8 +160,7 @@ class SecureNodeBuilder implements NodeBuilder {
 
     public void baseChanged() {
         Validate.checkState(parent == null);
-        treePermission = null; // trigger re-evaluation
-        rootPermission = null;
+        reevaluatePermissions = true;
     }
 
     @Override
@@ -350,8 +351,7 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     @NotNull
     private TreePermission getTreePermission() {
-        if (treePermission == null
-                || rootPermission != rootBuilder.treePermission) {
+        if (isPermissionEvaluationNeeded()) {
             NodeState base = builder.getBaseState();
             String msg = "see OAK-11790 and OAK-11843";
             if (parent == null) {
@@ -364,8 +364,16 @@ class SecureNodeBuilder implements NodeBuilder {
                 treePermission = Objects.requireNonNull(parentTreePermission.getChildPermission(name, base), msg);
                 rootPermission = parent.rootPermission;
             }
+            reevaluatePermissions = false;
         }
         return treePermission;
+    }
+
+    private boolean isPermissionEvaluationNeeded() {
+        if (rootPermission != rootBuilder.treePermission) {
+            reevaluatePermissions = true;
+        }
+        return reevaluatePermissions;
     }
 
     private static boolean isType(@Nullable PropertyState property, Type<?> type) {
