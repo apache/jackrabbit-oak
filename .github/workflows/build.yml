@@ -29,7 +29,8 @@ concurrency:
 jobs:
   build:
     name: Maven Build
-    runs-on: ubuntu-latest
+    # MongoDB 8.0 rejects newer kernels; see actions/runner-images#15005.
+    runs-on: ubuntu-22.04
     steps:
       - name: Git clone
         uses: actions/checkout@v4
