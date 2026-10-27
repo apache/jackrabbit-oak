@@ -418,10 +418,12 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return s3Uri.key().orElse(null);
     }
 
-    private static boolean isLocalPathStyleUri(URI uri) {
+    static boolean isLocalPathStyleUri(URI uri) {
         String host = uri.getHost();
+        String configuredHost = URI.create(getS3Config().getProperty(S3Constants.S3_END_POINT, "")).getHost();
         String path = uri.getPath();
-        return ("127.0.0.1".equals(host) || "localhost".equals(host))
+        return ("127.0.0.1".equals(host) || "localhost".equals(host)
+                || (host != null && host.equals(configuredHost)))
                 && path != null
                 && path.substring(1).contains("/");
     }

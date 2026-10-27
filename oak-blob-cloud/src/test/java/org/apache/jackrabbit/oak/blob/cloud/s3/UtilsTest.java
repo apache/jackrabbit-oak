@@ -333,6 +333,46 @@ public class UtilsTest {
         withS3Config(props, () -> Assert.assertFalse(S3DataStoreUtils.isS3EmulatorConfigured()));
     }
 
+    @Test
+    public void isS3EmulatorConfiguredReturnsTrueForRemoteDockerProperties() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "http://docker.example.com:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> Assert.assertTrue(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    @Test
+    public void isS3EmulatorConfiguredReturnsTrueForLocalhostProperties() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "http://localhost:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> Assert.assertTrue(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    @Test
+    public void remoteEmulatorUrisUsePathStyleParsing() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "http://docker.example.com:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> {
+            Assert.assertTrue(TestS3Ds.isLocalPathStyleUri(
+                    URI.create("http://docker.example.com:49152/bucket/folder/key")));
+            Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(
+                    URI.create("https://bucket.s3.us-east-1.amazonaws.com/folder/key")));
+            Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(
+                    URI.create("http://docker.example.com:49152/key")));
+        });
+    }
+
     private static Properties clientProperties() {
         Properties props = new Properties();
         props.setProperty(S3Constants.ACCESS_KEY, "accessKey");
