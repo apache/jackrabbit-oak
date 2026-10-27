@@ -311,6 +311,7 @@ public final class Utils {
      *   <li>https://bucket.s3.eu-west-1.amazonaws.com</li>
      *   <li>s3.eu-west-1.amazonaws.com</li>
      *   <li>https://s3.amazonaws.com (returns us-east-1)</li>
+     *   <li>https://s3-accelerate.amazonaws.com (returns null; the region must be configured separately)</li>
      * </ul>
      * If the region cannot be determined, returns null.
      *
@@ -327,7 +328,8 @@ public final class Utils {
             Matcher matcher = pattern.matcher(host);
 
             if (matcher.find()) {
-                return matcher.group(1);
+                String region = matcher.group(1);
+                return "accelerate".equals(region) ? null : region;
             }
 
             // Handle us-east-1 special case (s3.amazonaws.com)
