@@ -33,6 +33,10 @@
     <name>Oak Segment AWS</name>
 
     <properties>
+        <skip.coverage>false</skip.coverage>
+        <minimum.line.coverage>0.99</minimum.line.coverage>
+        <minimum.branch.coverage>0.99</minimum.branch.coverage>
+
         <aws.version>1.12.791</aws.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
     </properties>
