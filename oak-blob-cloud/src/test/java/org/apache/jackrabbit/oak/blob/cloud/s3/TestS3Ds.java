@@ -394,9 +394,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
         }
     }
 
-    private static String extractBucketFromUri(S3Client s3Client, URI uri) {
+    static String extractBucketFromUri(S3Client s3Client, URI uri) {
         LOG.info("Extracting bucket from URI {}", uri);
-        if (isLocalPathStyleUri(uri)) {
+        if (isLocalPathStyleUri(uri, s3Client.serviceClientConfiguration().endpointOverride().orElse(null))) {
             return uri.getPath().substring(1).split("/", 2)[0];
         }
         S3Utilities s3Utilities = s3Client.utilities();
@@ -406,9 +406,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return s3Uri.bucket().orElse(null);
     }
 
-    private static String extractKeyFromUri(S3Client s3Client, URI uri) {
+    static String extractKeyFromUri(S3Client s3Client, URI uri) {
         LOG.info("Extracting key from URI {}", uri);
-        if (isLocalPathStyleUri(uri)) {
+        if (isLocalPathStyleUri(uri, s3Client.serviceClientConfiguration().endpointOverride().orElse(null))) {
             return uri.getPath().substring(1).split("/", 2)[1];
         }
         S3Utilities s3Utilities = s3Client.utilities();
@@ -418,9 +418,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return s3Uri.key().orElse(null);
     }
 
-    static boolean isLocalPathStyleUri(URI uri) {
+    static boolean isLocalPathStyleUri(URI uri, @Nullable URI endpoint) {
         String host = uri.getHost();
-        String configuredHost = URI.create(getS3Config().getProperty(S3Constants.S3_END_POINT, "")).getHost();
+        String configuredHost = endpoint == null ? null : endpoint.getHost();
         String path = uri.getPath();
         return ("127.0.0.1".equals(host) || "localhost".equals(host)
                 || (host != null && host.equals(configuredHost)))
