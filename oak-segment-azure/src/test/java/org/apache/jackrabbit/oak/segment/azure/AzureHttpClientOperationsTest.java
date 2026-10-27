@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import com.azure.core.credential.TokenRequestContext;
@@ -35,11 +37,13 @@ import com.azure.storage.common.policy.RetryPolicyType;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.util.ReferenceCountUtil;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.Assert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,6 +65,8 @@ public class AzureHttpClientOperationsTest {
     private static final String LAST_MODIFIED = "Wed, 21 Oct 2026 00:00:00 GMT";
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
+    private final List<SslContext> sslContexts = new ArrayList<>();
+
     @Rule
     public final MockServerRule server = new MockServerRule(this);
 
@@ -71,6 +77,17 @@ public class AzureHttpClientOperationsTest {
     public void setUp() {
         server.getClient().when(HttpRequest.request(), Times.unlimited(), TimeToLive.unlimited(), -1)
                 .respond(HttpResponse.response().withStatusCode(404));
+    }
+
+    /**
+     * Releases SSL context references owned by the test, including native contexts when available.
+     */
+    @After
+    public void releaseSslContexts() {
+        for (SslContext context : sslContexts) {
+            ReferenceCountUtil.release(context);
+        }
+        sslContexts.clear();
     }
 
     /**
@@ -218,6 +235,7 @@ public class AzureHttpClientOperationsTest {
             Assert.assertNotNull(certificate);
             sslContext = SslContextBuilder.forClient().trustManager(certificate).build();
         }
+        sslContexts.add(sslContext);
         HttpClient transport = HttpClient.create().secure(ssl -> ssl.sslContext(sslContext));
         return new NettyAsyncHttpClientBuilder(transport)
                 .configuration(Configuration.NONE)

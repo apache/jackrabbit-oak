@@ -16,10 +16,44 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureHttpClientTest;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Runs the proxy compatibility tests with the dependencies used by {@link AzurePersistenceManager}.
  */
 public class AzureSegmentHttpClientTest extends AzureHttpClientTest {
+
+    /**
+     * Builds Oak's SAS-authenticated clients, including its logging and retry policies, without sending requests.
+     */
+    @Test
+    public void buildsPersistenceWithSasThroughProductionFactory() throws IOException {
+        AzurePersistence persistence = AzurePersistenceManager.createAzurePersistenceFrom(
+                "account", "container", "root", "sig=test");
+
+        assertClientEndpoints(persistence);
+    }
+
+    /**
+     * Builds Oak's service-principal clients without acquiring a token or creating a remote container.
+     */
+    @Test
+    public void buildsPersistenceWithServicePrincipalThroughProductionFactory() {
+        AzurePersistence persistence = AzurePersistenceManager.createPersistenceFromServicePrincipalCredentials(
+                "account", "container", "root", "test-client", "test-secret", "test-tenant", false, false);
+
+        assertClientEndpoints(persistence);
+    }
+
+    private static void assertClientEndpoints(AzurePersistence persistence) {
+        String expected = "https://account.blob.core.windows.net/container";
+        Assert.assertEquals(expected, persistence.readBlobContainerClient.getBlobContainerUrl());
+        Assert.assertEquals(expected, persistence.writeBlobContainerClient.getBlobContainerUrl());
+        Assert.assertEquals(expected, persistence.noRetryBlobContainerClient.getBlobContainerUrl());
+        Assert.assertNotNull(persistence.azureHttpRequestLoggingPolicy);
+    }
 }
