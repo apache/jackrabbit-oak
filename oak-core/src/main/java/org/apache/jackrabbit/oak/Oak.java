@@ -589,6 +589,10 @@ public class Oak {
             LOG.info("Registered ignore limit in index selection feature: " + QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION);
             closer.register(ignoreLimitInIndexSelection);
             queryEngineSettings.setIgnoreLimitInIndexSelectionFeature(ignoreLimitInIndexSelection);
+            Feature disableWarnSlashPropertyName = newFeature(QueryEngineSettings.FT_DISABLE_WARN_SLASH_PROPERTY_NAME, whiteboard);
+            LOG.info("Registered disable warn slash property name feature: " + QueryEngineSettings.FT_DISABLE_WARN_SLASH_PROPERTY_NAME);
+            closer.register(disableWarnSlashPropertyName);
+            queryEngineSettings.setDisableWarnSlashPropertyNameFeature(disableWarnSlashPropertyName);
             Feature opFunctionFeature = newFeature(QueryEngineSettings.FT_OP_FUNCTION, whiteboard);
             LOG.info("Registered op(a, operator, b) function feature: " + QueryEngineSettings.FT_OP_FUNCTION);
             closer.register(opFunctionFeature);
@@ -1014,6 +1018,10 @@ public class Oak {
 
         public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
             settings.setIgnoreLimitInIndexSelectionFeature(feature);
+        }
+
+        public void setDisableWarnSlashPropertyNameFeature(@Nullable Feature feature) {
+            settings.setDisableWarnSlashPropertyNameFeature(feature);
         }
 
         public void setOpFunctionFeature(@Nullable Feature feature) {
