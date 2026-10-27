@@ -26,6 +26,20 @@ Before deploying a MongoDocumentStore on MongoDB, make sure recommendations
 described in [production notes](https://docs.mongodb.com/manual/administration/production-notes/)
 have been applied.
 
+Starting with Oak 2.10.0, the minimum MongoDB server version depends on the
+Java driver in use:
+
+Java driver | Minimum MongoDB server
+------------|-----------------------
+5.2 - 5.4 | 4.0
+5.5 | 4.2
+
+Upgrade MongoDB before switching to a driver that requires a newer server.
+
+For production, use a release covered by
+[MongoDB's support policy](https://www.mongodb.com/legal/support-policy/lifecycles).
+MongoDB 6.0 and earlier have reached end of life.
+
 The recommended MongoDB version depends on the Oak release. Below table lists
 the recommended MongoDB version for each Oak release. More recent MongoDB
 versions may also work, but are untested.
@@ -40,6 +54,7 @@ Oak Release | MongoDB version
 1.8.7 or newer | 3.6.x
 1.22.x or newer | 5.0.x
 1.62.0 or newer | 5.0 (soon 6.0)
+2.10.0 or newer | 8.0.x
 
 For production deployments use a replica-set with at least three mongod
 instances and a majority write concern. Fewer than three instances (e.g. two

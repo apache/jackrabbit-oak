@@ -47,7 +47,6 @@ import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 public class MongoStatusTest {
@@ -107,26 +106,6 @@ public class MongoStatusTest {
     @Test
     public void testGetVersion() {
         assertTrue(status.getVersion().matches("^\\d+\\.\\d+\\.\\d+$"));
-    }
-
-    @Test
-    public void testCheckVersionValid() {
-        for (String v : new String[] { "2.6.0", "2.7.0", "3.0.0"}) {
-            status.setVersion(v);
-            status.checkVersion();
-        }
-    }
-
-    @Test
-    public void testCheckVersionInvalid() {
-        for (String v : new String[] { "1.0.0", "2.0.0", "2.5.0"}) {
-            status.setVersion(v);
-            try {
-                status.checkVersion();
-                fail("Version " + v + " shouldn't be allowed");
-            } catch (Exception e) {
-            }
-        }
     }
 
     @Test
