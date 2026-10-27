@@ -17,17 +17,12 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.ServiceLoader;
 
 import javax.jcr.RepositoryException;
 
 import joptsimple.OptionSet;
 
-import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
-import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
@@ -72,11 +67,7 @@ public class OakUpgrade {
         CliUtils.handleSigInt(closer);
         MigrationFactory factory = new MigrationFactory(options, stores, datastores, closer);
         try {
-            if (stores.getSrcStore().isJcr2()) {
-                upgrade(factory);
-            } else {
-                sidegrade(factory);
-            }
+            sidegrade(factory);
         } catch (Throwable t) {
             throw closer.rethrow(t);
         } finally {
@@ -84,18 +75,7 @@ public class OakUpgrade {
         }
     }
 
-    private static void upgrade(MigrationFactory migrationFactory) throws IOException, RepositoryException, CliArgumentException {
-        migrationFactory.createUpgrade().copy(createCompositeInitializer());
-    }
-
     private static void sidegrade(MigrationFactory migrationFactory) throws IOException, RepositoryException, CliArgumentException {
         migrationFactory.createSidegrade().copy();
     }
-
-    private static RepositoryInitializer createCompositeInitializer() {
-        ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(RepositoryInitializer.class);
-        List<RepositoryInitializer> initializers = ListUtils.toList(loader.iterator());
-        return new CompositeInitializer(initializers);
-    }
-
 }
