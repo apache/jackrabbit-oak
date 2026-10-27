@@ -369,7 +369,7 @@ public final class Utils {
             endPoint = propEndPoint;
         } else {
             // in aws sdk 2.x, there is no us-standard region. us-east-1 should be used in its place.
-            endPoint = (accReq ? S3_ACCELERATION : S3) + DOT + region + DOT + AWSDOTCOM;
+            endPoint = (accReq ? S3_ACCELERATION : S3 + DOT + region) + DOT + AWSDOTCOM;
 
         }
 
