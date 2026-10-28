@@ -26,34 +26,15 @@ import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests that Caffeine cache maintenance (eviction, removal notification) is dispatched
- * off the calling thread, per OAK-12290.
+ * Tests Caffeine maintenance modes, default execution, and refresh/zero-capacity exceptions.
  */
 public class CacheBuilderMaintenanceTest {
 
     private static final long TIMEOUT_SECONDS = 10;
-    private boolean incomingMaintenance;
-
-    /**
-     * The toggle is process-wide static state, so reset it around every test - a test that leaked
-     * inline maintenance would silently change the behaviour asserted by every later test in the
-     * same JVM.
-     */
-    @Before
-    public void enableOak12290Toggle() {
-        incomingMaintenance = CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.getAndSet(true);
-    }
-
-    @After
-    public void resetOak12290Toggle() {
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(incomingMaintenance);
-    }
 
     /** Maintenance triggered by a write must not be executed by the writing thread. */
     @Test
@@ -109,28 +90,6 @@ public class CacheBuilderMaintenanceTest {
                 maintenanceDone.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
     }
 
-    /** Disabling the toggle restores the previous inline-maintenance behaviour. */
-    @Test
-    public void toggleDisabledRunsMaintenanceInline() {
-        AtomicReference<Thread> evictionThread = new AtomicReference<>();
-
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
-        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                .maximumSize(1)
-                .evictionListener((k, v, cause) -> {
-                    if (cause == EvictionCause.SIZE) {
-                        evictionThread.set(Thread.currentThread());
-                    }
-                })
-                .build();
-
-        cache.put("k1", "v1");
-        cache.put("k2", "v2");
-
-        Assert.assertSame("maintenance should run inline when the toggle is off",
-                Thread.currentThread(), evictionThread.get());
-    }
-
     /** Oak's pool keeps maintenance working when the application's common pool has no workers. */
     @Test
     public void maintenanceRunsOnOakOwnedThread() throws InterruptedException {
@@ -158,7 +117,7 @@ public class CacheBuilderMaintenanceTest {
 
     /** Refresh runs off the caller so slow reloads cannot block reads. */
     @Test
-    public void refreshRunsOffCallerThreadRegardlessOfToggle() throws InterruptedException {
+    public void refreshRunsOffCallerThreadByDefault() throws InterruptedException {
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
         CountDownLatch reloaded = new CountDownLatch(1);
         CountDownLatch firstLoadDone = new CountDownLatch(1);
@@ -187,39 +146,6 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), reloadThread.get());
         Assert.assertTrue("refresh ran on an unexpected thread: " + reloadThread.get().getName(),
                 reloadThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
-    }
-
-    /** Same guarantee with the toggle explicitly off, since refresh ignores it either way. */
-    @Test
-    public void refreshRunsOffCallerThreadWithToggleDisabled() throws InterruptedException {
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
-
-        AtomicReference<Thread> reloadThread = new AtomicReference<>();
-        CountDownLatch reloaded = new CountDownLatch(1);
-        CountDownLatch firstLoadDone = new CountDownLatch(1);
-
-        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                .maximumSize(10)
-                .refreshAfterWrite(Duration.ofMillis(1))
-                .build(key -> {
-                    if (firstLoadDone.getCount() == 0) {
-                        reloadThread.set(Thread.currentThread());
-                        reloaded.countDown();
-                    }
-                    return "v";
-                });
-
-        cache.get("k");
-        firstLoadDone.countDown();
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
-            Thread.sleep(5);
-            cache.get("k");
-        }
-
-        Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        Assert.assertNotSame("refresh must not run on the thread that triggered it",
-                Thread.currentThread(), reloadThread.get());
     }
 
     /** Refresh and eviction share the asynchronous executor. */
@@ -305,21 +231,6 @@ public class CacheBuilderMaintenanceTest {
                 cache.getIfPresent("k1"));
     }
 
-    /** Zero-capacity stays inline even with the toggle explicitly off, since it never consults the toggle. */
-    @Test
-    public void zeroMaximumSizeEvictsSynchronouslyWithToggleDisabled() {
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
-
-        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                .maximumSize(0)
-                .build();
-
-        cache.put("k1", "v1");
-
-        Assert.assertNull("a zero-capacity cache must not retain the entry past the put() call",
-                cache.getIfPresent("k1"));
-    }
-
     /** Overwriting an existing key must notify the listener with {@link EvictionCause#REPLACED}, asynchronously. */
     @Test
     public void replacingAnEntryNotifiesListenerOffCallerThread() throws InterruptedException {
@@ -352,37 +263,30 @@ public class CacheBuilderMaintenanceTest {
         CacheBuilder.newBuilder().maintenanceMode(null);
     }
 
-    /** An explicit ASYNC request wins over the disabled legacy toggle. */
+    /** The last mode selection determines which executor the cache uses. */
     @Test
-    public void explicitAsyncModeOverridesLegacyToggle() throws InterruptedException {
-        boolean incoming = CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get();
-        try {
-            CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
-            AtomicReference<Thread> callbackThread = new AtomicReference<>();
-            CountDownLatch removed = new CountDownLatch(1);
-            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumSize(1)
-                    .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
-                    .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
-                    .evictionListener((key, value, cause) -> {
-                        callbackThread.set(Thread.currentThread());
-                        removed.countDown();
-                    }).build();
-            cache.put("key", "value");
-            cache.invalidate("key");
-            Assert.assertTrue(removed.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            Assert.assertNotSame(Thread.currentThread(), callbackThread.get());
-            Assert.assertTrue("explicit ASYNC must use Oak's maintenance pool",
-                    callbackThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
-        } finally {
-            CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(incoming);
-        }
+    public void laterAsyncSelectionOverridesSynchronousMode() throws InterruptedException {
+        AtomicReference<Thread> callbackThread = new AtomicReference<>();
+        CountDownLatch removed = new CountDownLatch(1);
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(1)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .evictionListener((key, value, cause) -> {
+                    callbackThread.set(Thread.currentThread());
+                    removed.countDown();
+                }).build();
+        cache.put("key", "value");
+        cache.invalidate("key");
+        Assert.assertTrue(removed.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertNotSame(Thread.currentThread(), callbackThread.get());
+        Assert.assertTrue("explicit ASYNC must use Oak's maintenance pool",
+                callbackThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
     }
 
     /** Explicit SYNC keeps eviction callbacks on the caller. */
     @Test
     public void synchronousMaintenanceRunsInline() {
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(true);
         AtomicReference<Thread> evictionThread = new AtomicReference<>();
 
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()

@@ -18,6 +18,7 @@
 # Oak Segment Tar
 
 * [Overview](#overview)
+* [Cache maintenance](#cache-maintenance)
 * [Garbage Collection](#garbage-collection)
     * [Generational Garbage Collection](#generational-garbage-collection)
     * [Estimation, Compaction and Cleanup](#estimation-compaction-cleanup)
@@ -55,6 +56,20 @@ The *journal* is a special, atomically updated file that records the state of th
 Oak Segment Tar is an evolution of a [previous implementation](../segmentmk.html). Upgrading requires [migrating](../../migration.html) to the [new storage format](changes.html). 
 
 See [Design of Oak Segment Tar](classes.html) for a high level design overview of Oak Segment Tar.   
+
+## <a name="cache-maintenance"/> Cache maintenance
+
+With OAK-12438, `FT_OAK-12290` controls only Segment Tar's `SegmentCache` and
+`RecordCache`. ASYNC remains the default. Disabling the toggle selects SYNC for
+caches created afterwards; existing caches retain their mode. Apply the desired
+state before recreating caches. A service restart in the same class loader
+retains the state, while a new JVM or bundle class loader resets it to ASYNC.
+New RecordCache generations also sample the current state.
+
+The shared `CacheBuilder.FT_OAK_12290` and
+`CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED` fields are removed.
+Other Caffeine caches no longer consult this toggle and default to ASYNC unless
+the caller selects a mode with `CacheBuilder.maintenanceMode(...)`.
 
 ## <a name="garbage-collection"/> Garbage Collection
 
