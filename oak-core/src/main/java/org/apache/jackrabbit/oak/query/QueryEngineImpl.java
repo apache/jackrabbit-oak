@@ -171,6 +171,19 @@ public abstract class QueryEngineImpl implements QueryEngine {
         settings.getQueryValidator().checkStatement(statement);
 
         QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
+        if (settings.isQueryOptimizerEnabled() && !isInternal) {
+            String rewritten = settings.getQueryOptimizer().rewrite(
+                    statement, language, settings.getQueryLengthErrorLimit());
+            if (!statement.equals(rewritten)) {
+                settings.getQueryValidator().checkStatement(rewritten);
+                if (rewritten.length() > settings.getQueryLengthWarnLimit()) {
+                    LOG.warn("Rewritten query length {} breached queryWarnLimit {}",
+                            rewritten.length(), settings.getQueryLengthWarnLimit());
+                }
+                LOG.info("Rewriting {} query: {} to {}", language, statement, rewritten);
+                statement = rewritten;
+            }
+        }
 
         SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
         if (language.endsWith(NO_LITERALS)) {

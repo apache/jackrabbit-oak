@@ -597,6 +597,10 @@ public class Oak {
             LOG.info("Registered XML name characters in path feature: " + QueryEngineSettings.FT_XML_NAME_CHARS_IN_PATH);
             closer.register(xmlNameCharsInPath);
             queryEngineSettings.setXmlNameCharsInPathFeature(xmlNameCharsInPath);
+            Feature queryOptimizer = newFeature(QueryEngineSettings.FT_QUERY_OPTIMIZER, whiteboard);
+            LOG.info("Registered query optimizer feature: " + QueryEngineSettings.FT_QUERY_OPTIMIZER);
+            closer.register(queryOptimizer);
+            queryEngineSettings.unwrap().setQueryOptimizerFeature(queryOptimizer);
         }
 
         return this;
@@ -789,6 +793,7 @@ public class Oak {
                 queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
 
         queryEngineSettings.unwrap().getQueryValidator().init(store);
+        queryEngineSettings.unwrap().getQueryOptimizer().init(store);
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
         commitHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider)));
