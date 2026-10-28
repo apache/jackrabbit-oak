@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class QueryOptimizerTest {
 
@@ -109,6 +111,44 @@ public class QueryOptimizerTest {
     public void captureGroupsEscapingAndMultiline() throws Exception {
         writeRules("[" + rule("(?m)^\\[([a-z]+)\\]$", "$1\\$") + "]");
         assertEquals("first$\nsecond$", rewrite("[first]\n[second]"));
+    }
+
+    @Test
+    public void regexBudgetAbortsBacktrackingAndDiscardsPartialRewrites() throws Exception {
+        writeRules("[" + rule("x", "y") + "," + rule("a+a+a+a+a+b", "unreachable") + "]");
+        String original = "x" + "a".repeat(50);
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.WARN).create();
+        try {
+            logs.starting();
+            assertEquals(original, rewrite(original));
+            assertEquals("Query rule 2 exceeded regex character-access budget 51000; using the original query",
+                    logs.getLogs().get(0));
+            assertEquals(original, rewrite(original));
+            assertEquals(1, logs.getLogs().size());
+            assertEquals("yabc", rewrite("xabc"));
+            clock.addAndGet(10_000);
+            assertEquals(original, rewrite(original));
+            assertEquals(2, logs.getLogs().size());
+        } finally {
+            logs.finished();
+        }
+    }
+
+    @Test
+    public void regexBudgetIsSharedAcrossRules() throws Exception {
+        String repeatedRule = rule("(?=a{20})a", "$0");
+        writeRules("[" + rule("x", "y") + ","
+                + String.join(",", Collections.nCopies(99, repeatedRule)) + "]");
+        String original = "x" + "a".repeat(50);
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.WARN).create();
+        try {
+            logs.starting();
+            assertEquals(original, rewrite(original));
+            assertEquals(1, logs.getLogs().size());
+            assertTrue(logs.getLogs().get(0).contains("exceeded regex character-access budget 51000"));
+        } finally {
+            logs.finished();
+        }
     }
 
     @Test

@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
@@ -49,9 +50,12 @@ public class QueryOptimizer {
     static final int MAX_CONFIG_BYTES = 1024 * 1024;
     static final int MAX_RULES = 100;
     private static final long REFRESH_MILLIS = 10_000;
+    private static final long CHAR_ACCESSES_PER_CHARACTER = 1000;
+    private static final long NEXT_LOG_MILLIS = 10_000;
 
     private final LongSupplier clock;
     private final ReentrantLock refreshLock = new ReentrantLock();
+    private final AtomicLong nextBudgetWarning = new AtomicLong();
     private volatile NodeStore store;
     private volatile List<Rule> rules = List.of();
     private volatile long nextRefresh;
@@ -78,31 +82,43 @@ public class QueryOptimizer {
         if (language.endsWith(QueryEngineImpl.NO_LITERALS)) {
             language = language.substring(0, language.length() - QueryEngineImpl.NO_LITERALS.length());
         }
+        String original = statement;
+        RegexBudget budget = new RegexBudget(CHAR_ACCESSES_PER_CHARACTER * original.length());
+        int ruleIndex = 0;
         // A single forward pass: later rules see the result of earlier ones.
         for (Rule rule : rules) {
+            ruleIndex++;
             if (rule.language != null && !rule.language.equals(language)) {
                 continue;
             }
-            Matcher matcher = rule.find.matcher(statement);
-            if (!matcher.find()) {
-                continue;
-            }
-            StringBuilder result = new StringBuilder();
             try {
+                Matcher matcher = rule.find.matcher(new BudgetedCharSequence(statement, budget));
+                if (!matcher.find()) {
+                    continue;
+                }
+                StringBuilder result = new StringBuilder();
                 do {
                     matcher.appendReplacement(result, rule.replace);
                     checkLength(result.length(), maxLength);
                 } while (matcher.find());
                 matcher.appendTail(result);
                 checkLength(result.length(), maxLength);
+                statement = result.toString();
+                if (rule.stop) {
+                    break;
+                }
+            } catch (RegexBudgetExceededException e) {
+                long now = clock.getAsLong();
+                long next = nextBudgetWarning.get();
+                if (now >= next && nextBudgetWarning.compareAndSet(next, now + NEXT_LOG_MILLIS)) {
+                    LOG.warn("Query rule {} exceeded regex character-access budget {}; using the original query",
+                            ruleIndex, budget.limit);
+                }
+                return original;
             } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
                 ParseException failure = new ParseException("Invalid query rule replacement", 0);
                 failure.initCause(e);
                 throw failure;
-            }
-            statement = result.toString();
-            if (rule.stop) {
-                break;
             }
         }
         return statement;
@@ -237,6 +253,58 @@ public class QueryOptimizer {
             reader.read('}');
         }
         return stop;
+    }
+
+    private static final class RegexBudget {
+        private final long limit;
+        private long remaining;
+
+        RegexBudget(long limit) {
+            this.limit = limit;
+            this.remaining = limit;
+        }
+    }
+
+    private static final class BudgetedCharSequence implements CharSequence {
+        private final String text;
+        private final RegexBudget budget;
+
+        BudgetedCharSequence(String text, RegexBudget budget) {
+            this.text = text;
+            this.budget = budget;
+        }
+
+        @Override
+        public int length() {
+            return text.length();
+        }
+
+        @Override
+        public char charAt(int index) {
+            if (budget.remaining == 0) {
+                throw new RegexBudgetExceededException();
+            }
+            budget.remaining--;
+            return text.charAt(index);
+        }
+
+        @Override
+        public CharSequence subSequence(int start, int end) {
+            return new BudgetedCharSequence(text.substring(start, end), budget);
+        }
+
+        @Override
+        public String toString() {
+            return text;
+        }
+    }
+
+    private static final class RegexBudgetExceededException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        RegexBudgetExceededException() {
+            super(null, null, false, false);
+        }
     }
 
     private static final class Rule {
