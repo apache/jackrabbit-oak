@@ -87,7 +87,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
         return Objects.equals(S3EmulatorSupport.ACCESS_KEY, props.getProperty(S3Constants.ACCESS_KEY))
                 && Objects.equals(S3EmulatorSupport.SECRET_KEY, props.getProperty(S3Constants.SECRET_KEY))
                 && "true".equals(props.getProperty(S3Constants.PATH_STYLE_ACCESS))
-                && props.getProperty(S3Constants.S3_END_POINT, "").startsWith("http://127.0.0.1:");
+                && props.getProperty(S3Constants.S3_END_POINT, "").startsWith("http://");
     }
 
     /**
