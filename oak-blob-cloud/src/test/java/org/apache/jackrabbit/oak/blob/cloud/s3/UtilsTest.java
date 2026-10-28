@@ -442,6 +442,77 @@ public class UtilsTest {
         withS3Config(props, () -> Assert.assertFalse(S3DataStoreUtils.isS3EmulatorConfigured()));
     }
 
+    @Test
+    public void isS3EmulatorConfiguredReturnsTrueForRemoteDockerProperties() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "http://docker.example.com:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> Assert.assertTrue(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    @Test
+    public void isS3EmulatorConfiguredReturnsTrueForLocalhostProperties() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "http://localhost:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> Assert.assertTrue(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    @Test
+    public void isS3EmulatorConfiguredReturnsFalseForHttpsWithEmulatorCredentials() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "https://docker.example.com:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> Assert.assertFalse(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    @Test
+    public void extractBucketAndKeyUseClientEndpoint() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_END_POINT, "http://docker.example.com:49152");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+        Properties otherConfig = clientProperties();
+        otherConfig.setProperty(S3Constants.S3_END_POINT, "http://other-host:1234");
+
+        withS3Config(otherConfig, () -> {
+            try (S3Client client = Utils.openService(props, false)) {
+                URI uri = URI.create("http://docker.example.com:49152/bucket/folder/key");
+                Assert.assertEquals("bucket", TestS3Ds.extractBucketFromUri(client, uri));
+                Assert.assertEquals("folder/key", TestS3Ds.extractKeyFromUri(client, uri));
+            }
+        });
+    }
+
+    @Test
+    public void localPathStyleUriWithoutConfiguredEndpoint() {
+        Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(URI.create("http://some-host:9090/bucket/key"), null));
+        Assert.assertTrue(TestS3Ds.isLocalPathStyleUri(URI.create("http://127.0.0.1:9090/bucket/key"), null));
+        Assert.assertTrue(TestS3Ds.isLocalPathStyleUri(URI.create("http://localhost:9090/bucket/key"), null));
+        Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(URI.create("/bucket/key"), null));
+    }
+
+    @Test
+    public void remoteEmulatorUrisUsePathStyleParsing() {
+        URI endpoint = URI.create("http://docker.example.com:49152");
+        Assert.assertTrue(TestS3Ds.isLocalPathStyleUri(
+                URI.create("http://docker.example.com:49152/bucket/folder/key"), endpoint));
+        Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(
+                URI.create("https://bucket.s3.us-east-1.amazonaws.com/folder/key"), endpoint));
+        Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(
+                URI.create("http://other-host:1234/bucket/folder/key"), endpoint));
+        Assert.assertFalse(TestS3Ds.isLocalPathStyleUri(
+                URI.create("http://docker.example.com:49152/key"), endpoint));
+    }
+
     private static Properties clientProperties() {
         Properties props = new Properties();
         props.setProperty(S3Constants.ACCESS_KEY, "accessKey");
