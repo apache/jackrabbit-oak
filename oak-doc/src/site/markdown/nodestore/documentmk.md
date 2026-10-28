@@ -937,6 +937,14 @@ of concern.
 
 ### <a name="cache-configuration"></a> Cache Configuration
 
+CacheLIRS remains the default. With OAK-12425, enable
+`FT_CAFFEINE_CACHE_OAK-12425` or set `-Doak.documentMK.caffeineCache=true` to
+select Caffeine with SYNC maintenance. Selection is fixed per builder; recreate
+the builder/store or restart the service after changing the toggle.
+The legacy `-Doak.documentMK.guavaCache=true` also selects Caffeine SYNC,
+regardless of the new toggle; despite its name, it no longer selects Guava.
+Setting both properties to `true` selects the same Caffeine SYNC implementation.
+
 In a default setup the [DocumentNodeStoreService][osgi-config]
 takes a single config for `cache` which is internally distributed among the 
 various caches above in following way
