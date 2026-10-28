@@ -38,7 +38,7 @@ public class AbstractCacheStatsTest {
     @Before
     public void setUp() {
         cache = new CacheLIRS<>(null, MAX_WEIGHT, 1, 1, 0, null, null, null);
-        stats = new CacheStats(cache, CACHE_NAME, null, MAX_WEIGHT);
+        stats = new CacheStats(cache.asOakCache(), CACHE_NAME, null, MAX_WEIGHT);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class AbstractCacheStatsTest {
         CacheLIRS<String, String> smallCache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(5)
                 .build();
-        CacheStats smallStats = new CacheStats(smallCache, "small", null, 5);
+        CacheStats smallStats = new CacheStats(smallCache.asOakCache(), "small", null, 5);
         for (int i = 0; i < 30; i++) {
             smallCache.put("k" + i, "v" + i);
         }

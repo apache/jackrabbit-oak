@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.lang.reflect.Method;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
@@ -64,7 +64,7 @@ public class DocumentNodeStoreBuilderTest {
         DocumentStore store = new MemoryDocumentStore();
         NodeDocumentCache cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
                 .buildNodeDocumentCache(store, new StripedNodeDocumentLocks());
-        Iterable<AbstractCacheStats> stats = cache.getCacheStats();
+        Iterable<CacheStats> stats = cache.getCacheStats();
         Assert.assertNotNull(stats);
         Assert.assertTrue(stats.iterator().hasNext());
     }
