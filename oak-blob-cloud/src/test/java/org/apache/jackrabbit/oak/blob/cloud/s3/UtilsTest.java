@@ -26,14 +26,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Properties;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 /**
  * Unit cases for Utils class
@@ -102,7 +105,13 @@ public class UtilsTest {
         Properties props = new Properties();
         props.setProperty("s3ConnProtocol", "https");
         URI uri = Utils.getEndPointUri(props, true, "ap-south-1");
-        Assert.assertEquals("https://s3-accelerate.ap-south-1.amazonaws.com", uri.toString());
+        Assert.assertEquals("https://s3-accelerate.amazonaws.com", uri.toString());
+    }
+
+    @Test
+    public void testGetEndPointUriWithAccelerationUsEast1() {
+        URI uri = Utils.getEndPointUri(new Properties(), true, "us-east-1");
+        Assert.assertEquals("https://s3-accelerate.amazonaws.com", uri.toString());
     }
 
     @Test
@@ -154,6 +163,30 @@ public class UtilsTest {
     @Test
     public void testGetRegionFromEndpointWithoutProtocol() {
         Assert.assertEquals("us-east-1", Utils.getRegionFromEndpoint("s3.us-east-1.amazonaws.com", "https"));
+    }
+
+    @Test
+    public void testGetRegionFromAccelerationEndpoint() {
+        Assert.assertNull(Utils.getRegionFromEndpoint("https://s3-accelerate.amazonaws.com", null));
+    }
+
+    @Test
+    public void testGetRegionFromVirtualHostedAccelerationEndpoint() {
+        Assert.assertNull(Utils.getRegionFromEndpoint("https://bucket.s3-accelerate.amazonaws.com", null));
+    }
+
+    @Test
+    public void testGetRegionFromAccelerationEndpointWithoutProtocol() {
+        Assert.assertNull(Utils.getRegionFromEndpoint("s3-accelerate.amazonaws.com", "https"));
+    }
+
+    @Test
+    public void testGetRegionUsesConfiguredRegionForAccelerationEndpoint() {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_END_POINT, "https://s3-accelerate.amazonaws.com");
+        props.setProperty(S3Constants.S3_REGION, "ap-south-1");
+
+        Assert.assertEquals("ap-south-1", Utils.getRegion(props));
     }
 
     @Test
@@ -283,7 +316,83 @@ public class UtilsTest {
                     .build();
             PresignedGetObjectRequest presigned = presigner.presignGetObject(presignRequest);
 
-            Assert.assertTrue(presigned.url().getHost().contains("s3-accelerate"));
+            Assert.assertEquals("bucket.s3-accelerate.amazonaws.com", presigned.url().getHost());
+            Assert.assertTrue(presigned.url().getQuery().contains("%2Fus-east-1%2Fs3%2Faws4_request"));
+        }
+    }
+
+    @Test
+    public void createPresignerUsesConfiguredRegionWithCustomAccelerationEndpoint() {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_END_POINT, "https://s3-accelerate.amazonaws.com");
+        props.setProperty(S3Constants.S3_REGION, "ap-south-1");
+
+        try (S3Client client = Utils.openService(props, true);
+             S3Presigner presigner = Utils.createPresigner(client, props, true)) {
+            GetObjectPresignRequest request = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .getObjectRequest(GetObjectRequest.builder().bucket("bucket").key("key").build())
+                    .build();
+            URL url = presigner.presignGetObject(request).url();
+
+            Assert.assertEquals("bucket.s3-accelerate.amazonaws.com", url.getHost());
+            Assert.assertTrue(url.getQuery(), url.getQuery().contains("%2Fap-south-1%2Fs3%2Faws4_request"));
+        }
+    }
+
+    @Test
+    public void createPresignerUsesAccelerationEndpointForUploads() {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_REGION, "ap-south-1");
+
+        try (S3Client client = Utils.openService(props, true);
+             S3Presigner presigner = Utils.createPresigner(client, props, true)) {
+            PutObjectPresignRequest request = PutObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .putObjectRequest(PutObjectRequest.builder().bucket("bucket").key("key").build())
+                    .build();
+            URL url = presigner.presignPutObject(request).url();
+
+            Assert.assertEquals("bucket.s3-accelerate.amazonaws.com", url.getHost());
+            Assert.assertTrue(url.getQuery().contains("%2Fap-south-1%2Fs3%2Faws4_request"));
+        }
+    }
+
+    @Test
+    public void createPresignerRetainsRegionalEndpointWithoutAcceleration() {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_REGION, "ap-south-1");
+
+        try (S3Client client = Utils.openService(props, false);
+             S3Presigner presigner = Utils.createPresigner(client, props, false)) {
+            GetObjectPresignRequest request = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .getObjectRequest(GetObjectRequest.builder().bucket("bucket").key("key").build())
+                    .build();
+
+            Assert.assertEquals("bucket.s3.ap-south-1.amazonaws.com",
+                    presigner.presignGetObject(request).url().getHost());
+        }
+    }
+
+    @Test
+    public void createPresignerRetainsCustomEndpointWithAcceleration() {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_END_POINT, "http://custom.example.com:9090");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        try (S3Client client = Utils.openService(props, true);
+             S3Presigner presigner = Utils.createPresigner(client, props, true)) {
+            PutObjectPresignRequest request = PutObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .putObjectRequest(PutObjectRequest.builder().bucket("bucket").key("key").build())
+                    .build();
+
+            URL url = presigner.presignPutObject(request).url();
+            Assert.assertEquals("http", url.getProtocol());
+            Assert.assertEquals("custom.example.com", url.getHost());
+            Assert.assertEquals(9090, url.getPort());
+            Assert.assertEquals("/bucket/key", url.getPath());
         }
     }
 
