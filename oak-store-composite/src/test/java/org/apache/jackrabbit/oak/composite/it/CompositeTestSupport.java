@@ -21,9 +21,10 @@ package org.apache.jackrabbit.oak.composite.it;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.UUID;
 
 import org.apache.sling.testing.paxexam.SlingOptions;
-import org.apache.sling.testing.paxexam.TestSupport;
+import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 
@@ -42,13 +43,12 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
  * WARNING: when running the integration tests in an IDE, make sure to generate the oak-store-composite JAR first, otherwise your latest
  * code changes will be ignored. Just run `mvn package` to generate the JAR.
  */
-public abstract class CompositeTestSupport extends TestSupport {
+public abstract class CompositeTestSupport {
 
     private static final String JACKRABBIT_GROUP_ID = "org.apache.jackrabbit";
 
     protected abstract Path getConfigDir();
 
-    @Override
     protected ModifiableCompositeOption baseConfiguration() {
         String bundlePath = System.getProperty("bundle.filename");
         if (bundlePath == null) {
@@ -57,13 +57,23 @@ public abstract class CompositeTestSupport extends TestSupport {
         if (!Files.exists(Paths.get(bundlePath))) {
             throw new IllegalArgumentException("The bundle jar to be tested needs to be built first with 'mvn package'");
         }
+        String localRepository = System.getProperty("maven.repo.local", "");
         return composite(
-            super.baseConfiguration(),
+            systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
+            CoreOptions.keepCaches(),
+            CoreOptions.when(!localRepository.isBlank()).useOptions(
+                systemProperty("org.ops4j.pax.url.mvn.localRepository").value(localRepository)),
+            CoreOptions.repository("https://repository.apache.org/snapshots/").id("apache-snapshots").allowSnapshots(),
+            CoreOptions.workingDirectory(Paths.get("target", "paxexam", getClass().getSimpleName(),
+                UUID.randomUUID().toString()).toAbsolutePath().toString()),
+            SlingOptions.backing(),
+            spiflyOptions(),
+            jpmsOptions(),
             logging("INFO"),
             junitBundles(),
             felixFileInstall(),
             oak(),
-            testBundle("bundle.filename"),
+            CoreOptions.bundle(Paths.get(bundlePath).toUri().toString()),
             frameworkProperty("repository.home").value("target")
         );
     }
@@ -107,17 +117,45 @@ public abstract class CompositeTestSupport extends TestSupport {
     protected static Option logging(String level) {
         return composite(
             mavenBundle("org.ops4j.pax.logging", "pax-logging-api", "1.11.13"),
-            SlingOptions.spyfly(),
-            mavenBundle("org.slf4j", "slf4j-api", "2.0.12"),
-            mavenBundle("org.slf4j", "slf4j-simple", "2.0.12"),
+            mavenBundle().groupId("org.slf4j").artifactId("slf4j-api").versionAsInProject(),
+            mavenBundle().groupId("ch.qos.logback").artifactId("logback-core").versionAsInProject(),
+            mavenBundle().groupId("ch.qos.logback").artifactId("logback-classic").versionAsInProject(),
             systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value(level),
-            SlingOptions.logback()
+            systemProperty("logback.configurationFile").value(
+                Paths.get("src", "test", "resources", "logback.xml").toUri().toString())
+        );
+    }
+
+    protected static Option spiflyOptions() {
+        return composite(
+            mavenBundle("org.apache.aries", "org.apache.aries.util", "1.1.3"),
+            mavenBundle("org.ow2.asm", "asm", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-tree", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-analysis", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-commons", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-util", "9.7.1"),
+            mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.7")
+        );
+    }
+
+    protected static Option jpmsOptions() {
+        return composite(
+            vmOption("--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.lang=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.lang.invoke=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.io=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.net=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.nio=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.util=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.util.jar=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.util.regex=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/java.util.zip=ALL-UNNAMED"),
+            vmOption("--add-opens=java.base/sun.nio.ch=ALL-UNNAMED")
         );
     }
 
     protected Option felixFileInstall() {
         return composite(
-            mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.22"),
             mavenBundle("org.apache.felix", "org.apache.felix.fileinstall", "3.7.4"),
             systemProperty("felix.fileinstall.dir").value(getConfigDir().toAbsolutePath().toString()),
             systemProperty("felix.fileinstall.enableConfigSave").value("false"),
