@@ -31,11 +31,6 @@
   <name>Oak Composite Store</name>
   <packaging>bundle</packaging>
 
-  <properties>
-    <!-- see https://issues.apache.org/jira/browse/OAK-12022 -->
-    <pax-exam.version>4.13.1</pax-exam.version>
-  </properties>
-
   <build>
     <plugins>
       <plugin>
@@ -225,6 +220,12 @@
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.paxexam</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.ops4j.pax.tinybundles</groupId>
+      <artifactId>tinybundles</artifactId>
+      <version>4.0.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
