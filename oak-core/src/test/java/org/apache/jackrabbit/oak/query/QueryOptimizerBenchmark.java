@@ -31,7 +31,6 @@ public final class QueryOptimizerBenchmark {
 
     private static final int WARMUP_ROUNDS = 3;
     private static final int MEASUREMENT_ROUNDS = 5;
-    private static volatile long sink;
 
     private QueryOptimizerBenchmark() {
     }
@@ -104,9 +103,8 @@ public final class QueryOptimizerBenchmark {
             }
         }
         long elapsed = System.nanoTime() - start;
-        sink = checksum;
         if (checksum != scenario.expectedChecksum * iterations) {
-            throw new AssertionError("Unexpected matching result: " + scenario.name);
+            throw new AssertionError("Unexpected matching result: " + scenario.name + " " + checksum);
         }
         return elapsed;
     }

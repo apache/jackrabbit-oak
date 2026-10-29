@@ -121,7 +121,7 @@ public class QueryOptimizerTest {
         try {
             logs.starting();
             assertEquals(original, rewrite(original));
-            assertEquals("Query rule 2 exceeded regex character-access budget 51000; using the original query",
+            assertEquals("Query rule 2 exceeded regex character-access budget 510000; using the original query",
                     logs.getLogs().get(0));
             assertEquals(original, rewrite(original));
             assertEquals(1, logs.getLogs().size());
@@ -138,7 +138,7 @@ public class QueryOptimizerTest {
     public void regexBudgetIsSharedAcrossRules() throws Exception {
         String repeatedRule = rule("(?=a{20})a", "$0");
         writeRules("[" + rule("x", "y") + ","
-                + String.join(",", Collections.nCopies(99, repeatedRule)) + "]");
+                + String.join(",", Collections.nCopies(999, repeatedRule)) + "]");
         String original = "x" + "a".repeat(50);
         LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.WARN).create();
         try {

@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -122,7 +123,7 @@ public class QueryOptimizerQueryTest {
     }
 
     @Test
-    public void eitherSystemPropertyOrToggleEnablesRewriting() throws Exception {
+    public void eitherSystemPropertyOrToggleEnablesRewriting() throws ParseException {
         assertEquals(List.of(), paths(sql2()));
         System.setProperty(QueryEngineSettings.OAK_QUERY_OPTIMIZER, "true");
         assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
@@ -178,7 +179,7 @@ public class QueryOptimizerQueryTest {
     }
 
     @Test
-    public void sqlAndQomUseTheSameRewriter() throws Exception {
+    public void sqlAndQomUseTheSameRewriter() throws ParseException {
         toggle.setEnabled(true);
         for (String language : List.of("sql", "JCR-JQOM", "JCR-SQL2-noLiterals")) {
             Result result = engine.executeQuery(SQL2, language,
@@ -214,7 +215,7 @@ public class QueryOptimizerQueryTest {
     }
 
     @Test
-    public void internalQueriesRemainUnchanged() throws Exception {
+    public void internalQueriesRemainUnchanged() throws ParseException {
         toggle.setEnabled(true);
         String internal = SQL2 + " " + QueryEngine.INTERNAL_SQL2_QUERY;
         assertEquals(List.of(), paths(engine.executeQuery(internal, "JCR-SQL2",
@@ -222,7 +223,7 @@ public class QueryOptimizerQueryTest {
     }
 
     @Test
-    public void queryValidatorChecksOriginalAndRewrittenStatements() throws Exception {
+    public void queryValidatorChecksOriginalAndRewrittenStatements() {
         toggle.setEnabled(true);
         settings.getQueryValidator().setPattern("original", ".*old.*", "", true);
         assertThrows(ParseException.class, this::sql2);
@@ -248,7 +249,7 @@ public class QueryOptimizerQueryTest {
     }
 
     @Test
-    public void invalidRewrittenQueryIsNotSilentlyIgnored() throws Exception {
+    public void invalidRewrittenQueryIsNotSilentlyIgnored() throws CommitFailedException {
         toggle.setEnabled(true);
         writeRules("[" + rule("select", "invalid") + "]");
         assertThrows(ParseException.class, this::sql2);
@@ -271,7 +272,7 @@ public class QueryOptimizerQueryTest {
         return paths;
     }
 
-    private void writeRules(String json) throws Exception {
+    private void writeRules(String json) throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
         root.child("oak:index").child("diff.index.optimizer").child(QueryOptimizer.RULES_FILE)
                 .child("jcr:content").setProperty(BinaryPropertyState.binaryProperty(

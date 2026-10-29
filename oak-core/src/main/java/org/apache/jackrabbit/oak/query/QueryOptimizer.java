@@ -48,17 +48,17 @@ public class QueryOptimizer {
     private static final Logger LOG = LoggerFactory.getLogger(QueryOptimizer.class);
     static final String RULES_FILE = "queryRules.json";
     static final int MAX_CONFIG_BYTES = 1024 * 1024;
-    static final int MAX_RULES = 100;
+    static final int MAX_RULES = 1000;
     private static final long REFRESH_MILLIS = 10_000;
-    static final long CHAR_ACCESSES_PER_CHARACTER = 1000;
+    static final long CHAR_ACCESSES_PER_CHARACTER = 10_000;
     private static final long NEXT_LOG_MILLIS = 10_000;
 
     private final LongSupplier clock;
     private final ReentrantLock refreshLock = new ReentrantLock();
     private final AtomicLong nextBudgetWarning = new AtomicLong();
-    private volatile NodeStore store;
-    private volatile List<Rule> rules = List.of();
-    private volatile long nextRefresh;
+    private NodeStore store;
+    private List<Rule> rules = List.of();
+    private long nextRefresh;
     private PropertyState lastData;
     private PropertyState lastModified;
 
