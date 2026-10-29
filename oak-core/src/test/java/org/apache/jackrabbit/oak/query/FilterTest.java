@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.text.ParseException;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.junit.Ignore;
@@ -44,6 +46,31 @@ public class FilterTest {
     private Filter createFilterSQL(String sql) throws ParseException {
         QueryImpl q = (QueryImpl) p.parse(sql);
         return q.createFilter(true);
+    }
+
+    @Test
+    public void emptyNodeNameExcludingRoot() throws Exception {
+        for (String condition : new String[] {
+                "isdescendantnode('/content/dam') and name() = ''",
+                "isdescendantnode('/content/dam') and name() like ''"
+        }) {
+            Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertNotNull(condition + ": " + filter, filter.getPropertyRestriction(":localname"));
+            assertEquals(":", filter.getPropertyRestriction(":localname").first.getValue(Type.STRING));
+            assertEquals(":", filter.getPropertyRestriction("function*@:name").first.getValue(Type.STRING));
+        }
+    }
+
+    @Test
+    public void emptyNodeNameIncludingRoot() throws Exception {
+        for (String condition : new String[] {
+                "name() = ''",
+                "issamenode('/') and name() = ''",
+                "name() like ''"
+        }) {
+            Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertNull(filter.getPropertyRestriction(":localname"));
+        }
     }
 
     @Test

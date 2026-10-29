@@ -488,6 +488,53 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void nodeNameEmptyString() throws Exception {
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(
+                "<dam='http://www.day.com/dam/1.0'>\n[dam:Asset] > nt:unstructured",
+                StandardCharsets.UTF_8), "test asset node type");
+
+        IndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder()
+                .noAsync().evaluatePathRestrictions();
+        builder.indexRule("dam:Asset").indexNodeName()
+                .property("jcr:content/contentFragment").propertyIndex();
+        builder.build(root.getTree("/oak:index").addChild("damAssetLucene-13-custom-2"));
+
+        Tree dam = root.getTree("/").addChild("content").addChild("dam");
+        for (String name : List.of("abc", "def", "ghi")) {
+            Tree asset = setNodeType(dam.addChild(name), "dam:Asset");
+            asset.addChild("jcr:content").setProperty("contentFragment", true);
+        }
+        Tree nonFragment = setNodeType(dam.addChild("notAFragment"), "dam:Asset");
+        nonFragment.addChild("jcr:content").setProperty("contentFragment", false);
+        root.commit();
+
+        String query = "SELECT * FROM [dam:Asset] AS node "
+                + "WHERE [jcr:content/contentFragment]='true' "
+                + "AND ISDESCENDANTNODE('/content/dam') AND NAME() = '%s' "
+                + "OPTION(INDEX NAME [damAssetLucene-13-custom-2])";
+        String namedQuery = String.format(query, "abc");
+        assertThat(explain(namedQuery), containsString(":nodeName:abc"));
+        assertQuery(namedQuery, List.of("/content/dam/abc"));
+        assertEquals(List.of("node, 1", "query, 1"), executeQuery("measure " + namedQuery, SQL2));
+
+        String emptyQuery = String.format(query, "");
+        String plan = explain(emptyQuery);
+        assertThat(plan, containsString("lucene:damAssetLucene-13-custom-2"));
+        assertQuery(emptyQuery, List.of());
+        assertThat(plan, containsString(":nodeName::"));
+        assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + emptyQuery, SQL2));
+
+        String reorderedQuery = emptyQuery.replace(
+                "ISDESCENDANTNODE('/content/dam') AND NAME() = ''",
+                "NAME() = '' AND ISDESCENDANTNODE('/content/dam')");
+        assertThat(explain(reorderedQuery), containsString(":nodeName::"));
+        assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + reorderedQuery, SQL2));
+        String likeQuery = emptyQuery.replace("NAME() = ''", "NAME() LIKE ''");
+        assertThat(explain(likeQuery), containsString(":nodeName::"));
+        assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + likeQuery, SQL2));
+    }
+
+    @Test
     public void explainScoreTest() throws Exception {
         Tree idx = createIndex("test1", Set.of("propa"));
         idx.addChild(PROP_NODE).addChild("propa");
