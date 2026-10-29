@@ -1006,7 +1006,7 @@ public class DiffIndexMerger {
                 }
                 if (targetChildName.equals(c)) {
                     // only create the child (properties are added below)
-                    target.getChildren().put(c, new JsonObject());
+                    target.getChildren().put(c, new JsonObject(true));
                 }
             } else {
                 childIsNew = false;

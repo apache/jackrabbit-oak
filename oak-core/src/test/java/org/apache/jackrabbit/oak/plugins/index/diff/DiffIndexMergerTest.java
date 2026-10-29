@@ -21,8 +21,10 @@ import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -1794,6 +1796,26 @@ public class DiffIndexMergerTest {
                     }
                   }
                 }""", merged.toString());
+    }
+
+    @Test
+    public void aggregateIncludeOrderIsPreserved() {
+        JsonObject diff = JsonObject.fromJson("""
+                {
+                    "aggregates": {
+                        "nt:unstructured": {
+                            "include0": { "path": "*" },
+                            "include1": { "path": "*/*" }
+                        }
+                    }
+                }
+                """, true);
+
+        JsonObject merged = getMerger().processMerge("custom.test", null, diff);
+        JsonObject aggregate = merged.getChildren().get("aggregates")
+                .getChildren().get("nt:unstructured");
+        assertEquals(List.of("include0", "include1"),
+                new ArrayList<>(aggregate.getChildren().keySet()));
     }
 
     // GRANITE-69361: an empty child node in the diff (eg. an analyzer filter
