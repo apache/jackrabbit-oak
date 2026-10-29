@@ -22,11 +22,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.io.Closeable;
 import java.text.ParseException;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -59,6 +66,36 @@ public class FilterTest {
             assertEquals(":", filter.getPropertyRestriction(":localname").first.getValue(Type.STRING));
             assertEquals(":", filter.getPropertyRestriction("function*@:name").first.getValue(Type.STRING));
         }
+    }
+
+    @Test
+    public void emptyNodeNameLegacyMode() throws Exception {
+        QueryImpl query = (QueryImpl) p.parse("select * from [nt:base] "
+                + "where isdescendantnode('/content/dam') and name() = ''");
+        DefaultWhiteboard whiteboard = new DefaultWhiteboard();
+        whiteboard.register(QueryEngineSettings.class, query.getSettings(), Map.of());
+        try (Closeable repository = (Closeable) new Oak()
+                .with(whiteboard)
+                .with(new OpenSecurityProvider())
+                .createContentRepository()) {
+            FeatureToggle toggle = WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
+                    feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
+                            .equals(feature.getName()));
+            assertNotNull(toggle);
+            assertFalse(toggle.isEnabled());
+            assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
+
+            toggle.setEnabled(true);
+            Filter legacyFilter = query.createFilter(true);
+            assertNull(legacyFilter.getPropertyRestriction(":localname"));
+            assertNull(legacyFilter.getPropertyRestriction("function*@:name"));
+
+            toggle.setEnabled(false);
+            assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
+        }
+        assertNull(WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
+                feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
+                        .equals(feature.getName())));
     }
 
     @Test

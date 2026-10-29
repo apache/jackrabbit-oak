@@ -98,7 +98,8 @@ public class NodeNameImpl extends DynamicOperandImpl {
         }
         String name = getName(query, v);
         if (name == null && supportedOperator(operator) && v.getValue(Type.STRING).isEmpty()
-                && !f.testPath("/") && f.getSelector().equals(selector)) {
+                && !f.testPath("/") && f.getSelector().equals(selector)
+                && query.getSettings().isEmptyNodeNameRestrictionEnabled()) {
             // Only the root has an empty name; use an impossible name when it is excluded.
             PropertyValue impossibleName = PropertyValues.newString(":");
             f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL, impossibleName);
