@@ -442,6 +442,20 @@ public class DiffIndexTest {
     }
 
     @Test
+    public void queryRulesAreNotIndexDefinitions() throws Exception {
+        NodeStore store = new MemoryNodeStore();
+        NodeBuilder definitions = store.getRoot().builder().child(INDEX_DEFINITIONS_NAME);
+        diffFile(definitions, "diff.index", "diff.json", "{\"acme.a\":{\"type\":\"lucene\"}}");
+        String rules = "[{\"find\":\"old\",\"replace\":\"new\",\"options\":{\"stop\":true}}]";
+        diffFile(definitions, "diff.index.optimizer", "queryRules.json", rules);
+        DiffIndex.applyDiffIndexChanges(store, definitions);
+        assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
+        assertFalse(definitions.child("diff.index").hasProperty("warn.01"));
+        assertBinaryEquals(rules.getBytes(StandardCharsets.UTF_8), definitions.child("diff.index.optimizer")
+                .child("queryRules.json").child("jcr:content").getProperty("jcr:data"));
+    }
+
+    @Test
     public void onlyAuxiliaryJsonFilesDoNotDefineIndexes() {
         for (String index : List.of("diff.index", "diff.index.optimizer")) {
             NodeStore store = new MemoryNodeStore();

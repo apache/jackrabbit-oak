@@ -73,6 +73,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_XML_NAME_CHARS_IN_PATH = "FT_OAK-12364";
 
+    public static final String FT_QUERY_OPTIMIZER = "FT_QUERY_OPTIMIZER_OAK-12489";
+
+    public static final String OAK_QUERY_OPTIMIZER = "oak.query.optimizer";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -118,6 +122,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private final QueryValidator queryValidator = new QueryValidator();
 
+    private final QueryOptimizer queryOptimizer = new QueryOptimizer();
+
     private String[] classNamesIgnoredInCallTrace = new String[] {};
 
 
@@ -133,6 +139,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature ignoreLimitInIndexSelectionFeature;
     private Feature opFunctionFeature;
     private Feature xmlNameCharsInPathFeature;
+    private Feature queryOptimizerFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -283,6 +290,19 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isXmlNameCharsInPathEnabled() {
         // enabled if the feature toggle is not used
         return xmlNameCharsInPathFeature == null || xmlNameCharsInPathFeature.isEnabled();
+    }
+
+    public void setQueryOptimizerFeature(@Nullable Feature feature) {
+        this.queryOptimizerFeature = feature;
+    }
+
+    public boolean isQueryOptimizerEnabled() {
+        return Boolean.getBoolean(OAK_QUERY_OPTIMIZER)
+                || (queryOptimizerFeature != null && queryOptimizerFeature.isEnabled());
+    }
+
+    public QueryOptimizer getQueryOptimizer() {
+        return queryOptimizer;
     }
 
     public String getStrictPathRestriction() {
