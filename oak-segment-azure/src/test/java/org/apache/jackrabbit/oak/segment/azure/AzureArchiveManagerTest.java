@@ -157,10 +157,13 @@ public class AzureArchiveManagerTest {
 
         for (int i = 0; i <= 4; i++) {
             assertTrue(readBlobContainerClient.getBlobClient("oak/data00000a.tar/000" + i + "." + uuids.get(i)).exists());
+            assertFalse(readBlobContainerClient.getBlobClient("oak/data00000a.tar.bak/000" + i + "." + uuids.get(i)).exists());
         }
 
-        for (int i = 5; i <= 9; i++) {
+        assertFalse(readBlobContainerClient.getBlobClient("oak/data00000a.tar.bak/0005." + uuids.get(5)).exists());
+        for (int i = 6; i <= 9; i++) {
             assertFalse(String.format("Segment %s.??? should have been deleted.", "oak/data00000a.tar/000" + i), readBlobContainerClient.getBlobClient("oak/data00000a.tar/000" + i + "." + uuids.get(i)).exists());
+            assertTrue(readBlobContainerClient.getBlobClient("oak/data00000a.tar.bak/000" + i + "." + uuids.get(i)).exists());
         }
     }
 
@@ -175,6 +178,10 @@ public class AzureArchiveManagerTest {
         }
 
 
+        ListBlobsOptions segmentOptions = new ListBlobsOptions().setPrefix("oak/data00000a.tar/0000.");
+        String segmentBlob = readBlobContainerClient.listBlobs(segmentOptions, null).iterator().next().getName();
+        String segmentETag = readBlobContainerClient.getBlobClient(segmentBlob).getProperties().getETag();
+
         readBlobContainerClient.getBlobClient("oak/data00000a.tar/closed").delete();
         readBlobContainerClient.getBlobClient("oak/data00000a.tar/data00000a.tar.brf").delete();
         readBlobContainerClient.getBlobClient("oak/data00000a.tar/data00000a.tar.gph").delete();
@@ -183,6 +190,9 @@ public class AzureArchiveManagerTest {
             SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
             assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
         }
+        assertEquals(segmentETag, readBlobContainerClient.getBlobClient(segmentBlob).getProperties().getETag());
+        assertFalse(readBlobContainerClient.listBlobs(
+                new ListBlobsOptions().setPrefix("oak/data00000a.tar.bak/"), null).iterator().hasNext());
     }
 
     @Test
@@ -268,9 +278,9 @@ public class AzureArchiveManagerTest {
 
             listOptions.setPrefix("oak/data00001a.tar.bak");
             assertTrue("Backup directory should have been created", readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
-            //backup has all segments but 0002 since it was deleted before recovery
+            // backup contains only the discarded tail after the missing segment
             listOptions.setPrefix("oak/data00001a.tar.bak/0001.");
-            assertTrue(readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
+            assertFalse(readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
             listOptions.setPrefix("oak/data00001a.tar.bak/0002.");
             assertFalse(readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
             listOptions.setPrefix("oak/data00001a.tar.bak/0003.");

@@ -116,15 +116,14 @@ public interface SegmentArchiveManager {
     void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException;
 
     /**
-     * Method that is doing a backup of the archive given with {@code archiveName} into {@code backupArchiveName}.
-     * In addition, set of UUIDs of recovered segments is provided which can be inspected during backup.
-     * Method is invoked during archive recovery procedure and concrete implementation can decide whether original archive
-     * should be deleted or modified.
+     * Backs up an archive during recovery. Implementations may back up the
+     * complete archive or only entries excluded from {@code recoveredEntries},
+     * and may leave recovered entries in the original archive for reuse.
      *
-     * @param archiveName
-     * @param backupArchiveName
-     * @param recoveredEntries
-     * @throws IOException
+     * @param archiveName archive being recovered
+     * @param backupArchiveName destination for backed-up entries
+     * @param recoveredEntries segment identifiers retained by recovery
+     * @throws IOException if the backup cannot be completed
      */
     void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException;
 

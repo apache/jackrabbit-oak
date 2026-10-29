@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.remote.RemoteBlobMetadata;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -34,7 +35,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
@@ -69,6 +70,25 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     }
 
     @Override
+    protected boolean doTryReuseArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException {
+        BlockBlobClient blob = getBlockBlobClient(getSegmentFileName(indexEntry));
+        Map<String, String> expectedMetadata = RemoteBlobMetadata.toSegmentMetadata(indexEntry);
+        try {
+            Map<String, String> metadata = blob.getProperties().getMetadata();
+            if (!metadata.equals(expectedMetadata)) {
+                writeAccessController.checkWritingAllowed();
+                blob.setMetadata(expectedMetadata);
+            }
+            return true;
+        } catch (BlobStorageException e) {
+            if (e.getStatusCode() == 404) {
+                return false;
+            }
+            throw new IOException(e);
+        }
+    }
+
+    @Override
     protected void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
 
         writeAccessController.checkWritingAllowed();
@@ -86,7 +106,7 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
             // Note: OAK-12094 fixes an interesting regression in heap usage, which
             // should be read for context when making changes in the lines below.
             BlockBlobSimpleUploadOptions options = new BlockBlobSimpleUploadOptions(new ByteArrayInputStream(data, offset, size), size)
-                    .setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
+                    .setMetadata(RemoteBlobMetadata.toSegmentMetadata(indexEntry));
             blob.uploadWithResponse(options, null, Context.NONE);
         } catch (BlobStorageException e) {
             throw new IOException(e);
