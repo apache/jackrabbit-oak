@@ -50,7 +50,7 @@ public class QueryOptimizer {
     static final int MAX_CONFIG_BYTES = 1024 * 1024;
     static final int MAX_RULES = 100;
     private static final long REFRESH_MILLIS = 10_000;
-    private static final long CHAR_ACCESSES_PER_CHARACTER = 1000;
+    static final long CHAR_ACCESSES_PER_CHARACTER = 1000;
     private static final long NEXT_LOG_MILLIS = 10_000;
 
     private final LongSupplier clock;
@@ -255,7 +255,7 @@ public class QueryOptimizer {
         return stop;
     }
 
-    private static final class RegexBudget {
+    static final class RegexBudget {
         private final long limit;
         private long remaining;
 
@@ -265,7 +265,7 @@ public class QueryOptimizer {
         }
     }
 
-    private static final class BudgetedCharSequence implements CharSequence {
+    static final class BudgetedCharSequence implements CharSequence {
         private final String text;
         private final RegexBudget budget;
 
