@@ -20,11 +20,20 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
+import java.io.Closeable;
 import java.text.ParseException;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -44,6 +53,61 @@ public class FilterTest {
     private Filter createFilterSQL(String sql) throws ParseException {
         QueryImpl q = (QueryImpl) p.parse(sql);
         return q.createFilter(true);
+    }
+
+    @Test
+    public void emptyNodeNameExcludingRoot() throws Exception {
+        for (String condition : new String[] {
+                "isdescendantnode('/content/dam') and name() = ''",
+                "isdescendantnode('/content/dam') and name() like ''"
+        }) {
+            Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertNotNull(condition + ": " + filter, filter.getPropertyRestriction(":localname"));
+            assertEquals(":", filter.getPropertyRestriction(":localname").first.getValue(Type.STRING));
+            assertEquals(":", filter.getPropertyRestriction("function*@:name").first.getValue(Type.STRING));
+        }
+    }
+
+    @Test
+    public void emptyNodeNameLegacyMode() throws Exception {
+        QueryImpl query = (QueryImpl) p.parse("select * from [nt:base] "
+                + "where isdescendantnode('/content/dam') and name() = ''");
+        DefaultWhiteboard whiteboard = new DefaultWhiteboard();
+        whiteboard.register(QueryEngineSettings.class, query.getSettings(), Map.of());
+        try (Closeable repository = (Closeable) new Oak()
+                .with(whiteboard)
+                .with(new OpenSecurityProvider())
+                .createContentRepository()) {
+            FeatureToggle toggle = WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
+                    feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
+                            .equals(feature.getName()));
+            assertNotNull(toggle);
+            assertFalse(toggle.isEnabled());
+            assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
+
+            toggle.setEnabled(true);
+            Filter legacyFilter = query.createFilter(true);
+            assertNull(legacyFilter.getPropertyRestriction(":localname"));
+            assertNull(legacyFilter.getPropertyRestriction("function*@:name"));
+
+            toggle.setEnabled(false);
+            assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
+        }
+        assertNull(WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
+                feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
+                        .equals(feature.getName())));
+    }
+
+    @Test
+    public void emptyNodeNameIncludingRoot() throws Exception {
+        for (String condition : new String[] {
+                "name() = ''",
+                "issamenode('/') and name() = ''",
+                "name() like ''"
+        }) {
+            Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertNull(filter.getPropertyRestriction(":localname"));
+        }
     }
 
     @Test
