@@ -100,12 +100,12 @@ public class OakRepositoryFixture implements RepositoryFixture {
     public static RepositoryFixture getSegmentTarWithDataStore(File base, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping, final int binariesInlineThreshold, int dsCacheInMB) {
         return new OakRepositoryFixture(
-                OakFixture.getSegmentTarWithDataStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, 
+                OakFixture.getSegmentTarWithDataStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold,
                     dsCacheInMB));
     }
-    
+
     public static RepositoryFixture getSegmentTarWithColdStandby(File base, int maxFileSizeMB, int cacheSizeMB,
-            boolean memoryMapping, int binariesInlineThreshold, boolean useBlobStore, int dsCacheInMB, int syncInterval, 
+            boolean memoryMapping, int binariesInlineThreshold, boolean useBlobStore, int dsCacheInMB, int syncInterval,
             boolean shareBlobStore, boolean secure, boolean oneShotRun) {
         return new OakRepositoryFixture(OakFixture.getSegmentTarWithColdStandby(base, maxFileSizeMB, cacheSizeMB,
                 memoryMapping, binariesInlineThreshold, useBlobStore, dsCacheInMB, syncInterval, shareBlobStore, secure, oneShotRun));
@@ -113,7 +113,7 @@ public class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getSegmentTarWithAwsSegmentStore(final File base, final String awsBucketName,
             final String awsRootPath, final String awsJournalTableName, final String awsLockTableName,
-            final int maxFileSizeMB, final int cacheSizeMB, final int binariesInlineThreshold, final boolean useBlobStore, 
+            final int maxFileSizeMB, final int cacheSizeMB, final int binariesInlineThreshold, final boolean useBlobStore,
             final int dsCacheInMB) {
         return new OakRepositoryFixture(OakFixture.getSegmentTarWithAwsSegmentStore(base, awsBucketName, awsRootPath,
                 awsJournalTableName, awsLockTableName, maxFileSizeMB, cacheSizeMB, binariesInlineThreshold, useBlobStore, dsCacheInMB));
@@ -121,10 +121,19 @@ public class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString,
                                                                        final String azureContainerName, final String azureRootPath,
-                                                                       final int maxFileSizeMB, final int cacheSizeMB, 
+                                                                       final int maxFileSizeMB, final int cacheSizeMB,
                                                                        final int binariesInlineThreshold, final boolean useBlobStore,
                                                                        final int dsCacheInMB) {
         return new OakRepositoryFixture(OakFixture.getSegmentTarWithAzureSegmentStore(base, azureConnectionString,
+                azureContainerName, azureRootPath, maxFileSizeMB, cacheSizeMB, binariesInlineThreshold, useBlobStore, dsCacheInMB));
+    }
+
+    public static RepositoryFixture getSegmentTarWithAzureTarSegmentStore(final File base, final String azureConnectionString,
+                                                                       final String azureContainerName, final String azureRootPath,
+                                                                       final int maxFileSizeMB, final int cacheSizeMB,
+                                                                       final int binariesInlineThreshold, final boolean useBlobStore,
+                                                                       final int dsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture.getSegmentTarWithAzureTarSegmentStore(base, azureConnectionString,
                 azureContainerName, azureRootPath, maxFileSizeMB, cacheSizeMB, binariesInlineThreshold, useBlobStore, dsCacheInMB));
     }
 

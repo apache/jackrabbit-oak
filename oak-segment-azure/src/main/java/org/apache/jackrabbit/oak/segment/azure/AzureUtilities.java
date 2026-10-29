@@ -100,7 +100,7 @@ public final class AzureUtilities {
         });
     }
 
-    static @NotNull String asAzurePrefix(@NotNull String... pathSegments) {
+    public static @NotNull String asAzurePrefix(@NotNull String... pathSegments) {
         return Stream.of(pathSegments)
                 .map(AzureUtilities::ensureTrailingSlash)
                 .map(AzureUtilities::ensureNoLeadingSlash)
@@ -116,7 +116,7 @@ public final class AzureUtilities {
         return !path.isEmpty() && path.charAt(0) == '/' ? ensureNoLeadingSlash(path.substring(1)) : path;
     }
 
-    static @NotNull String ensureNoTrailingSlash(@NotNull String path) {
+    public static @NotNull String ensureNoTrailingSlash(@NotNull String path) {
         int lastPos = path.length() - 1;
         return lastPos > 0 && path.charAt(lastPos) == '/' ? ensureNoTrailingSlash(path.substring(0, lastPos)) : path;
     }

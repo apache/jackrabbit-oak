@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE
 
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
@@ -49,7 +50,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentTarWriter.class);
 
-    private static final byte[] ZERO_BYTES = new byte[BLOCK_SIZE];
+    static final byte[] ZERO_BYTES = new byte[BLOCK_SIZE];
 
     private final FileStoreMonitor monitor;
 
@@ -59,7 +60,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
      * allow {@link #flush()} to work concurrently with normal reads and
      * writes, but not with a concurrent {@link #close()}.
      */
-    private final File file;
+    private final IOWriteAccess io;
 
     private final IOMonitor ioMonitor;
 
@@ -79,14 +80,98 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
      * to avoid creating an extra empty file when just reading from the repository.
      * Should only be accessed from synchronized code.
      */
-    private RandomAccessFile access = null;
+    // private RandomAccessFile access = null;
 
-    private FileChannel channel = null;
+    // private FileChannel channel = null;
 
     private volatile long length;
 
+    static class FileIOWriteAccess extends SegmentTarReader.FileIOReadAccess implements IOWriteAccess {
+
+        private RandomAccessFile access;
+
+        private FileChannel channel;
+
+        private FileIOWriteAccess(File file) {
+            super(file);
+        }
+
+        private void initIfNeeded() throws FileNotFoundException {
+            if (access == null) {
+                access = new RandomAccessFile(file, "rw");
+                channel = access.getChannel();
+                readAccess = new FileAccess.Random(access);
+            }
+        }
+
+        @Override
+        public String getName() {
+            return file.getName();
+        }
+
+        @Override
+        public int write(byte[] data) throws IOException {
+            initIfNeeded();
+            access.write(data);
+            return data.length;
+        }
+
+        @Override
+        public int write(byte[] data, int offset, int length) throws IOException {
+            initIfNeeded();
+            access.write(data, offset, length);
+            return length - offset;
+        }
+
+        @Override
+        public Buffer read(int position, int length) throws IOException {
+            initIfNeeded();
+            Buffer data = Buffer.allocate(length);
+            if (data.readFully(channel, position) < length) {
+                throw new EOFException();
+            }
+            data.rewind();
+            return data;
+        }
+
+        @Override
+        public void flush() throws IOException {
+            initIfNeeded();
+            access.getFD().sync();
+        }
+
+        @Override
+        public boolean isDirty() {
+            return access != null;
+        }
+
+        @Override
+        public int length() {
+            return Math.toIntExact(file.length());
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (access != null) {
+                access.close();
+                access = null;
+                channel = null;
+            }
+            super.close();
+        }
+
+        @Override
+        public String toString() {
+            return file.toString();
+        }
+    }
+
     public SegmentTarWriter(File file, FileStoreMonitor monitor, IOMonitor ioMonitor) {
-        this.file = file;
+        this(new FileIOWriteAccess(file), monitor, ioMonitor);
+    }
+
+    public SegmentTarWriter(IOWriteAccess io, FileStoreMonitor monitor, IOMonitor ioMonitor) {
+        this.io = io;
         this.monitor = monitor;
         this.ioMonitor = ioMonitor;
     }
@@ -99,36 +184,18 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         String entryName = String.format("%s.%08x", uuid, checksum.getValue());
         byte[] header = newEntryHeader(entryName, size);
 
-        log.debug("Writing segment {} to {}", uuid, file);
+        log.debug("Writing segment {} to {}", uuid, io);
 
-        if (access == null) {
-            access = new RandomAccessFile(file, "rw");
-            channel = access.getChannel();
-        }
+        int dataOffset = io.length() + header.length;
 
-        int padding = getPaddingSize(size);
-
-        long initialLength = access.getFilePointer();
-
-        access.write(header);
-
-        long dataOffset = access.getFilePointer();
-
+        File file = new File(io.getName());
         ioMonitor.beforeSegmentWrite(file, msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
-        access.write(data, offset, size);
+        monitor.written(io.appendSegmentEntry(header, data, offset, size, getPaddingSize(size)));
         ioMonitor.afterSegmentWrite(file, msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
 
-        if (padding > 0) {
-            access.write(ZERO_BYTES, 0, padding);
-        }
-
-        long currentLength = access.getFilePointer();
-        monitor.written(currentLength - initialLength);
-
-        length = currentLength;
-
-        index.put(new UUID(msb, lsb), new SimpleIndexEntry(msb, lsb, (int) dataOffset, size, generation, fullGeneration, compacted));
+        length = io.length();
+        index.put(uuid, new SimpleIndexEntry(msb, lsb, dataOffset, size, generation, fullGeneration, compacted));
     }
 
     @Override
@@ -137,13 +204,8 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         if (indexEntry == null) {
             return null;
         }
-        Validate.checkState(channel != null); // implied by entry != null
-        Buffer data = Buffer.allocate(indexEntry.getLength());
-        if (data.readFully(channel, indexEntry.getPosition()) < indexEntry.getLength()) {
-            throw new EOFException();
-        }
-        data.rewind();
-        return data;
+        Validate.checkState(io != null); // implied by entry != null
+        return io.read(indexEntry.getPosition(), indexEntry.getLength());
     }
 
     @Override
@@ -154,29 +216,17 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     @Override
     public void writeGraph(byte[] data) throws IOException {
         int paddingSize = getPaddingSize(data.length);
-        byte[] header = newEntryHeader(file.getName() + ".gph", data.length + paddingSize);
-        access.write(header);
-        if (paddingSize > 0) {
-            access.write(ZERO_BYTES, 0, paddingSize);
-        }
-        access.write(data);
-        monitor.written(header.length + paddingSize + data.length);
-
-        length = access.getFilePointer();
+        byte[] header = newEntryHeader(io.getName() + ".gph", data.length + paddingSize);
+        monitor.written(io.appendEntry(header, data, paddingSize));
+        length = io.length();
     }
 
     @Override
     public void writeBinaryReferences(byte[] data) throws IOException {
         int paddingSize = getPaddingSize(data.length);
-        byte[] header = newEntryHeader(file.getName() + ".brf", data.length + paddingSize);
-        access.write(header);
-        if (paddingSize > 0) {
-            access.write(ZERO_BYTES, 0, paddingSize);
-        }
-        access.write(data);
-        monitor.written(header.length + paddingSize + data.length);
-
-        length = access.getFilePointer();
+        byte[] header = newEntryHeader(io.getName() + ".brf", data.length + paddingSize);
+        monitor.written(io.appendEntry(header, data, paddingSize));
+        length = io.length();
     }
 
     @Override
@@ -206,38 +256,32 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
 
         byte[] data = writer.write();
 
-        byte[] header = newEntryHeader(file.getName() + ".idx", data.length);
-        access.write(header);
-        access.write(data);
-        monitor.written(header.length + data.length);
-
-        length = access.getFilePointer();
+        byte[] header = newEntryHeader(io.getName() + ".idx", data.length);
+        monitor.written(io.appendEntry(header, data, 0));
+        length = io.length();
     }
 
     @Override
     public void close() throws IOException {
         writeIndex();
-
-        access.write(ZERO_BYTES);
-        access.write(ZERO_BYTES);
-        access.close();
-
-        monitor.written(BLOCK_SIZE * 2);
+        monitor.written(io.write(ZERO_BYTES) + io.write(ZERO_BYTES));
+        length = io.length();
+        io.close();
     }
 
     @Override
     public boolean isCreated() {
-        return access != null;
+        return io.isDirty();
     }
 
     @Override
     public void flush() throws IOException {
-        access.getFD().sync();
+        io.flush();
     }
 
     @Override
     public String getName() {
-        return file.getName();
+        return io.getName();
     }
 
     @Override

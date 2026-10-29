@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlobLeaseClient;
 import com.azure.storage.blob.specialized.BlobLeaseClientBuilder;
@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzurePersistence.WriteMode.FOLDER;
+
 public class AzurePersistence implements SegmentNodeStorePersistence {
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
@@ -58,35 +60,52 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     private final Integer journalLineLimit;
 
+    private final WriteMode writeMode;
+
+    public enum WriteMode {
+        FOLDER,
+        TAR_FILE
+    }
+
     public AzurePersistence(BlobContainerClient blobContainerClient, String rootPrefix) {
         this(blobContainerClient, blobContainerClient, blobContainerClient, rootPrefix);
     }
 
     public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix) {
-        this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, null, null);
+        this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, FOLDER);
     }
 
-    public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, Integer journalLineLimit) {
+    public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, WriteMode writeMode) {
+        this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, writeMode, null, null);
+    }
+
+    public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, WriteMode writeMode, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, Integer journalLineLimit) {
         this.readBlobContainerClient = readBlobContainerClient;
         this.writeBlobContainerClient = writeBlobContainerClient;
         this.noRetryBlobContainerClient = noRetryBlobContainerClient;
         this.azureHttpRequestLoggingPolicy = azureHttpRequestLoggingPolicy;
-        this.rootPrefix = rootPrefix;
+        this.rootPrefix = AzureUtilities.ensureNoTrailingSlash(rootPrefix);
         this.journalLineLimit = journalLineLimit;
+        this.writeMode = writeMode;
     }
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         attachRemoteStoreMonitor(remoteStoreMonitor);
-        return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController);
+        return new AzureHybridArchiveManager(writeMode, readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController);
     }
 
     @Override
     public boolean segmentFilesExist() {
         try {
-            return readBlobContainerClient.listBlobsByHierarchy(rootPrefix + "/").stream()
-                    .filter(BlobItem::isPrefix)
-                    .anyMatch(blobItem -> blobItem.getName().endsWith(".tar") || blobItem.getName().endsWith(".tar/"));
+            return readBlobContainerClient.listBlobsByHierarchy(
+                    "/",
+                            new ListBlobsOptions().setPrefix(rootPrefix + "/").setMaxResultsPerPage(1),
+                            null
+                    )
+                    .stream()
+                    .map(AzureUtilities::getName)
+                    .anyMatch(blobName -> blobName.endsWith(".tar"));
         } catch (BlobStorageException e) {
             log.error("Can't check if the segment archives exists", e);
             return false;

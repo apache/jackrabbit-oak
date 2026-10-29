@@ -28,6 +28,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -44,6 +46,8 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.Configuration;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -91,26 +95,27 @@ public class SegmentTarFixture extends OakFixture {
         private String azureConnectionString;
         private String azureContainerName;
         private String azureRootPath;
-        
+        private AzurePersistence.WriteMode azureWriteMode;
+
         public static SegmentTarFixtureBuilder segmentTarFixtureBuilder(String name, File directory) {
             return new SegmentTarFixtureBuilder(name, directory);
         }
-        
+
         private SegmentTarFixtureBuilder(String name, File base) {
             this.name = name;
             this.base = base;
         }
-        
+
         public SegmentTarFixtureBuilder withMaxFileSize(int maxFileSize) {
             this.maxFileSize = maxFileSize;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withSegmentCacheSize(int segmentCacheSize) {
             this.segmentCacheSize = segmentCacheSize;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withMemoryMapping(boolean memoryMapping) {
             this.memoryMapping = memoryMapping;
             return this;
@@ -139,10 +144,11 @@ public class SegmentTarFixture extends OakFixture {
             return this;
         }
 
-        public SegmentTarFixtureBuilder withAzure(String azureConnectionString, String azureContainerName, String azureRootPath) {
+        public SegmentTarFixtureBuilder withAzure(String azureConnectionString, String azureContainerName, String azureRootPath, AzurePersistence.WriteMode writeMode) {
             this.azureConnectionString = azureConnectionString;
             this.azureContainerName = azureContainerName;
-            this.azureRootPath = azureRootPath;
+            this.azureRootPath = azureRootPath + "-" + (writeMode == AzurePersistence.WriteMode.FOLDER ? "folder" : "tar");
+            this.azureWriteMode = writeMode;
             return this;
         }
 
@@ -173,11 +179,12 @@ public class SegmentTarFixture extends OakFixture {
     private final String azureConnectionString;
     private final String azureContainerName;
     private final String azureRootPath;
+    private final AzurePersistence.WriteMode azureWriteMode;
 
     private final File parentPath;
 
     private FileStore[] stores;
-    private BlobStoreFixture[] blobStoreFixtures; 
+    private BlobStoreFixture[] blobStoreFixtures;
 
     private StandbyServerSync[] serverSyncs;
     private StandbyClientSync[] clientSyncs;
@@ -214,6 +221,7 @@ public class SegmentTarFixture extends OakFixture {
         this.azureConnectionString = builder.azureConnectionString;
         this.azureContainerName = builder.azureContainerName;
         this.azureRootPath = builder.azureRootPath;
+        this.azureWriteMode = builder.azureWriteMode;
 
         this.withColdStandby = withColdStandby;
         this.syncInterval = syncInterval;
@@ -285,11 +293,28 @@ public class SegmentTarFixture extends OakFixture {
         }
 
         if (azureConnectionString != null) {
-            CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
-            CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
-            container.createIfNotExists();
-            CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
-            fileStoreBuilder.withCustomPersistence(new AzurePersistenceV8(directory));
+            BlobContainerClient readContainerClient = new BlobContainerClientBuilder()
+                    .connectionString(azureConnectionString)
+                    .containerName(azureContainerName)
+                    .retryOptions(AzureRequestOptions.getRetryOptionsDefault())
+                    .buildClient();
+            BlobContainerClient writeContainerClient = new BlobContainerClientBuilder()
+                    .connectionString(azureConnectionString)
+                    .containerName(azureContainerName)
+                    .retryOptions(AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations())
+                    .buildClient();
+            BlobContainerClient noRetryContainerClient = new BlobContainerClientBuilder()
+                    .connectionString(azureConnectionString)
+                    .containerName(azureContainerName)
+                    .buildClient();
+            writeContainerClient.createIfNotExists();
+            AzurePersistence azurePersistence = new AzurePersistence(
+                    readContainerClient,
+                    writeContainerClient,
+                    noRetryContainerClient,
+                    azureRootPath,
+                    azureWriteMode);
+            fileStoreBuilder.withCustomPersistence(azurePersistence);
         }
 
         BlobStore blobStore = null;
@@ -336,12 +361,28 @@ public class SegmentTarFixture extends OakFixture {
             }
 
             if (azureConnectionString != null) {
-                CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
-                CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
-                container.createIfNotExists();
-                containers[i] = container;
-                CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath + "/primary-" + i);
-                builder.withCustomPersistence(new AzurePersistenceV8(directory));
+                BlobContainerClient readContainerClient = new BlobContainerClientBuilder()
+                        .connectionString(azureConnectionString)
+                        .containerName(azureContainerName)
+                        .retryOptions(AzureRequestOptions.getRetryOptionsDefault())
+                        .buildClient();
+                BlobContainerClient writeContainerClient = new BlobContainerClientBuilder()
+                        .connectionString(azureConnectionString)
+                        .containerName(azureContainerName)
+                        .retryOptions(AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations())
+                        .buildClient();
+                BlobContainerClient noRetryContainerClient = new BlobContainerClientBuilder()
+                        .connectionString(azureConnectionString)
+                        .containerName(azureContainerName)
+                        .buildClient();
+                writeContainerClient.createIfNotExists();
+                AzurePersistence azurePersistence = new AzurePersistence(
+                        readContainerClient,
+                        writeContainerClient,
+                        noRetryContainerClient,
+                        azureRootPath,
+                        azureWriteMode);
+                builder.withCustomPersistence(azurePersistence);
             }
 
             if (blobStore != null) {
@@ -373,7 +414,7 @@ public class SegmentTarFixture extends OakFixture {
     /**
      * Attaches a standby instance located at index (n+i) in the cluster to the
      * primary located at index i
-     * 
+     *
      * @param i
      *            the primary index
      * @param n
@@ -446,7 +487,7 @@ public class SegmentTarFixture extends OakFixture {
      * Initializes various arrays holding internal references based on the
      * settings provided (e.g. use data store or not, attach cold standby
      * instance, etc.)
-     * 
+     *
      * @param n
      *            number of primary instances in the cluster
      */
@@ -463,7 +504,7 @@ public class SegmentTarFixture extends OakFixture {
                 } else {
                     blobStoresLength = 2 * n;
                 }
-            } 
+            }
 
             serverSyncs = new StandbyServerSync[n];
             clientSyncs = new StandbyClientSync[n];

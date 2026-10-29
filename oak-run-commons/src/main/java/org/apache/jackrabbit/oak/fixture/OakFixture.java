@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -75,6 +76,7 @@ public abstract class OakFixture {
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
     public static final String OAK_SEGMENT_AWS = "Oak-Segment-Aws";
     public static final String OAK_SEGMENT_AZURE = "Oak-Segment-Azure";
+    public static final String OAK_SEGMENT_AZURE_TAR = "Oak-Segment-Azure-Tar";
     public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
     public static final String OAK_SEGMENT_TAR_COLD = "Oak-Segment-Tar-Cold";
 
@@ -326,8 +328,8 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getSegmentTar(final String name, final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore, 
-            final int dsCacheInMB, final boolean withColdStandby, final int syncInterval, final boolean shareBlobStore, 
+            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore,
+            final int dsCacheInMB, final boolean withColdStandby, final int syncInterval, final boolean shareBlobStore,
             final boolean secure, final boolean oneShotRun) {
 
         SegmentTarFixtureBuilder builder = SegmentTarFixtureBuilder.segmentTarFixtureBuilder(name, base);
@@ -352,18 +354,18 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getSegmentTarWithDataStore(final File base,
-        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, 
+        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold,
         final int dsCacheInMB) {
-        
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, true, 
+
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, true,
                 dsCacheInMB, false, -1, false, false, false);
     }
-    
+
     public static OakFixture getSegmentTarWithColdStandby(final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore, 
+            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore,
             final int dsCacheInMB, final int syncInterval, final boolean shareBlobStore, final boolean secure, final boolean oneShotRun) {
-        
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, 
+
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold,
                 useBlobStore, dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
     }
 
@@ -381,7 +383,19 @@ public abstract class OakFixture {
                                                                 final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold, final boolean useBlobStore, final int dsCacheInMB) {
         return SegmentTarFixtureBuilder
                 .segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AZURE, base)
-                .withAzure(azureConnectionString, azureContainerName, azureRootPath)
+                .withAzure(azureConnectionString, azureContainerName, azureRootPath, AzurePersistence.WriteMode.FOLDER)
+                .withMaxFileSize(maxFileSizeMB)
+                .withSegmentCacheSize(cacheSizeMB)
+                .withBinariesInlineThreshold(binariesInlineThreshold)
+                .withBlobStore(useBlobStore)
+                .withDSCacheSize(dsCacheInMB).build();
+    }
+
+    public static OakFixture getSegmentTarWithAzureTarSegmentStore(final File base, final String azureConnectionString, final String azureContainerName, final String azureRootPath,
+                                                                final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold, final boolean useBlobStore, final int dsCacheInMB) {
+        return SegmentTarFixtureBuilder
+                .segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AZURE_TAR, base)
+                .withAzure(azureConnectionString, azureContainerName, azureRootPath, AzurePersistence.WriteMode.TAR_FILE)
                 .withMaxFileSize(maxFileSizeMB)
                 .withSegmentCacheSize(cacheSizeMB)
                 .withBinariesInlineThreshold(binariesInlineThreshold)
@@ -390,7 +404,7 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getCompositeStore(final String name, final File base,
-                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, 
+                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
                                                int binariesInlineThreshold) {
         return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold);
     }
