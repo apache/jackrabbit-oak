@@ -1905,4 +1905,19 @@ public class DiffIndexMergerTest {
         DiffIndexMerger.removeDiffIndexEntries(definitions);
         assertEquals("[/oak:index/damAssetLucene-8]", definitions.getChildren().keySet().toString());
     }
+
+    @Test
+    public void mergeDiffsPreservesChildOrder() {
+        JsonObject a = JsonObject.fromJson("""
+                { "properties": { "existing": {} } }
+                """, true);
+        JsonObject b = JsonObject.fromJson("""
+                { "properties": { "include0": {}, "include1": {}, "existing": {} } }
+                """, true);
+
+        JsonObject merged = DiffIndexMerger.mergeDiffs(a, b);
+        assertEquals(List.of("existing", "include0", "include1"),
+                new ArrayList<>(merged.getChildren().get("properties").getChildren().keySet()));
+    }
+
 }
