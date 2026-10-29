@@ -22,8 +22,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -511,6 +513,20 @@ public class MergeTest {
                 + "    }\n"
                 + "  }\n"
                 + "}", merged);
+    }
+
+    @Test
+    public void mergeDiffsPreservesChildOrder() {
+        JsonObject a = JsonObject.fromJson("""
+                { "properties": { "existing": {} } }
+                """, true);
+        JsonObject b = JsonObject.fromJson("""
+                { "properties": { "include0": {}, "include1": {}, "existing": {} } }
+                """, true);
+
+        JsonObject merged = DiffIndexMerger.mergeDiffs(a, b);
+        assertEquals(List.of("existing", "include0", "include1"),
+                new ArrayList<>(merged.getChildren().get("properties").getChildren().keySet()));
     }
 
     @Test
