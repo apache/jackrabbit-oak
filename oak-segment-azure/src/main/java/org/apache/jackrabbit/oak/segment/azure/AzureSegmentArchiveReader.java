@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveRead
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     @Override
     protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
-        readBufferFully(getBlobClient(segmentFileName), buffer);
+        readBufferFully(getBlobClient(segmentFileName), buffer.toByteBuffer());
     }
 
     @Override
@@ -91,9 +92,9 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
                 return null;
             }
             long length = blob.getProperties().getBlobSize();
-            Buffer buffer = Buffer.allocate((int) length);
+            ByteBuffer buffer = ByteBuffer.allocate((int) length);
             AzureUtilities.readBufferFully(blob, buffer);
-            return buffer;
+            return Buffer.wrap(buffer);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }

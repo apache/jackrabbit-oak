@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -38,7 +39,7 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
     }
 
     private static Iterable<ArchiveEntry> createEntryIterable(S3Directory directory, String archiveName) throws IOException{
-        Buffer buffer = directory.readObjectToBuffer(archiveName + ".idx", OFF_HEAP);
+        ByteBuffer buffer = directory.readObjectToBuffer(archiveName + ".idx", OFF_HEAP);
         return () -> new Iterator<>() {
             @Override
             public boolean hasNext() {
@@ -65,7 +66,7 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
 
     @Override
     protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
-        directory.readObjectToBuffer(segmentFileName, buffer);
+        directory.readObjectToBuffer(segmentFileName, buffer.toByteBuffer());
     }
 
     @Override
@@ -80,7 +81,7 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
 
     private Buffer readObjectToBuffer(String name) throws IOException {
         if (directory.doesObjectExist(name)) {
-            return directory.readObjectToBuffer(name, false);
+            return Buffer.wrap(directory.readObjectToBuffer(name, false));
         }
 
         return null;

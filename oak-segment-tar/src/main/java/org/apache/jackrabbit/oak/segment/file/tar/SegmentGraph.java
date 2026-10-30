@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
@@ -93,7 +93,7 @@ public final class SegmentGraph {
      * @throws IOException if the tar file could not be read
      */
     public static @Nullable SegmentGraph load(ReaderAtEnd readerAtEnd) throws IOException {
-        Buffer meta = readerAtEnd.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
+        ByteBuffer meta = readerAtEnd.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
 
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -115,7 +115,7 @@ public final class SegmentGraph {
             return null;
         }
 
-        Buffer buffer = readerAtEnd.readAtEnd(bytes, bytes);
+        ByteBuffer buffer = readerAtEnd.readAtEnd(bytes, bytes);
         byte[] b = new byte[bytes - FOOTER_SIZE];
 
         buffer.mark();
@@ -145,7 +145,7 @@ public final class SegmentGraph {
                 continue;
             }
             UUID from = new UUID(entry.getMsb(), entry.getLsb());
-            Buffer buffer = archiveReader.readSegment(entry.getMsb(), entry.getLsb());
+            ByteBuffer buffer = archiveReader.readSegment(entry.getMsb(), entry.getLsb()).toByteBuffer();
             SegmentData data = SegmentData.newSegmentData(buffer);
             for (int i = 0; i < data.getSegmentReferencesCount(); i++) {
                 UUID to = new UUID(data.getSegmentReferenceMsb(i), data.getSegmentReferenceLsb(i));
@@ -155,7 +155,7 @@ public final class SegmentGraph {
         return graph;
     }
 
-    public static @NotNull SegmentGraph parse(@NotNull Buffer buffer) {
+    public static @NotNull SegmentGraph parse(@NotNull ByteBuffer buffer) {
         int nEntries = buffer.getInt(buffer.limit() - 12);
         Map<UUID, Set<UUID>> edgeMap = new HashMap<>(nEntries);
 
@@ -180,7 +180,7 @@ public final class SegmentGraph {
 
     public byte[] write() {
         int graphSize = size();
-        Buffer buffer = Buffer.allocate(graphSize);
+        ByteBuffer buffer = ByteBuffer.allocate(graphSize);
 
         for (Map.Entry<UUID, Set<UUID>> entry : edgeMap.entrySet()) {
             UUID from = entry.getKey();

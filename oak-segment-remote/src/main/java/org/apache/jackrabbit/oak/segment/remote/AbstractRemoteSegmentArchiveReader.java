@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -88,12 +89,8 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
             return null;
         }
 
-        Buffer buffer;
-        if (OFF_HEAP) {
-            buffer = Buffer.allocateDirect(indexEntry.getLength());
-        } else {
-            buffer = Buffer.allocate(indexEntry.getLength());
-        }
+        int length = indexEntry.getLength();
+        Buffer buffer = Buffer.wrap(OFF_HEAP ? ByteBuffer.allocateDirect(length) : ByteBuffer.allocate(length));
         ioMonitor.beforeSegmentRead(archivePathAsFile(), msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
         String segmentFileName = getSegmentFileName(indexEntry);
@@ -128,7 +125,7 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     public @NotNull SegmentGraph getGraph() throws IOException {
         Buffer buffer = doReadDataFile(".gph");
         if (buffer != null) {
-            return SegmentGraph.parse(buffer);
+            return SegmentGraph.parse(buffer.toByteBuffer());
         }
         return SegmentGraph.compute(this);
     }

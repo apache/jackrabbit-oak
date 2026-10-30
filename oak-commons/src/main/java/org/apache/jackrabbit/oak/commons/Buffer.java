@@ -41,7 +41,14 @@ import java.util.zip.CRC32;
  * {@link ByteBuffer}. Since it is not possible to directly convert a {@link
  * Buffer} into a {@link ByteBuffer} and the other way around, {@link Buffer}
  * makes it less likely to develop dangerous code in the future.
+ *
+ * @deprecated Oak requires Java 11, so the Java 8 compatibility concern above
+ * no longer applies, while this wrapper only exposes a restricted subset of
+ * {@link ByteBuffer} that has to be extended by hand. Use {@link ByteBuffer}
+ * directly; {@link #wrap(ByteBuffer)} and {@link #toByteBuffer()} bridge APIs
+ * still exposing {@code Buffer}.
  */
+@Deprecated
 final public class Buffer {
 
     private final ByteBuffer buffer;
@@ -52,6 +59,22 @@ final public class Buffer {
 
     public static Buffer map(FileChannel channel, MapMode mode, long position, long size) throws IOException {
         return new Buffer(channel.map(mode, position, size));
+    }
+
+    /**
+     * Wraps the given {@link ByteBuffer} without copying. Both share content,
+     * position and limit.
+     */
+    public static Buffer wrap(ByteBuffer buffer) {
+        return new Buffer(buffer);
+    }
+
+    /**
+     * Returns the underlying {@link ByteBuffer} without copying. Both share
+     * content, position and limit.
+     */
+    public ByteBuffer toByteBuffer() {
+        return buffer;
     }
 
     public static Buffer wrap(byte[] buffer) {

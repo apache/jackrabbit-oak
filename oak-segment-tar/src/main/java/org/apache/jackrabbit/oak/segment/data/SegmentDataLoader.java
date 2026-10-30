@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.data;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 class SegmentDataLoader {
 
@@ -27,7 +27,7 @@ class SegmentDataLoader {
 
     private static final byte SEGMENT_DATA_V13 = 13;
 
-    static SegmentData newSegmentData(Buffer buffer) {
+    static SegmentData newSegmentData(ByteBuffer buffer) {
         switch (buffer.get(VERSION_OFFSET)) {
             case SEGMENT_DATA_V12:
                 return new SegmentDataV12(buffer);
@@ -38,7 +38,7 @@ class SegmentDataLoader {
         }
     }
 
-    static SegmentData newRawSegmentData(Buffer buffer) {
+    static SegmentData newRawSegmentData(ByteBuffer buffer) {
         return new SegmentDataRaw(buffer);
     }
 

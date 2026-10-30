@@ -30,12 +30,12 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.IOUtils;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,18 +101,13 @@ public final class S3Directory {
         return s3.getObjectMetadata(bucketName, key);
     }
 
-    public Buffer readObjectToBuffer(String name, boolean offHeap) throws IOException {
+    public ByteBuffer readObjectToBuffer(String name, boolean offHeap) throws IOException {
         byte[] data = readObject(rootDirectory + name);
-        Buffer buffer = offHeap ? Buffer.allocateDirect(data.length) : Buffer.allocate(data.length);
-        buffer.put(data);
-        buffer.flip();
-        return buffer;
+        return offHeap ? ByteBuffer.allocateDirect(data.length).put(data).flip() : ByteBuffer.wrap(data);
     }
 
-    public void readObjectToBuffer(String name, Buffer buffer) throws IOException {
-        byte[] data = readObject(rootDirectory + name);
-        buffer.put(data);
-        buffer.flip();
+    public void readObjectToBuffer(String name, ByteBuffer buffer) throws IOException {
+        buffer.put(readObject(rootDirectory + name)).flip();
     }
 
     public byte[] readObject(String key) throws IOException {

@@ -17,12 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
+import static java.nio.ByteBuffer.wrap;
 
 import java.io.IOException;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
 class IndexLoaderV1 {
@@ -36,7 +36,7 @@ class IndexLoaderV1 {
     }
 
     IndexV1 loadIndex(ReaderAtEnd reader) throws InvalidIndexException, IOException {
-        Buffer meta = reader.readAtEnd(IndexV1.FOOTER_SIZE, IndexV1.FOOTER_SIZE);
+        ByteBuffer meta = reader.readAtEnd(IndexV1.FOOTER_SIZE, IndexV1.FOOTER_SIZE);
 
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -56,11 +56,11 @@ class IndexLoaderV1 {
             throw new InvalidIndexException("Invalid size alignment");
         }
 
-        Buffer entries = reader.readAtEnd(IndexV1.FOOTER_SIZE + count * IndexEntryV1.SIZE, count * IndexEntryV1.SIZE);
+        ByteBuffer entries = reader.readAtEnd(IndexV1.FOOTER_SIZE + count * IndexEntryV1.SIZE, count * IndexEntryV1.SIZE);
 
         CRC32 checksum = new CRC32();
         entries.mark();
-        entries.update(checksum);
+        checksum.update(entries);
         entries.reset();
         if (crc32 != (int) checksum.getValue()) {
             throw new InvalidIndexException("Invalid checksum");
@@ -73,7 +73,7 @@ class IndexLoaderV1 {
         for (int i = 0; i < count; i++) {
             entries.get(entry);
 
-            Buffer buffer = wrap(entry);
+            ByteBuffer buffer = wrap(entry);
             long msb = buffer.getLong();
             long lsb = buffer.getLong();
             int offset = buffer.getInt();

@@ -22,12 +22,12 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.text.MessageFormat;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
@@ -175,7 +175,7 @@ public class AwsToolUtils {
         pw.println(MessageFormat.format(format, arg));
     }
 
-    public static byte[] fetchByteArray(Buffer buffer) throws IOException {
+    public static byte[] fetchByteArray(ByteBuffer buffer) throws IOException {
         byte[] data = new byte[buffer.remaining()];
         buffer.get(data);
         return data;

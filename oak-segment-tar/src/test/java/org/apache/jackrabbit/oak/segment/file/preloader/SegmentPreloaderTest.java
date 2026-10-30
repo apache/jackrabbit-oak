@@ -159,7 +159,7 @@ public class SegmentPreloaderTest {
             }
 
             preloadingCache.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits(),
-                    () -> tarFiles.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits()));
+                    () -> Buffer.wrap(tarFiles.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits())));
             assertReferencedSegmentsLoaded(referencedSegments, underlyingCache, preloadingCache);
 
             UUID nextToLoad = null;
@@ -176,7 +176,7 @@ public class SegmentPreloaderTest {
 
             final UUID next = nextToLoad;
             preloadingCache.readSegment(next.getMostSignificantBits(), next.getLeastSignificantBits(),
-                    () -> tarFiles.readSegment(next.getMostSignificantBits(), next.getLeastSignificantBits()));
+                    () -> Buffer.wrap(tarFiles.readSegment(next.getMostSignificantBits(), next.getLeastSignificantBits())));
             LOG.info("Next loaded segment: {}", next);
             assertReferencedSegmentsLoaded(uuids, underlyingCache, preloadingCache);
         }

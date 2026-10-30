@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static org.apache.jackrabbit.oak.segment.util.Buffers.toByteBuffer;
 import static java.util.Objects.checkFromToIndex;
 import static java.util.Objects.requireNonNull;
 
@@ -29,7 +30,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
@@ -129,11 +130,11 @@ class TarWriter implements Closeable {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file
      */
-    Buffer readEntry(long msb, long lsb) throws IOException {
+    ByteBuffer readEntry(long msb, long lsb) throws IOException {
         synchronized (this) {
             Validate.checkState(!closed);
         }
-        return archive.readSegment(msb, lsb);
+        return toByteBuffer(archive.readSegment(msb, lsb));
     }
 
     long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {

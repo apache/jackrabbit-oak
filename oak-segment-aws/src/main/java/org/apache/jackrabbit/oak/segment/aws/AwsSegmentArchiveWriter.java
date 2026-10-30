@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -62,7 +63,7 @@ public class AwsSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter 
 
     @Override
     protected Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException {
-        return directory.readObjectToBuffer(getSegmentFileName(indexEntry), OFF_HEAP);
+        return Buffer.wrap(directory.readObjectToBuffer(getSegmentFileName(indexEntry), OFF_HEAP));
     }
 
 
@@ -79,15 +80,15 @@ public class AwsSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter 
 
     private void writeIndex() throws IOException {
         // 33 bytes = 2 x 8 bytes (long) +  4 x 4 bytes (int) + 1 x 1 byte (boolean)
-        Buffer buffer = Buffer.allocate(index.size() * 33);
+        ByteBuffer buffer = ByteBuffer.allocate(index.size() * 33);
         for (RemoteSegmentArchiveEntry entry : index.values()) {
-            buffer.putLong(entry.getMsb());
-            buffer.putLong(entry.getLsb());
-            buffer.putInt(entry.getPosition());
-            buffer.putInt(entry.getLength());
-            buffer.putInt(entry.getGeneration());
-            buffer.putInt(entry.getFullGeneration());
-            buffer.put(entry.isCompacted() ? (byte) 1 : 0);
+            buffer.putLong(entry.getMsb())
+                    .putLong(entry.getLsb())
+                    .putInt(entry.getPosition())
+                    .putInt(entry.getLength())
+                    .putInt(entry.getGeneration())
+                    .putInt(entry.getFullGeneration())
+                    .put(entry.isCompacted() ? (byte) 1 : 0);
         }
         directory.writeObject(archiveName + ".idx", buffer.array());
     }

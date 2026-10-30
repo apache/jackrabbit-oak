@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
+import static java.nio.ByteBuffer.wrap;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
 import java.io.File;
@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
 import org.apache.commons.io.filefilter.SuffixFileFilter;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -234,7 +234,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
             }
 
             // The header checksum passes, so read the entry name and size
-            Buffer buffer = wrap(header);
+            ByteBuffer buffer = wrap(header);
             String name = readString(buffer, 100);
             buffer.position(124);
             int size = readNumber(buffer, 12);
@@ -285,7 +285,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
         }
     }
 
-    private static String readString(Buffer buffer, int fieldSize) {
+    private static String readString(ByteBuffer buffer, int fieldSize) {
         byte[] b = new byte[fieldSize];
         buffer.get(b);
         int n = 0;
@@ -295,7 +295,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
         return new String(b, 0, n, StandardCharsets.UTF_8);
     }
 
-    private static int readNumber(Buffer buffer, int fieldSize) {
+    private static int readNumber(ByteBuffer buffer, int fieldSize) {
         byte[] b = new byte[fieldSize];
         buffer.get(b);
         int number = 0;

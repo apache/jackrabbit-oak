@@ -23,13 +23,13 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -77,7 +77,7 @@ public final class AzureUtilities {
     }
 
 
-    public static void readBufferFully(BlockBlobClient blob, Buffer buffer) throws IOException {
+    public static void readBufferFully(BlockBlobClient blob, ByteBuffer buffer) throws IOException {
         try {
             blob.downloadStream(new ByteBufferOutputStream(buffer));
             buffer.flip();
@@ -124,9 +124,9 @@ public final class AzureUtilities {
     private static class ByteBufferOutputStream extends OutputStream {
 
         @NotNull
-        private final Buffer buffer;
+        private final ByteBuffer buffer;
 
-        public ByteBufferOutputStream(@NotNull Buffer buffer) {
+        public ByteBufferOutputStream(@NotNull ByteBuffer buffer) {
             this.buffer = buffer;
         }
 
