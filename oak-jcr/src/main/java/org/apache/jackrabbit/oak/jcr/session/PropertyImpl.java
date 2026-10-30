@@ -528,7 +528,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     private boolean parentIsCheckedOut() throws RepositoryException {
-        return internalGetParent(dlg, sessionContext).internalIsCheckedOut();
+        NodeDelegate parent = dlg.getParent();
+        if (parent == null) {
+            throw new AccessDeniedException();
+        }
+        return getVersionManager().isCheckedOut(parent);
     }
 
     @NotNull
