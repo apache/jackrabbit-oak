@@ -267,11 +267,11 @@ public class ImporterImpl implements Importer {
     private void importProperties(@NotNull Tree tree,
                                   @NotNull List<PropInfo> propInfos,
                                   boolean ignoreRegular) throws RepositoryException {
-        // process properties
+        EffectiveNodeType ent = null;
         for (PropInfo pi : propInfos) {
-            // find applicable definition
-            //TODO find better heuristics?
-            EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
+            if (ent == null) {
+                ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
+            }
             PropertyDefinition def = ent.getPropertyDefinition(pi.getName(), pi.getType(), pi.isUnknownMultiple());
             if (def == null) {
                 throw new ConstraintViolationException("No matching property definition found for " + pi.getName());
@@ -287,6 +287,8 @@ public class ImporterImpl implements Importer {
                         break;
                     } /* else: p-i-Importer isn't able to deal with this property. try next pp-importer */
                 }
+                // Protected importers may change the node's types.
+                ent = null;
             } else if (!ignoreRegular) {
                 // regular property -> create the property
                 createProperty(tree, pi, def);
