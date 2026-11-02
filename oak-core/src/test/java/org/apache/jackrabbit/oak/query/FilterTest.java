@@ -21,13 +21,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
 import java.text.ParseException;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -68,12 +68,14 @@ public class FilterTest {
     private void assertEmptyNodeNameExcludingRoot(String function, String functionRestriction) throws Exception {
         for (String condition : new String[] {
                 "isdescendantnode('/content/dam') and " + function + "() = ''",
-                "isdescendantnode('/content/dam') and " + function + "() like ''"
+                "isdescendantnode('/content/dam') and " + function + "() like ''",
+                function + "() = '' and isdescendantnode('/content/dam')",
+                function + "() like '' and isdescendantnode('/content/dam')"
         }) {
             Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
-            assertNotNull(condition + ": " + filter, filter.getPropertyRestriction(":localname"));
-            assertEquals(":", filter.getPropertyRestriction(":localname").first.getValue(Type.STRING));
-            assertEquals(":", filter.getPropertyRestriction(functionRestriction).first.getValue(Type.STRING));
+            assertTrue(condition + ": " + filter, filter.isAlwaysFalse());
+            assertNull(filter.getPropertyRestriction(":localname"));
+            assertNull(filter.getPropertyRestriction(functionRestriction));
         }
     }
 
@@ -101,15 +103,18 @@ public class FilterTest {
                             .equals(feature.getName()));
             assertNotNull(toggle);
             assertFalse(toggle.isEnabled());
-            assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
+            assertTrue(query.createFilter(true).isAlwaysFalse());
 
             toggle.setEnabled(true);
             Filter legacyFilter = query.createFilter(true);
+            assertFalse(legacyFilter.isAlwaysFalse());
+            assertEquals("/content/dam", legacyFilter.getPath());
+            assertEquals(Filter.PathRestriction.ALL_CHILDREN, legacyFilter.getPathRestriction());
             assertNull(legacyFilter.getPropertyRestriction(":localname"));
             assertNull(legacyFilter.getPropertyRestriction(functionRestriction));
 
             toggle.setEnabled(false);
-            assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
+            assertTrue(query.createFilter(true).isAlwaysFalse());
         }
         assertNull(WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
                 feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
@@ -133,6 +138,9 @@ public class FilterTest {
                 function + "() like ''"
         }) {
             Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertFalse(filter.isAlwaysFalse());
+            assertEquals("/", filter.getPath());
+            assertEquals(Filter.PathRestriction.EXACT, filter.getPathRestriction());
             assertNull(filter.getPropertyRestriction(":localname"));
         }
     }

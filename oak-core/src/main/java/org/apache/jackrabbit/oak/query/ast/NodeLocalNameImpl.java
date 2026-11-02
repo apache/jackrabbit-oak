@@ -96,16 +96,9 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
             return;
         }
         String name = NodeNameImpl.getName(query, v);
-        if (name == null && NodeNameImpl.supportedOperator(operator) && v.getValue(Type.STRING).isEmpty()
-                && !f.testPath("/") && f.getSelector().equals(selector)
-                && query.getSettings().isEmptyNodeNameRestrictionEnabled()) {
-            // Only the root has an empty name; use an impossible name when it is excluded.
-            PropertyValue impossibleName = PropertyValues.newString(":");
-            f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL, impossibleName);
-            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(f.getSelector()),
-                    Operator.EQUAL, impossibleName, PropertyType.STRING);
-        }
-        if (name != null && f.getSelector().equals(selector)) {
+        if (name == null) {
+            NodeNameImpl.restrictEmptyName(f, operator, v, this);
+        } else if (f.getSelector().equals(selector)) {
             if (NodeNameImpl.supportedOperator(operator)) {
                 f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
                         operator, PropertyValues.newString(name));

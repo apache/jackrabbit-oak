@@ -497,6 +497,19 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertEmptyNodeNameQuery("LOCALNAME");
     }
 
+    @Test
+    public void emptyNodeNameMatchesRoot() throws Exception {
+        setTraversalEnabled(true);
+        for (String function : List.of("NAME", "LOCALNAME")) {
+            for (String operator : List.of("=", "LIKE")) {
+                String query = "SELECT [jcr:path] FROM [nt:base] AS node WHERE "
+                        + function + "() " + operator + " '' OPTION(TRAVERSAL FAIL)";
+                assertQuery(query, List.of("/"));
+                assertEquals(List.of("node, 1", "query, 1"), executeQuery("measure " + query, SQL2));
+            }
+        }
+    }
+
     private void assertEmptyNodeNameQuery(String function) throws Exception {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(
                 "<dam='http://www.day.com/dam/1.0'>\n[dam:Asset] > nt:unstructured",
@@ -526,21 +539,21 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(namedQuery, List.of("/content/dam/abc"));
         assertEquals(List.of("node, 1", "query, 1"), executeQuery("measure " + namedQuery, SQL2));
 
+        setTraversalEnabled(true);
         String emptyQuery = String.format(query, "");
         String plan = explain(emptyQuery);
-        assertThat(plan, containsString("lucene:damAssetLucene-13-custom-2"));
+        assertThat(plan, containsString("estimatedEntries: 0"));
         assertQuery(emptyQuery, List.of());
         List<String> emptyMeasure = executeQuery("measure " + emptyQuery, SQL2);
-        assertThat("measure: " + emptyMeasure, plan, containsString(":nodeName::"));
         assertEquals(List.of("node, 0", "query, 0"), emptyMeasure);
 
         String reorderedQuery = emptyQuery.replace(
                 "ISDESCENDANTNODE('/content/dam') AND " + function + "() = ''",
                 function + "() = '' AND ISDESCENDANTNODE('/content/dam')");
-        assertThat(explain(reorderedQuery), containsString(":nodeName::"));
+        assertThat(explain(reorderedQuery), containsString("estimatedEntries: 0"));
         assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + reorderedQuery, SQL2));
         String likeQuery = emptyQuery.replace(function + "() = ''", function + "() LIKE ''");
-        assertThat(explain(likeQuery), containsString(":nodeName::"));
+        assertThat(explain(likeQuery), containsString("estimatedEntries: 0"));
         assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + likeQuery, SQL2));
     }
 

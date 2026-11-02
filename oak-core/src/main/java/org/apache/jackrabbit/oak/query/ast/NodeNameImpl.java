@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.util.ISO9075;
@@ -97,16 +98,9 @@ public class NodeNameImpl extends DynamicOperandImpl {
             return;
         }
         String name = getName(query, v);
-        if (name == null && supportedOperator(operator) && v.getValue(Type.STRING).isEmpty()
-                && !f.testPath("/") && f.getSelector().equals(selector)
-                && query.getSettings().isEmptyNodeNameRestrictionEnabled()) {
-            // Only the root has an empty name; use an impossible name when it is excluded.
-            PropertyValue impossibleName = PropertyValues.newString(":");
-            f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL, impossibleName);
-            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(f.getSelector()),
-                    Operator.EQUAL, impossibleName, PropertyType.STRING);
-        }
-        if (name != null && f.getSelector().equals(selector)) {
+        if (name == null) {
+            restrictEmptyName(f, operator, v, this);
+        } else if (f.getSelector().equals(selector)) {
             if (NodeNameImpl.supportedOperator(operator)) {
                 String localName = NodeLocalNameImpl.getLocalName(name);
                 f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
@@ -115,6 +109,15 @@ public class NodeNameImpl extends DynamicOperandImpl {
             String fn = getFunction(f.getSelector());
             f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
                     operator, v, PropertyType.STRING);
+        }
+    }
+
+    static void restrictEmptyName(FilterImpl f, Operator operator, PropertyValue v, DynamicOperandImpl operand) {
+        if (operand.query.getSettings().isEmptyNodeNameRestrictionEnabled()
+                && supportedOperator(operator) && v.getValue(Type.STRING).isEmpty()
+                && operand.canRestrictSelector(f.getSelector())) {
+            // Only the root has an empty name.
+            f.restrictPath("/", Filter.PathRestriction.EXACT);
         }
     }
 
