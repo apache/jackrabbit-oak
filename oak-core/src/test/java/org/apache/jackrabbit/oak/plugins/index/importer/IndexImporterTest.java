@@ -86,6 +86,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
@@ -115,7 +116,7 @@ public class IndexImporterTest {
         IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test(expected = IOException.class)
     public void lostCheckpoint() throws Exception{
         IndexerInfo info = new IndexerInfo(temporaryFolder.getRoot(), "unknown-checkpoint");
         info.save();
@@ -736,7 +737,7 @@ public class IndexImporterTest {
                 }
             };
             importer.addImporterProvider(getImporterProvider(checkpoint));
-            importer.importIndex();
+            assertThrows(CommitFailedException.class, importer::importIndex);
         } finally {
             NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
             assertEquals("async", idx.getString("async"));
@@ -784,7 +785,7 @@ public class IndexImporterTest {
             };
             ;
             importer.addImporterProvider(getImporterProvider(checkpoint));
-            importer.importIndex();
+            assertThrows(IOException.class, importer::importIndex);
         } finally {
             NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
             assertEquals("async", idx.getString("async"));
@@ -797,8 +798,8 @@ public class IndexImporterTest {
             assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
             assertNotNull(store.retrieve(checkpoint));
             assertEquals("State matching failed",
-                    IndexImporter.IndexImportState.SWITCH_LANE.toString(),
-                    store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY).getValue(Type.STRING));
+                    null,
+                    store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
         }
     }
 

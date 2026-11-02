@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This class is responsible for importing the index
@@ -37,6 +38,22 @@ public interface IndexImporterProvider {
      * NodeBuilder created for the index at given path
      */
     void importIndex(NodeState root, NodeBuilder defn, File indexDir) throws IOException, CommitFailedException;
+
+    /**
+     * Release backend resources for a new index abandoned by a failed import.
+     * The importer calls this only after removing the definition it installed.
+     * Implementations must verify that the generated resources are no longer
+     * referenced and delete only artifacts belonging to this definition.
+     * Repository-contained index data is removed with the definition; shared
+     * blobs must not be deleted directly.
+     *
+     * @param nodeStore repository after definition removal
+     * @param indexPath path of the removed definition
+     * @param definition generated definition supplied to the import
+     */
+    default void cleanupFailedImport(NodeStore nodeStore, String indexPath, NodeState definition)
+            throws IOException {
+    }
 
     /**
      * Index type for this implementation

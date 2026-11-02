@@ -34,6 +34,9 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static java.util.Objects.requireNonNull;
@@ -51,13 +54,29 @@ final class NodeStoreUtils {
 
     static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
                                          IndexEditorProvider indexEditorProvider) throws CommitFailedException {
+        mergeWithConcurrentCheck(nodeStore, builder, indexEditorProvider, Map.of());
+    }
+
+    static NodeState mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
+            IndexEditorProvider indexEditorProvider, Map<String, NodeState> expectedDefinitions)
+            throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
-                new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
+                (before, after, info) -> {
+                    for (Map.Entry<String, NodeState> entry : expectedDefinitions.entrySet()) {
+                        if (!entry.getValue().equals(NodeStateUtils.getNode(before, entry.getKey()))) {
+                            throw new CommitFailedException(CommitFailedException.STATE, 1,
+                                    "Definition changed during index import: " + entry.getKey());
+                        }
+                    }
+                    return after;
+                },
+                indexEditorProvider == null ? EmptyHook.INSTANCE
+                        : new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider())
         );
-        nodeStore.merge(builder, hooks, createCommitInfo());
+        return nodeStore.merge(builder, hooks, createCommitInfo());
     }
 
     static NodeBuilder childBuilder(NodeBuilder nb, String path) {
