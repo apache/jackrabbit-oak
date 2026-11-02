@@ -26,14 +26,11 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_AZURE_PREFIX;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentAzureFactory;
@@ -43,54 +40,6 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.MigrationDirection;
 
 public enum StoreType {
-    JCR2_XML {
-        @Override
-        public boolean matches(String argument) {
-            return isRepositoryXml(argument);
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
-    JCR2_DIR {
-        @Override
-        public boolean matches(String argument) {
-            return isJcr2Repository(argument);
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
-    JCR2_DIR_XML {
-        @Override
-        public boolean matches(String argument) {
-            return false;
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new Jackrabbit2Factory(paths[0], paths[1]));
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
     JDBC {
         @Override
         public boolean matches(String argument) {

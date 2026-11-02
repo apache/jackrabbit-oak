@@ -102,12 +102,6 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final BundleLoader loader;
 
-    /**
-     * Workspace name used for versionable paths. This is null
-     * for the jcr:versionStorage and jcr:activities nodes.
-     */
-    private final String workspaceName;
-
     private final TypePredicate isReferenceable;
 
     private final TypePredicate isOrderable;
@@ -124,8 +118,6 @@ class JackrabbitNodeState extends AbstractNodeState {
      * Source namespace mappings (URI -&lt; prefix).
      */
     private final Map<String, String> uriToPrefix;
-
-    private final boolean useBinaryReferences;
 
     private final Map<String, NodeId> nodes;
 
@@ -183,14 +175,12 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.name = name;
         this.path = null;
         this.loader = parent.loader;
-        this.workspaceName = parent.workspaceName;
         this.isReferenceable = parent.isReferenceable;
         this.isOrderable = parent.isOrderable;
         this.isVersionable = parent.isVersionable;
         this.isVersionHistory = parent.isVersionHistory;
         this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
-        this.useBinaryReferences = parent.useBinaryReferences;
         this.properties = createProperties(bundle);
         this.nodes = createNodes(bundle);
         this.skipOnError = parent.skipOnError;
@@ -210,7 +200,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.name = PathUtils.getName(path);
         this.path = path;
         this.loader = new BundleLoader(source);
-        this.workspaceName = workspaceName;
         this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         this.isOrderable = TypePredicate.isOrderable(root);
         this.isVersionable = new TypePredicate(root, MIX_VERSIONABLE);
@@ -225,7 +214,6 @@ class JackrabbitNodeState extends AbstractNodeState {
                 return size() >= cacheSize;
             }
         };
-        this.useBinaryReferences = useBinaryReferences;
         this.skipOnError = skipOnError;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
@@ -612,24 +600,7 @@ class JackrabbitNodeState extends AbstractNodeState {
 
             @Override
             public String getReference() {
-                if (!useBinaryReferences) {
-                    return null;
-                }
-                try {
-                    Binary binary = value.getBinary();
-                    try {
-                        if (binary instanceof ReferenceBinary) {
-                            return ((ReferenceBinary) binary).getReference();
-                        } else {
-                            return null;
-                        }
-                    } finally {
-                        binary.dispose();
-                    }
-                } catch (RepositoryException e) {
-                    warn("Unable to get blob reference", e);
-                    return null;
-                }
+                return null;
             }
 
             @Override
