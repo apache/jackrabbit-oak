@@ -36,6 +36,7 @@
           <configuration>
             <instructions>
               <Import-Package>
+                ${slf4j.osgi.import},
                 *
               </Import-Package>
               <Export-Package>

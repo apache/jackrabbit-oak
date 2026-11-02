@@ -48,6 +48,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
+                            ${slf4j.osgi.import},
                             !org.dom4j.*,
                             !org.xmlpull.v1,
                             !sun.net.util,

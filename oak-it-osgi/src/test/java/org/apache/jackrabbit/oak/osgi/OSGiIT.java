@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.jcr.Repository;
@@ -38,6 +39,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
+import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
@@ -49,9 +51,14 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
+import org.osgi.framework.namespace.PackageNamespace;
+import org.osgi.framework.wiring.BundleWire;
+import org.osgi.framework.wiring.BundleWiring;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -152,6 +159,42 @@ public class OSGiIT {
                 String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
                 Bundle.ACTIVE, bundle.getState());
         }
+    }
+
+    /**
+     * Checks that Oak's resolved logging imports allow both supported SLF4J generations.
+     */
+    @Test
+    public void slf4jImportRanges() throws InvalidSyntaxException {
+        int imports = 0;
+        for (Bundle bundle : context.getBundles()) {
+            if (!bundle.getSymbolicName().startsWith("org.apache.jackrabbit.oak")) {
+                continue;
+            }
+            BundleWiring wiring = bundle.adapt(BundleWiring.class);
+            Assert.assertNotNull(bundle.toString(), wiring);
+            for (BundleWire wire : wiring.getRequiredWires(PackageNamespace.PACKAGE_NAMESPACE)) {
+                String packageName = (String) wire.getCapability().getAttributes()
+                        .get(PackageNamespace.PACKAGE_NAMESPACE);
+                if (!packageName.equals("org.slf4j") && !packageName.startsWith("org.slf4j.")) {
+                    continue;
+                }
+                Filter filter = FrameworkUtil.createFilter(wire.getRequirement().getDirectives()
+                        .get(PackageNamespace.REQUIREMENT_FILTER_DIRECTIVE));
+                String message = bundle + ": " + filter;
+                Assert.assertTrue(message, filter.matches(Map.of(
+                        PackageNamespace.PACKAGE_NAMESPACE, packageName,
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("1.7.36"))));
+                Assert.assertTrue(message, filter.matches(Map.of(
+                        PackageNamespace.PACKAGE_NAMESPACE, packageName,
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("2.0.20"))));
+                Assert.assertFalse(message, filter.matches(Map.of(
+                        PackageNamespace.PACKAGE_NAMESPACE, packageName,
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("3.0.0"))));
+                imports++;
+            }
+        }
+        Assert.assertTrue("No Oak SLF4J imports were checked", imports > 0);
     }
 
     @Test

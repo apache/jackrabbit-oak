@@ -59,6 +59,7 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.util
             </Export-Package>
             <Import-Package>
+              ${slf4j.osgi.import},
               !com.ibm.*, <!-- see OAK-11076 -->
               !org.apache.derby.*, <!-- see OAK-11076 -->
               !io.opentelemetry.sdk.autoconfigure.*,
