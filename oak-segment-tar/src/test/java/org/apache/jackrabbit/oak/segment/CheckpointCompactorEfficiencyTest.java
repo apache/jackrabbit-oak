@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -36,7 +37,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -44,6 +47,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -51,7 +55,11 @@ import java.util.Map;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.util.concurrent.TimeUnit.DAYS;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpointRoot;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.ROOT;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -107,6 +115,46 @@ class CheckpointCompactorEfficiencyTest {
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.child("unchanged").setProperty("foo", "bar");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    @Test
+    void compactWithDifferentBeforeAndOntoChildren(@TempDir Path sourceDirectory, @TempDir Path ontoDirectory) throws Exception {
+        try (FileStore sourceFileStore = fileStoreBuilder(sourceDirectory.toFile()).build();
+             FileStore ontoFileStore = fileStoreBuilder(ontoDirectory.toFile()).build()) {
+            NodeStore sourceNodeStore = SegmentNodeStoreBuilders.builder(sourceFileStore).build();
+
+            createNode(sourceNodeStore, "/parent/child-before");
+            SegmentNodeState beforeHead = sourceFileStore.getHead();
+            String cp1 = sourceNodeStore.checkpoint(DAYS.toMillis(1));
+
+            createNode(sourceNodeStore, "/parent/child-after");
+            String cp2 = sourceNodeStore.checkpoint(DAYS.toMillis(1));
+            SegmentNodeState afterHead = sourceFileStore.getHead();
+
+            NodeStore ontoNodeStore = SegmentNodeStoreBuilders.builder(ontoFileStore).build();
+            createNode(ontoNodeStore, "/parent/child-onto");
+            SegmentNodeState ontoHead = ontoFileStore.getHead();
+
+            Compactor compactor = createCompactor(CheckpointCompactor.class, ontoFileStore);
+            CompactedNodeState compacted = compactor.compact(beforeHead, afterHead, ontoHead, Canceller.newCanceller());
+            assertNotNull(compacted);
+
+            List<NodeState> ontoRoots = List.of(
+                    getCheckpointRoot(compacted, cp1),
+                    getCheckpointRoot(compacted, cp2),
+                    compacted.getChildNode(ROOT));
+            for (NodeState root : ontoRoots) {
+                NodeState parent = root.getChildNode("parent");
+                assertFalse(parent.hasChildNode("child-before"), "Compaction must not restore child-before");
+                assertTrue(parent.hasChildNode("child-onto"), "Compaction must preserve child-onto");
+            }
+
+            NodeBuilder expected = ontoHead.getChildNode(ROOT).builder();
+            assertEquals(expected.getNodeState(), getCheckpointRoot(compacted, cp1));
+            expected.child("parent").child("child-after");
+            assertEquals(expected.getNodeState(), getCheckpointRoot(compacted, cp2));
+            assertEquals(expected.getNodeState(), compacted.getChildNode(ROOT));
+        }
     }
 
     @ParameterizedTest
@@ -317,6 +365,15 @@ class CheckpointCompactorEfficiencyTest {
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), increment, writerFactory);
         Constructor<? extends Compactor> declaredConstructor = classUnderTest.getDeclaredConstructor(GCMonitor.class, ClassicCompactor.class);
         return declaredConstructor.newInstance(GCMonitor.EMPTY, new ClassicCompactor(compactionWriter, compactionMonitor));
+    }
+
+    private static void createNode(NodeStore nodeStore, String path) throws CommitFailedException {
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        NodeBuilder node = builder;
+        for (String name : PathUtils.elements(path)) {
+            node = node.child(name);
+        }
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void updateContentAndCreateCheckpoint(NodeStore nodeStore, int start, int end) throws CommitFailedException {
