@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -126,7 +126,7 @@ public class NodeDocumentCacheTest {
 
     @Test
     public void getCacheStatsReturnsNonEmptyIterable() {
-        Iterable<AbstractCacheStats> statsIterable = cache.getCacheStats();
+        Iterable<CacheStats> statsIterable = cache.getCacheStats();
         assertNotNull(statsIterable);
         assertTrue(statsIterable.iterator().hasNext());
     }
