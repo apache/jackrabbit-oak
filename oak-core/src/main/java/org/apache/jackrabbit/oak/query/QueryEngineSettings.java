@@ -74,7 +74,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public static final String FT_XML_NAME_CHARS_IN_PATH = "FT_OAK-12364";
 
     public static final String FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE =
-            "FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE";
+            "FT_OAK-12494";
 
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 

@@ -489,6 +489,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void nodeNameEmptyString() throws Exception {
+        assertEmptyNodeNameQuery("NAME");
+    }
+
+    @Test
+    public void nodeLocalNameEmptyString() throws Exception {
+        assertEmptyNodeNameQuery("LOCALNAME");
+    }
+
+    private void assertEmptyNodeNameQuery(String function) throws Exception {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(
                 "<dam='http://www.day.com/dam/1.0'>\n[dam:Asset] > nt:unstructured",
                 StandardCharsets.UTF_8), "test asset node type");
@@ -510,7 +519,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String query = "SELECT * FROM [dam:Asset] AS node "
                 + "WHERE [jcr:content/contentFragment]='true' "
-                + "AND ISDESCENDANTNODE('/content/dam') AND NAME() = '%s' "
+                + "AND ISDESCENDANTNODE('/content/dam') AND " + function + "() = '%s' "
                 + "OPTION(INDEX NAME [damAssetLucene-13-custom-2])";
         String namedQuery = String.format(query, "abc");
         assertThat(explain(namedQuery), containsString(":nodeName:abc"));
@@ -521,15 +530,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String plan = explain(emptyQuery);
         assertThat(plan, containsString("lucene:damAssetLucene-13-custom-2"));
         assertQuery(emptyQuery, List.of());
-        assertThat(plan, containsString(":nodeName::"));
-        assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + emptyQuery, SQL2));
+        List<String> emptyMeasure = executeQuery("measure " + emptyQuery, SQL2);
+        assertThat("measure: " + emptyMeasure, plan, containsString(":nodeName::"));
+        assertEquals(List.of("node, 0", "query, 0"), emptyMeasure);
 
         String reorderedQuery = emptyQuery.replace(
-                "ISDESCENDANTNODE('/content/dam') AND NAME() = ''",
-                "NAME() = '' AND ISDESCENDANTNODE('/content/dam')");
+                "ISDESCENDANTNODE('/content/dam') AND " + function + "() = ''",
+                function + "() = '' AND ISDESCENDANTNODE('/content/dam')");
         assertThat(explain(reorderedQuery), containsString(":nodeName::"));
         assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + reorderedQuery, SQL2));
-        String likeQuery = emptyQuery.replace("NAME() = ''", "NAME() LIKE ''");
+        String likeQuery = emptyQuery.replace(function + "() = ''", function + "() LIKE ''");
         assertThat(explain(likeQuery), containsString(":nodeName::"));
         assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + likeQuery, SQL2));
     }

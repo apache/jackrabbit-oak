@@ -57,21 +57,39 @@ public class FilterTest {
 
     @Test
     public void emptyNodeNameExcludingRoot() throws Exception {
+        assertEmptyNodeNameExcludingRoot("name", "function*@:name");
+    }
+
+    @Test
+    public void emptyNodeLocalNameExcludingRoot() throws Exception {
+        assertEmptyNodeNameExcludingRoot("localname", "function*@:localname");
+    }
+
+    private void assertEmptyNodeNameExcludingRoot(String function, String functionRestriction) throws Exception {
         for (String condition : new String[] {
-                "isdescendantnode('/content/dam') and name() = ''",
-                "isdescendantnode('/content/dam') and name() like ''"
+                "isdescendantnode('/content/dam') and " + function + "() = ''",
+                "isdescendantnode('/content/dam') and " + function + "() like ''"
         }) {
             Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
             assertNotNull(condition + ": " + filter, filter.getPropertyRestriction(":localname"));
             assertEquals(":", filter.getPropertyRestriction(":localname").first.getValue(Type.STRING));
-            assertEquals(":", filter.getPropertyRestriction("function*@:name").first.getValue(Type.STRING));
+            assertEquals(":", filter.getPropertyRestriction(functionRestriction).first.getValue(Type.STRING));
         }
     }
 
     @Test
     public void emptyNodeNameLegacyMode() throws Exception {
+        assertEmptyNodeNameLegacyMode("name", "function*@:name");
+    }
+
+    @Test
+    public void emptyNodeLocalNameLegacyMode() throws Exception {
+        assertEmptyNodeNameLegacyMode("localname", "function*@:localname");
+    }
+
+    private void assertEmptyNodeNameLegacyMode(String function, String functionRestriction) throws Exception {
         QueryImpl query = (QueryImpl) p.parse("select * from [nt:base] "
-                + "where isdescendantnode('/content/dam') and name() = ''");
+                + "where isdescendantnode('/content/dam') and " + function + "() = ''");
         DefaultWhiteboard whiteboard = new DefaultWhiteboard();
         whiteboard.register(QueryEngineSettings.class, query.getSettings(), Map.of());
         try (Closeable repository = (Closeable) new Oak()
@@ -88,7 +106,7 @@ public class FilterTest {
             toggle.setEnabled(true);
             Filter legacyFilter = query.createFilter(true);
             assertNull(legacyFilter.getPropertyRestriction(":localname"));
-            assertNull(legacyFilter.getPropertyRestriction("function*@:name"));
+            assertNull(legacyFilter.getPropertyRestriction(functionRestriction));
 
             toggle.setEnabled(false);
             assertNotNull(query.createFilter(true).getPropertyRestriction(":localname"));
@@ -100,10 +118,19 @@ public class FilterTest {
 
     @Test
     public void emptyNodeNameIncludingRoot() throws Exception {
+        assertEmptyNodeNameIncludingRoot("name");
+    }
+
+    @Test
+    public void emptyNodeLocalNameIncludingRoot() throws Exception {
+        assertEmptyNodeNameIncludingRoot("localname");
+    }
+
+    private void assertEmptyNodeNameIncludingRoot(String function) throws Exception {
         for (String condition : new String[] {
-                "name() = ''",
-                "issamenode('/') and name() = ''",
-                "name() like ''"
+                function + "() = ''",
+                "issamenode('/') and " + function + "() = ''",
+                function + "() like ''"
         }) {
             Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
             assertNull(filter.getPropertyRestriction(":localname"));
