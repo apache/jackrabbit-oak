@@ -45,6 +45,7 @@
         <configuration>
           <instructions>
             <Import-Package>
+              ${slf4j.osgi.import},
               com.codahale.metrics*;version="[3.1, 4)";resolution:=optional,
               *
             </Import-Package>

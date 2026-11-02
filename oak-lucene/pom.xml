@@ -115,6 +115,7 @@
                 org.apache.jackrabbit.oak.plugins.index.lucene.spi,
             </Export-Package>
             <Import-Package>
+                ${slf4j.osgi.import},
                 org.apache.lucene.sandbox.*;resolution:=optional,
                 !org.apache.lucene.*,
                 !org.apache.jackrabbit.oak.cache,

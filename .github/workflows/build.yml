@@ -61,6 +61,12 @@ jobs:
       - name: Build
         # executing ITs requires installing artifacts to the local repository
         run: mvn -B ${{ env.MVN_GOAL }} ${{ env.MVN_ADDITIONAL_OPTS }} -Pcoverage,integrationTesting,javadoc -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
+      - name: Test SLF4J 1.7 compatibility
+        # Reuse the SLF4J 2-built classes; do not recompile against the legacy API.
+        run: >-
+          mvn -B initialize surefire:test -Pslf4j-1.7
+          -Dtest=SystemPropertySupplierTest,LogCustomizerTest,TreeTest,LoggingDocumentStoreWrapperTest,LoggingHookTest,AzureHttpRequestLoggingPolicyTest,AzureHttpRequestLoggingPolicyV12Test,LuceneDocumentMakerLargeStringPropertiesLogTest,ElasticDocumentMakerLargeStringPropertiesLogTest
+          -Dsurefire.failIfNoSpecifiedTests=false
       - name: Upload build result
         uses: actions/upload-artifact@v4
         with:

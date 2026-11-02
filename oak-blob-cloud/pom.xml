@@ -57,7 +57,7 @@
                             org.osgi.service.component,
 
                             <!-- SLF4J -->
-                            org.slf4j;version="[1.7,2)",
+                            ${slf4j.osgi.import},
 
                             <!-- AWS SDK CRT (truly optional - only needed for CRT HTTP client) -->
                             software.amazon.awssdk.crt;resolution:=optional,
