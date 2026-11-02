@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.auth.signer.AwsS3V4Signer;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
@@ -312,6 +311,7 @@ public final class Utils {
      *   <li>https://bucket.s3.eu-west-1.amazonaws.com</li>
      *   <li>s3.eu-west-1.amazonaws.com</li>
      *   <li>https://s3.amazonaws.com (returns us-east-1)</li>
+     *   <li>https://s3-accelerate.amazonaws.com (returns null; the region must be configured separately)</li>
      * </ul>
      * If the region cannot be determined, returns null.
      *
@@ -328,7 +328,8 @@ public final class Utils {
             Matcher matcher = pattern.matcher(host);
 
             if (matcher.find()) {
-                return matcher.group(1);
+                String region = matcher.group(1);
+                return "accelerate".equals(region) ? null : region;
             }
 
             // Handle us-east-1 special case (s3.amazonaws.com)
@@ -370,7 +371,7 @@ public final class Utils {
             endPoint = propEndPoint;
         } else {
             // in aws sdk 2.x, there is no us-standard region. us-east-1 should be used in its place.
-            endPoint = (accReq ? S3_ACCELERATION : S3) + DOT + region + DOT + AWSDOTCOM;
+            endPoint = (accReq ? S3_ACCELERATION : S3 + DOT + region) + DOT + AWSDOTCOM;
 
         }
 
@@ -556,12 +557,12 @@ public final class Utils {
     }
 
     @NotNull
-    private static AwsCredentialsProvider getAwsCredentials(Properties prop) {
+    static AwsCredentialsProvider getAwsCredentials(Properties prop) {
         String accessKey = prop.getProperty(S3Constants.ACCESS_KEY);
         String secretKey = prop.getProperty(S3Constants.SECRET_KEY);
         if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(secretKey)) {
-            LOG.info("Configuring Amazon Client from environment");
-            return DefaultCredentialsProvider.builder().build();
+            LOG.info("Using AWS default credentials (IMDSv2 preferred)");
+            return new ImdsV2CredentialsProvider();
         } else {
             LOG.info("Configuring Amazon Client from property file.");
             final AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);

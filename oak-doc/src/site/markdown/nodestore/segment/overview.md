@@ -781,7 +781,7 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check PATH [--mmap] [--journal JOURNAL] [--notify SECS] [--bin] [--last <REV_COUNT>] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
+java -jar oak-run.jar check PATH [--mmap] [--journal JOURNAL] [--notify SECS] [--bin] [--last <REV_COUNT>] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats] [--continue-on-error]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
@@ -804,6 +804,9 @@ The `--bin` option has no effect on binary properties stored in an external Blob
 The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be verified (default is `1`).
 
 The optional `--fail-fast` argument can be used to stop the check as soon as an inconsistency is found. If not specified, the tool will continue to check the entire journal.
+
+The optional `--continue-on-error` argument can be used to report all the inconsistent nodes of a revision. If specified, the tool keeps traversing a revision after finding an inconsistent node and prints an error message for every inconsistent node it can reach, in every revision it checks.
+Since every checked revision is traversed in full, the check can take considerably longer; to list all the inconsistent nodes of the most recent revision only, use it together with `--head` and `--last 1`.
 
 If the `--head` option is specified, the tool will scan **only** the head state, ignoring any available checkpoints.
 
