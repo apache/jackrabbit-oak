@@ -21,6 +21,9 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.jackrabbit.oak.query.regex.BudgetedCharSequence;
+import org.apache.jackrabbit.oak.query.regex.RegexBudget;
+
 /**
  * Manual, approximate benchmark of Matcher.find(), including matcher allocation.
  * After compiling tests, run from the repository root with:
@@ -93,8 +96,8 @@ public final class QueryOptimizerBenchmark {
         for (int i = 0; i < iterations; i++) {
             CharSequence input = scenario.input;
             if (budgeted) {
-                input = new QueryOptimizer.BudgetedCharSequence(scenario.input,
-                        new QueryOptimizer.RegexBudget(
+                input = new BudgetedCharSequence(scenario.input,
+                        new RegexBudget(
                                 QueryOptimizer.CHAR_ACCESSES_PER_CHARACTER * scenario.input.length()));
             }
             Matcher matcher = scenario.pattern.matcher(input);

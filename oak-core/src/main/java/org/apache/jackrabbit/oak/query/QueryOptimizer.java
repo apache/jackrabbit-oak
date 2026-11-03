@@ -37,6 +37,9 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndexMerger;
+import org.apache.jackrabbit.oak.query.regex.BudgetedCharSequence;
+import org.apache.jackrabbit.oak.query.regex.RegexBudget;
+import org.apache.jackrabbit.oak.query.regex.RegexBudgetExceededException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -108,7 +111,7 @@ public class QueryOptimizer {
                 }
             } catch (RegexBudgetExceededException e) {
                 LOG.warn("Query rule {} exceeded regex character-access budget {}; using the original query",
-                        ruleIndex, budget.limit);
+                        ruleIndex, budget.getLimit());
                 return original;
             } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
                 ParseException failure = new ParseException("Invalid query rule replacement", 0);
@@ -189,18 +192,25 @@ public class QueryOptimizer {
 
     private static Rule readRule(JsonObject json) {
         Map<String, String> properties = json.getProperties();
-        if (!Set.of("find", "replace", "language").containsAll(properties.keySet())
+        if (!Set.of("find", "replace", "findRegex", "replaceRegex", "language").containsAll(properties.keySet())
                 || !Set.of("options").containsAll(json.getChildren().keySet())) {
             throw new IllegalArgumentException("Invalid query rule field");
         }
-        String find = properties.get("find");
-        String replace = properties.get("replace");
+        boolean regex = properties.containsKey("findRegex") || properties.containsKey("replaceRegex");
+        if (regex && (properties.containsKey("find") || properties.containsKey("replace"))) {
+            throw new IllegalArgumentException("Cannot mix template and regex query rule fields");
+        }
+        String find = properties.get(regex ? "findRegex" : "find");
+        String replace = properties.get(regex ? "replaceRegex" : "replace");
         String language = properties.get("language");
         if (find == null || replace == null) {
-            throw new IllegalArgumentException("Query rules require find and replace strings");
+            throw new IllegalArgumentException("Query rules require find/replace or findRegex/replaceRegex strings");
         }
-        return new Rule(Pattern.compile(JsopTokenizer.decodeQuoted(find)),
-                JsopTokenizer.decodeQuoted(replace),
+        find = JsopTokenizer.decodeQuoted(find);
+        replace = JsopTokenizer.decodeQuoted(replace);
+        QueryTemplate template = regex ? null : new QueryTemplate(find, replace);
+        return new Rule(regex ? Pattern.compile(find) : template.find,
+                regex ? replace : template.replace,
                 language == null ? null : JsopTokenizer.decodeQuoted(language),
                 readOptions(json.getChildren().get("options")));
     }
@@ -217,58 +227,6 @@ public class QueryOptimizer {
             throw new IllegalArgumentException("Query rule option stop must be a boolean");
         }
         return Boolean.parseBoolean(stop);
-    }
-
-    static final class RegexBudget {
-        private final long limit;
-        private long remaining;
-
-        RegexBudget(long limit) {
-            this.limit = limit;
-            this.remaining = limit;
-        }
-    }
-
-    static final class BudgetedCharSequence implements CharSequence {
-        private final String text;
-        private final RegexBudget budget;
-
-        BudgetedCharSequence(String text, RegexBudget budget) {
-            this.text = text;
-            this.budget = budget;
-        }
-
-        @Override
-        public int length() {
-            return text.length();
-        }
-
-        @Override
-        public char charAt(int index) {
-            if (budget.remaining == 0) {
-                throw new RegexBudgetExceededException();
-            }
-            budget.remaining--;
-            return text.charAt(index);
-        }
-
-        @Override
-        public CharSequence subSequence(int start, int end) {
-            return new BudgetedCharSequence(text.substring(start, end), budget);
-        }
-
-        @Override
-        public String toString() {
-            return text;
-        }
-    }
-
-    private static final class RegexBudgetExceededException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-
-        RegexBudgetExceededException() {
-            super(null, null, false, false);
-        }
     }
 
     private static final class Rule {

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.query;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.query.QueryOptimizerTest.rule;
+import static org.apache.jackrabbit.oak.query.QueryOptimizerTest.templateRule;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -173,9 +174,26 @@ public class QueryOptimizerQueryTest {
         String xpath = "/jcr:root/test/*[@old='value']";
         assertEquals(List.of("/test/a", "/test/b"), paths(execute(xpath, "xpath")));
         assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
-        writeRules("[{\"find\":\"old\",\"replace\":\"new\",\"language\":\"xpath\"}]");
+        writeRules("[{\"findRegex\":\"old\",\"replaceRegex\":\"new\",\"language\":\"xpath\"}]");
         assertEquals(List.of("/test/a", "/test/b"), paths(execute(xpath, "xpath")));
         assertEquals(List.of(), paths(sql2()));
+    }
+
+    @Test
+    public void templatesRewriteSqlAndXPathQueries() throws Exception {
+        toggle.setEnabled(true);
+        String xpath = "/jcr:root/#1/*[@old='#2']";
+        writeRules("[" + templateRule(SQL2, SQL2.replace("[old]", "[new]")) + ","
+                + templateRule(xpath, xpath.replace("@old", "@new")) + "]");
+        assertEquals(List.of("value"), engine.getBindVariableNames(SQL2, "JCR-SQL2", NO_MAPPINGS));
+        assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
+        assertEquals(List.of("/test/a", "/test/b"),
+                paths(execute("/jcr:root/test/*[@old='value']", "xpath")));
+        Result explained = execute("explain /jcr:root/test/*[@old='value']", "xpath");
+        String statement = explained.getRows().iterator().next().getValue("statement").getValue(Type.STRING);
+        assertTrue(statement, statement.contains("new"));
+        Result measured = execute("measure /jcr:root/test/*[@old='value']", "xpath");
+        assertEquals(2, (long) measured.getRows().iterator().next().getValue("scanCount").getValue(Type.LONG));
     }
 
     @Test

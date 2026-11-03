@@ -75,16 +75,16 @@ public class QueryOptimizerTest {
     @Test
     public void orderedRulesAndDefaultOptions() throws Exception {
         writeRules("[" + rule("a", "b") + ","
-                + "{\"find\":\"b\",\"replace\":\"c\",\"options\":{}},"
-                + "{\"find\":\"c\",\"replace\":\"aa\",\"options\":{\"stop\":false}}]");
+                + "{\"findRegex\":\"b\",\"replaceRegex\":\"c\",\"options\":{}},"
+                + "{\"findRegex\":\"c\",\"replaceRegex\":\"aa\",\"options\":{\"stop\":false}}]");
         assertEquals("aa aa", rewrite("a a"));
         assertEquals("xyz", rewrite("xyz"));
     }
 
     @Test
     public void stopOnlyAfterMatching() throws Exception {
-        writeRules("[{\"find\":\"missing\",\"replace\":\"x\",\"options\":{\"stop\":true}},"
-                + "{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":true}},"
+        writeRules("[{\"findRegex\":\"missing\",\"replaceRegex\":\"x\",\"options\":{\"stop\":true}},"
+                + "{\"findRegex\":\"a\",\"replaceRegex\":\"b\",\"options\":{\"stop\":true}},"
                 + rule("b", "c") + "]");
         assertEquals("b b", rewrite("a a"));
     }
@@ -111,6 +111,27 @@ public class QueryOptimizerTest {
     public void captureGroupsEscapingAndMultiline() throws Exception {
         writeRules("[" + rule("(?m)^\\[([a-z]+)\\]$", "$1\\$") + "]");
         assertEquals("first$\nsecond$", rewrite("[first]\n[second]"));
+    }
+
+    @Test
+    public void templatesAreDefaultAndCanBeCombinedWithRegexRules() throws Exception {
+        writeRules("[" + templateRule("a", "b") + "," + rule("b", "c") + ","
+                + templateRule("c", "$value\\literal") + "]");
+        assertEquals("$value\\literal", rewrite("a"));
+        assertEquals("a a", rewrite("a a"));
+        assertEquals("  explain measure $value\\literal", rewrite("  explain measure a"));
+    }
+
+    @Test
+    public void templateCapturesAndLanguage() throws Exception {
+        String template = "/jcr:root/#1//element(*, cq:Page)[jcr:contains(., '#2')]";
+        writeRules("[{\"find\":" + JsopBuilder.encode(template)
+                + ",\"replace\":" + JsopBuilder.encode(template + " option(index tag pages)")
+                + ",\"language\":\"xpath\",\"options\":{\"stop\":true}},"
+                + rule("pages", "unreachable") + "]");
+        String query = "/jcr:root/content/site/en//element(*, cq:Page)[jcr:contains(., 'John''s car')]";
+        assertEquals("explain " + query + " option(index tag pages)", optimizer.rewrite("explain " + query, "xpath"));
+        assertEquals(query, optimizer.rewrite(query, "JCR-SQL2"));
     }
 
     @Test
@@ -253,6 +274,14 @@ public class QueryOptimizerTest {
                 "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"unknown\":{}}}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":\"true\"}}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":{}}}]",
+                "[{\"findRegex\":\"a\"}]", "[{\"replaceRegex\":\"b\"}]",
+                "[{\"find\":\"a\",\"replaceRegex\":\"b\"}]",
+                "[{\"findRegex\":\"a\",\"replace\":\"b\"}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"findRegex\":\"a\",\"replaceRegex\":\"b\"}]",
+                "[{\"findTemplate\":\"a\",\"replace\":\"b\"}]",
+                "[{\"findRegex\":false,\"replaceRegex\":\"b\"}]",
+                "[" + templateRule("'#1'", "'#2'") + "]",
+                "[" + templateRule("'#1' #1", "") + "]",
                 "[] trailing",
                 "[" + String.join(",", Collections.nCopies(QueryOptimizer.MAX_RULES + 1, rule("a", "b"))) + "]",
                 " ".repeat(QueryOptimizer.MAX_CONFIG_BYTES + 1)
@@ -345,6 +374,11 @@ public class QueryOptimizerTest {
     }
 
     static String rule(String find, String replace) {
+        return new JsopBuilder().object().key("findRegex").value(find)
+                .key("replaceRegex").value(replace).endObject().toString();
+    }
+
+    static String templateRule(String find, String replace) {
         return new JsopBuilder().object().key("find").value(find)
                 .key("replace").value(replace).endObject().toString();
     }
