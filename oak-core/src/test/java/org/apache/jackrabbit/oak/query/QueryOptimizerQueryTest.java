@@ -163,8 +163,8 @@ public class QueryOptimizerQueryTest {
         Result result = engine.executeQuery(SQL2, "JCR-SQL2", Optional.of(1L), Optional.of(1L),
                 Map.of("value", PropertyValues.newString("value")), NO_MAPPINGS);
         assertEquals(List.of("/test/b"), paths(result));
-        assertTrue(settings.getQueryStats().asJson().contains(SQL2));
-        assertFalse(settings.getQueryStats().asJson().contains(SQL2.replace("old", "new")));
+        assertTrue(settings.getQueryStats().asJson().contains(SQL2.replace("old", "new")));
+        assertFalse(settings.getQueryStats().asJson().contains(SQL2));
     }
 
     @Test
@@ -223,13 +223,25 @@ public class QueryOptimizerQueryTest {
     }
 
     @Test
-    public void queryValidatorChecksOriginalAndRewrittenStatements() {
+    public void queryValidatorChecksOnlyRewrittenStatement() throws ParseException {
         toggle.setEnabled(true);
         settings.getQueryValidator().setPattern("original", ".*old.*", "", true);
-        assertThrows(ParseException.class, this::sql2);
-        settings.getQueryValidator().setPattern("original", "", "", true);
+        assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
         settings.getQueryValidator().setPattern("rewritten", ".*new.*", "", true);
         assertThrows(ParseException.class, this::sql2);
+    }
+
+    @Test
+    public void queryLengthIsCheckedAfterAllRewrites() throws Exception {
+        toggle.setEnabled(true);
+        writeRules("[" + rule(" +$", "") + "," + rule("old", "new") + "]");
+        assertEquals(List.of("value"),
+                engine.getBindVariableNames(SQL2 + " ".repeat(501), "JCR-SQL2", NO_MAPPINGS));
+        assertEquals(List.of("/test/a", "/test/b"), paths(engine.executeQuery(SQL2 + " ".repeat(501),
+                "JCR-SQL2", Map.of("value", PropertyValues.newString("value")), NO_MAPPINGS)));
+        writeRules("[" + rule("old", "x".repeat(501)) + ","
+                + rule("x{501}", "new") + "]");
+        assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
     }
 
     @Test
@@ -243,7 +255,8 @@ public class QueryOptimizerQueryTest {
         writeRules("[" + rule("\\$value", "'literal'") + "]");
         assertThrows(ParseException.class, () -> engine.getBindVariableNames(SQL2, "JCR-SQL2-noLiterals", NO_MAPPINGS));
         writeRules("[" + rule("old", "x".repeat(501)) + "]");
-        assertThrows(ParseException.class, this::sql2);
+        ParseException expandedTooLong = assertThrows(ParseException.class, this::sql2);
+        assertTrue(expandedTooLong.getMessage().contains("larger than max supported query length"));
         writeRules("[" + rule("old", "x".repeat(260)) + "]");
         assertEquals(List.of(), paths(sql2()));
     }

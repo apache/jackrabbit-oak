@@ -22,6 +22,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
@@ -31,6 +33,7 @@ import java.util.regex.Pattern;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -75,7 +78,7 @@ public class QueryOptimizer {
         this.store = store;
     }
 
-    String rewrite(String statement, String language, long maxLength) throws ParseException {
+    String rewrite(String statement, String language) throws ParseException {
         if (SQL2Parser.isInternal(statement)) {
             return statement;
         }
@@ -100,10 +103,8 @@ public class QueryOptimizer {
                 StringBuilder result = new StringBuilder();
                 do {
                     matcher.appendReplacement(result, rule.replace);
-                    checkLength(result.length(), maxLength);
                 } while (matcher.find());
                 matcher.appendTail(result);
-                checkLength(result.length(), maxLength);
                 statement = result.toString();
                 if (rule.stop) {
                     break;
@@ -123,13 +124,6 @@ public class QueryOptimizer {
             }
         }
         return statement;
-    }
-
-    private static void checkLength(int length, long maxLength) throws ParseException {
-        if (length > maxLength) {
-            throw new ParseException("Rewritten query length " + length
-                    + " is larger than max supported query length: " + maxLength, 0);
-        }
     }
 
     private void refresh() {
@@ -191,7 +185,8 @@ public class QueryOptimizer {
                 if (result.size() == MAX_RULES) {
                     throw new IllegalArgumentException("Too many query rules");
                 }
-                result.add(readRule(reader));
+                reader.read('{');
+                result.add(readRule(JsonObject.create(reader)));
             } while (reader.matches(','));
             reader.read(']');
         }
@@ -199,61 +194,36 @@ public class QueryOptimizer {
         return List.copyOf(result);
     }
 
-    private static Rule readRule(JsopTokenizer reader) {
-        String find = null;
-        String replace = null;
-        String language = null;
-        boolean stop = false;
-        reader.read('{');
-        if (!reader.matches('}')) {
-            do {
-                String key = reader.readString();
-                reader.read(':');
-                switch (key) {
-                    case "find":
-                        find = reader.readString();
-                        break;
-                    case "replace":
-                        replace = reader.readString();
-                        break;
-                    case "language":
-                        language = reader.readString();
-                        break;
-                    case "options":
-                        stop = readOptions(reader);
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unknown query rule field: " + key);
-                }
-            } while (reader.matches(','));
-            reader.read('}');
+    private static Rule readRule(JsonObject json) {
+        Map<String, String> properties = json.getProperties();
+        if (!Set.of("find", "replace", "language").containsAll(properties.keySet())
+                || !Set.of("options").containsAll(json.getChildren().keySet())) {
+            throw new IllegalArgumentException("Invalid query rule field");
         }
+        String find = properties.get("find");
+        String replace = properties.get("replace");
+        String language = properties.get("language");
         if (find == null || replace == null) {
             throw new IllegalArgumentException("Query rules require find and replace strings");
         }
-        return new Rule(Pattern.compile(find), replace, language, stop);
+        return new Rule(Pattern.compile(JsopTokenizer.decodeQuoted(find)),
+                JsopTokenizer.decodeQuoted(replace),
+                language == null ? null : JsopTokenizer.decodeQuoted(language),
+                readOptions(json.getChildren().get("options")));
     }
 
-    private static boolean readOptions(JsopTokenizer reader) {
-        boolean stop = false;
-        reader.read('{');
-        if (!reader.matches('}')) {
-            do {
-                String key = reader.readString();
-                reader.read(':');
-                if (!"stop".equals(key)) {
-                    throw new IllegalArgumentException("Unknown query rule option: " + key);
-                }
-                if (reader.matches(JsopReader.TRUE)) {
-                    stop = true;
-                } else {
-                    reader.read(JsopReader.FALSE);
-                    stop = false;
-                }
-            } while (reader.matches(','));
-            reader.read('}');
+    private static boolean readOptions(JsonObject options) {
+        if (options == null) {
+            return false;
         }
-        return stop;
+        if (!Set.of("stop").containsAll(options.getProperties().keySet()) || !options.getChildren().isEmpty()) {
+            throw new IllegalArgumentException("Invalid query rule option");
+        }
+        String stop = options.getProperties().getOrDefault("stop", "false");
+        if (!"true".equals(stop) && !"false".equals(stop)) {
+            throw new IllegalArgumentException("Query rule option stop must be a boolean");
+        }
+        return Boolean.parseBoolean(stop);
     }
 
     static final class RegexBudget {

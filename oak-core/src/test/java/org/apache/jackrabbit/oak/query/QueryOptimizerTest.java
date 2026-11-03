@@ -65,7 +65,7 @@ public class QueryOptimizerTest {
 
     @Test
     public void absentConfiguration() throws Exception {
-        assertEquals("a", new QueryOptimizer().rewrite("a", "xpath", 100));
+        assertEquals("a", new QueryOptimizer().rewrite("a", "xpath"));
         assertEquals("a", rewrite("a"));
         writeRules("[" + rule("a", "b") + "]");
         clock.set(10_000);
@@ -100,10 +100,10 @@ public class QueryOptimizerTest {
     public void optionalLanguageAndNoLiterals() throws Exception {
         writeRules("[{\"find\":\"a\",\"replace\":\"b\",\"language\":\"xpath\","
                 + "\"options\":{\"stop\":true}}," + rule("a", "c") + "]");
-        assertEquals("b", optimizer.rewrite("a", "xpath", 100));
-        assertEquals("b", optimizer.rewrite("a", "xpath-noLiterals", 100));
+        assertEquals("b", optimizer.rewrite("a", "xpath"));
+        assertEquals("b", optimizer.rewrite("a", "xpath-noLiterals"));
         for (String language : new String[] {"JCR-SQL2", "sql", "JCR-JQOM", "JCR-SQL2-noLiterals"}) {
-            assertEquals("c", optimizer.rewrite("a", language, 100));
+            assertEquals("c", optimizer.rewrite("a", language));
         }
     }
 
@@ -157,7 +157,7 @@ public class QueryOptimizerTest {
         QueryOptimizer internalOptimizer = new QueryOptimizer(clock::get);
         internalOptimizer.init(unreadStore);
         String statement = "a " + QueryEngine.INTERNAL_SQL2_QUERY;
-        assertEquals(statement, internalOptimizer.rewrite(statement, "JCR-SQL2", 1000));
+        assertEquals(statement, internalOptimizer.rewrite(statement, "JCR-SQL2"));
         verify(unreadStore, times(0)).getRoot();
     }
 
@@ -242,9 +242,17 @@ public class QueryOptimizerTest {
         String[] invalid = {
                 "{broken", "{}", "[{}]", "[{\"find\":\"a\"}]", "[{\"replace\":\"b\"}]",
                 "[{\"find\":false,\"replace\":\"b\"}]", "[" + rule("[", "b") + "]",
+                "[{\"find\":{},\"replace\":\"b\"}]", "[{\"find\":\"a\",\"replace\":null}]",
+                "[{\"find\":\"a\",\"replace\":[]}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"language\":false}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"language\":{}}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"unknown\":true}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"unknown\":{}}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":null}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"unknown\":true}}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"unknown\":{}}}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":\"true\"}}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":{}}}]",
                 "[] trailing",
                 "[" + String.join(",", Collections.nCopies(QueryOptimizer.MAX_RULES + 1, rule("a", "b"))) + "]",
                 " ".repeat(QueryOptimizer.MAX_CONFIG_BYTES + 1)
@@ -294,17 +302,12 @@ public class QueryOptimizerTest {
     }
 
     @Test
-    public void invalidReplacementAndExpansionLimit() throws Exception {
+    public void invalidReplacement() throws Exception {
         writeRules("[" + rule("a", "$1") + "]");
         assertThrows(ParseException.class, () -> rewrite("a"));
         writeRules("[" + rule("a", "$") + "]");
         clock.addAndGet(10_000);
         assertThrows(ParseException.class, () -> rewrite("a"));
-        writeRules("[" + rule("a", "bbbb") + "]");
-        clock.addAndGet(10_000);
-        assertThrows(ParseException.class, () -> optimizer.rewrite("a", "xpath", 3));
-        assertThrows(ParseException.class, () -> optimizer.rewrite("axx", "xpath", 5));
-        assertEquals("bbbb", optimizer.rewrite("a", "xpath", 4));
     }
 
     @Test
@@ -338,7 +341,7 @@ public class QueryOptimizerTest {
     }
 
     private String rewrite(String statement) throws ParseException {
-        return optimizer.rewrite(statement, "JCR-SQL2", 10_000);
+        return optimizer.rewrite(statement, "JCR-SQL2");
     }
 
     static String rule(String find, String replace) {
