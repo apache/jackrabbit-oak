@@ -407,8 +407,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         builder.indexRule("nt:base").property("a").propertyIndex();
         builder.indexRule("nt:base").property("b").propertyIndex();
         builder.indexRule("nt:base").property("c").propertyIndex();
-        // partial updates only happen when the index is externally modifiable, aka inference config is enabled
-        builder.getBuilderTree().addChild(ElasticIndexDefinition.INFERENCE_CONFIG);
+        // Inference is enabled by the test fixture, so document writes use partial updates.
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
 

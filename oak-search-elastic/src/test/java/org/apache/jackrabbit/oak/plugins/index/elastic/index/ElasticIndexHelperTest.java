@@ -42,8 +42,28 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ElasticIndexHelperTest {
+
+    @Test
+    public void legacyInferenceDefinitionDoesNotCreateMappings() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        builder.indexRule("nt:base").property("foo").analyzed();
+        Tree inference = builder.getBuilderTree().addChild("inference");
+        inference.addChild("properties").addChild("embeddings").setProperty("dims", 1024L);
+        NodeState nodeState = builder.build();
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+
+        TypeMapping mappings = ElasticIndexHelper.createIndexRequest("prefix.path", definition).mappings();
+
+        assertFalse(mappings.meta().containsKey("inference"));
+        assertFalse(mappings.properties().containsKey(":inference.embeddings"));
+        assertTrue(mappings.properties().get(ElasticIndexDefinition.LAST_UPDATED).isDate());
+        assertTrue(mappings.properties().get("foo").isText());
+    }
 
     @Test
     public void manyFields() {
