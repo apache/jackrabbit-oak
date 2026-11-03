@@ -40,7 +40,6 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
-                            ${slf4j.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
                             com.fasterxml.jackson.annotation;resolution:=optional,

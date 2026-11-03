@@ -45,7 +45,6 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            ${slf4j.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,

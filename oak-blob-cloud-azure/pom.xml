@@ -38,7 +38,6 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
-                            ${slf4j.osgi.import},
                             com.fasterxml.jackson.annotation;resolution:=optional,
                             com.fasterxml.jackson.databind*;resolution:=optional,
                             com.fasterxml.jackson.dataformat.xml*;resolution:=optional,
