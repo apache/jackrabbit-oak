@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "full",
+  "commit_sha": "b58bbe14732cc5a7a023dc9f542e4a7a445629e6",
+  "author": "anchela@adobe.com",
+  "timestamp": "2026-11-03T17:12:39+01:00",
+  "detection": {
+    "ai_assisted": true,
+    "method": "heuristic",
+    "tool": "copilot",
+    "model": "",
+    "confidence": 0.9
+  },
+  "stats": {
+    "total_additions": 132,
+    "total_deletions": 0,
+    "ai_additions": 132,
+    "ai_deletions": 0,
+    "human_additions": 0,
+    "human_deletions": 0
+  },
+  "files": {
+    "specs/OAK-12495/PLAN.md": {
+      "ai_additions": 103,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "specs/OAK-12495/SPEC.md": {
+      "ai_additions": 29,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    }
+  }
+}
