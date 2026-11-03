@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -46,12 +45,6 @@ public class IndexMBeanRegistration implements Registration {
                 "scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName()
         );
         regs.add(scheduleWithFixedDelay(whiteboard, task, config, delayInSeconds, RUN_ON_LEADER, true));
-        // the indexing task runs on the leader only; refresh LAST_INDEXED_TIME
-        // metric on all cluster members (OAK-12505)
-        Runnable refresh = task::refreshLastIndexedTime;
-        regs.add(scheduleWithFixedDelay(whiteboard, refresh,
-                Map.of("scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName() + "-lastIndexedTime"),
-                delayInSeconds, DEFAULT, false));
         regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                 task.getIndexStats(), IndexStatsMBean.TYPE, task.getName()));
     }

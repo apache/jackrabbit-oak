@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,7 +27,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class IndexMBeanRegistrationTest {
 
@@ -63,38 +61,6 @@ public class IndexMBeanRegistrationTest {
                     map.get("scheduler.runOn"));
             assertEquals("oak",
                     map.get("scheduler.threadPool"));
-        } finally {
-            reg.unregister();
-        }
-    }
-
-    @Test
-    public void lastIndexedTimeRefreshRunsOnAllInstances() throws Exception {
-        final Map<String, Map<?, ?>> propsByName = new HashMap<>();
-        Whiteboard wb = new DefaultWhiteboard(){
-            @Override
-            public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
-                if (type == Runnable.class) {
-                    propsByName.put((String) properties.get("scheduler.name"), properties);
-                }
-                return super.register(type, service, properties);
-            }
-        };
-        long schedulingDelayInSecs = 7;
-
-        AsyncIndexUpdate update = new AsyncIndexUpdate("async",
-                new MemoryNodeStore(), new CompositeIndexEditorProvider());
-        IndexMBeanRegistration reg = new IndexMBeanRegistration(wb);
-        reg.registerAsyncIndexer(update, schedulingDelayInSecs);
-        try {
-            Map<?, ?> map = propsByName.get(AsyncIndexUpdate.class.getName() + "-async-lastIndexedTime");
-            assertNotNull(map);
-            assertEquals(schedulingDelayInSecs, map.get("scheduler.period"));
-            assertEquals(false, map.get("scheduler.concurrent"));
-            assertNull(map.get("scheduler.runOn"));
-            assertNull(map.get(AsyncIndexUpdate.PROP_ASYNC_NAME));
-            assertEquals("LEADER",
-                    propsByName.get(AsyncIndexUpdate.class.getName() + "-async").get("scheduler.runOn"));
         } finally {
             reg.unregister();
         }
