@@ -124,11 +124,11 @@ public class QueryOptimizerTest {
             assertEquals("Query rule 2 exceeded regex character-access budget 510000; using the original query",
                     logs.getLogs().get(0));
             assertEquals(original, rewrite(original));
-            assertEquals(1, logs.getLogs().size());
+            assertEquals(2, logs.getLogs().size());
             assertEquals("yabc", rewrite("xabc"));
             clock.addAndGet(10_000);
             assertEquals(original, rewrite(original));
-            assertEquals(2, logs.getLogs().size());
+            assertEquals(3, logs.getLogs().size());
         } finally {
             logs.finished();
         }

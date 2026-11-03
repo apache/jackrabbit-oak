@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
@@ -55,11 +54,9 @@ public class QueryOptimizer {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryOptimizer.class);
     private static final long REFRESH_MILLIS = 10_000;
-    private static final long NEXT_LOG_MILLIS = 10_000;
 
     private final LongSupplier clock;
     private final ReentrantLock refreshLock = new ReentrantLock();
-    private final AtomicLong nextBudgetWarning = new AtomicLong();
     private NodeStore store;
     private volatile List<Rule> rules = List.of();
     private volatile long nextRefresh;
@@ -110,12 +107,8 @@ public class QueryOptimizer {
                     break;
                 }
             } catch (RegexBudgetExceededException e) {
-                long now = clock.getAsLong();
-                long next = nextBudgetWarning.get();
-                if (now >= next && nextBudgetWarning.compareAndSet(next, now + NEXT_LOG_MILLIS)) {
-                    LOG.warn("Query rule {} exceeded regex character-access budget {}; using the original query",
-                            ruleIndex, budget.limit);
-                }
+                LOG.warn("Query rule {} exceeded regex character-access budget {}; using the original query",
+                        ruleIndex, budget.limit);
                 return original;
             } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
                 ParseException failure = new ParseException("Invalid query rule replacement", 0);
