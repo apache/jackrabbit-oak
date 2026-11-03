@@ -1406,18 +1406,72 @@ public class AsyncIndexUpdateTest {
         assertNotNull("last indexed time property should be set after a cycle", persisted);
         long expectedMillis = ISO8601.parse(persisted).getTimeInMillis();
 
+        // Simulate repository state written before the successful-cycle property existed.
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        rootBuilder.child(":async").removeProperty(AsyncIndexUpdate.lastSuccessfulCycle("async"));
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
         // Fresh instance simulates a restart: constructs with a clean in-memory state.
         // Counter must be initialised from the NodeStore, not start at 0.
         MetricStatisticsProvider freshProvider = new MetricStatisticsProvider(
                 ManagementFactory.getPlatformMBeanServer(), executor);
         try {
-            new AsyncIndexUpdate("async", store, provider, freshProvider, false);
+            AsyncIndexUpdate restarted = new AsyncIndexUpdate("async", store, provider, freshProvider, false);
             long counterValue = freshProvider.getRegistry().getCounters()
                     .get("async.LAST_INDEXED_TIME").getCount();
             assertEquals("counter must reflect the durable property without running a cycle",
                     expectedMillis, counterValue);
+            restarted.refreshLastIndexedTime();
+            assertEquals("refresh must retain the LastIndexedTo fallback",
+                    expectedMillis, freshProvider.getRegistry().getCounters()
+                            .get("async.LAST_INDEXED_TIME").getCount());
         } finally {
             freshProvider.close();
+        }
+    }
+
+    @Test
+    public void successfulNoopCyclePersistsTimestampForOtherMembers() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate leader = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
+        runOneCycle(leader);
+        runOneCycle(leader);
+        String lastIndexedTo = store.getRoot().getChildNode(":async")
+                .getProperty(AsyncIndexUpdate.lastIndexedTo("async")).getValue(Type.STRING);
+        Thread.sleep(5);
+        runOneCycle(leader);
+
+        NodeState async = store.getRoot().getChildNode(":async");
+        assertEquals("a no-op cycle must not change LastIndexedTo", lastIndexedTo,
+                async.getProperty(AsyncIndexUpdate.lastIndexedTo("async")).getValue(Type.STRING));
+        long successfulCycleMillis = ISO8601.parse(async.getProperty(
+                AsyncIndexUpdate.lastSuccessfulCycle("async")).getValue(Type.STRING)).getTimeInMillis();
+        assertTrue("successful no-op cycle must publish a newer timestamp",
+                successfulCycleMillis > ISO8601.parse(lastIndexedTo).getTimeInMillis());
+
+        MetricStatisticsProvider nonLeaderProvider = new MetricStatisticsProvider(
+                ManagementFactory.getPlatformMBeanServer(), executor);
+        try {
+            AsyncIndexUpdate nonLeader = new AsyncIndexUpdate(
+                    "async", store, provider, nonLeaderProvider, false);
+            Counter counter = nonLeaderProvider.getRegistry().getCounters()
+                    .get("async.LAST_INDEXED_TIME");
+            assertEquals(successfulCycleMillis, counter.getCount());
+
+            Thread.sleep(5);
+            nonLeader.refreshLastIndexedTime();
+            assertEquals("without another successful cycle, refresh must not invent a heartbeat",
+                    successfulCycleMillis, counter.getCount());
+        } finally {
+            nonLeaderProvider.close();
         }
     }
 
@@ -1437,7 +1491,8 @@ public class AsyncIndexUpdateTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
         runOneCycle(async);
-        long expectedMillis = ISO8601.parse(async.getIndexStats().getLastIndexedTime()).getTimeInMillis();
+        long expectedMillis = ISO8601.parse(store.getRoot().getChildNode(":async")
+                .getProperty(AsyncIndexUpdate.lastSuccessfulCycle("async")).getValue(Type.STRING)).getTimeInMillis();
 
         MetricStatisticsProvider sharedProvider = new MetricStatisticsProvider(
                 ManagementFactory.getPlatformMBeanServer(), executor);
@@ -1468,9 +1523,11 @@ public class AsyncIndexUpdateTest {
 
         AsyncIndexUpdate leader = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
         runOneCycle(leader);
-        // the first cycle changes the index definition (reindex flag), the second one is a no-op
+        // Complete indexing before creating a non-leader instance with a current metric.
         runOneCycle(leader);
-        long initialMillis = ISO8601.parse(leader.getIndexStats().getLastIndexedTime()).getTimeInMillis();
+        runOneCycle(leader);
+        long initialMillis = ISO8601.parse(store.getRoot().getChildNode(":async")
+                .getProperty(AsyncIndexUpdate.lastSuccessfulCycle("async")).getValue(Type.STRING)).getTimeInMillis();
 
         MetricStatisticsProvider nonLeaderProvider = new MetricStatisticsProvider(
                 ManagementFactory.getPlatformMBeanServer(), executor);
@@ -1493,11 +1550,12 @@ public class AsyncIndexUpdateTest {
 
             // the leader indexes the changes: the lane is up to date
             runOneCycle(leader);
-            long beforeRefresh = System.currentTimeMillis();
+            long successfulCycleMillis = ISO8601.parse(store.getRoot().getChildNode(":async")
+                    .getProperty(AsyncIndexUpdate.lastSuccessfulCycle("async")).getValue(Type.STRING))
+                    .getTimeInMillis();
             nonLeader.refreshLastIndexedTime();
             long upToDate = counter.getCount();
-            assertTrue("expected >= " + beforeRefresh + " but was " + upToDate,
-                    upToDate >= beforeRefresh);
+            assertEquals(successfulCycleMillis, upToDate);
 
             // new changes, the lane is behind; the counter must not move backwards
             builder = store.getRoot().builder();
@@ -1507,15 +1565,17 @@ public class AsyncIndexUpdateTest {
             assertEquals(upToDate, counter.getCount());
 
             // the leader indexes the changes, then new changes arrive before the next refresh:
-            // the counter reflects the persisted LastIndexedTo of the leader
+            // the counter reflects the persisted successful-cycle timestamp
             Thread.sleep(5);
             runOneCycle(leader);
-            long lastIndexedTo = ISO8601.parse(leader.getIndexStats().getLastIndexedTime()).getTimeInMillis();
+            long lastSuccessfulCycle = ISO8601.parse(store.getRoot().getChildNode(":async")
+                    .getProperty(AsyncIndexUpdate.lastSuccessfulCycle("async")).getValue(Type.STRING))
+                    .getTimeInMillis();
             builder = store.getRoot().builder();
             builder.child("testRoot").setProperty("foo", "jkl");
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             nonLeader.refreshLastIndexedTime();
-            assertEquals(Math.max(upToDate, lastIndexedTo), counter.getCount());
+            assertEquals(Math.max(upToDate, lastSuccessfulCycle), counter.getCount());
         } finally {
             nonLeaderProvider.close();
         }

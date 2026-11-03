@@ -105,6 +105,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * Name of service property which determines the name of Async task
      */
     public static final String PROP_ASYNC_NAME = "oak.async";
+    private static final boolean PERSIST_LAST_SUCCESSFUL_CYCLE =
+            Boolean.parseBoolean(System.getProperty("oak.async.persistLastSuccessfulCycle", "true"));
     private static final String CONCURRENT_EXCEPTION_MSG ="The index was not updated. Waiting for the lease to expire (another copy might be still running); skipping this update. ";
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
@@ -126,9 +128,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             "Async", 1, "Indexing stopped forcefully");
 
     /**
-     * Timeout in milliseconds after which an async job would be considered as
-     * timed out. Another node in cluster would wait for timeout before
-     * taking over a running job
+     * Timeout in milliseconds after which an async indexing task would be
+     * considered timed out. Another node in the cluster waits for this timeout
+     * before taking over a running task.
      */
     private static final long DEFAULT_ASYNC_TIMEOUT = TimeUnit.MINUTES.toMillis(
             Integer.getInteger("oak.async.lease.timeout", 15));
@@ -559,7 +561,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 log.debug(
                         "[{}] No changes since last checkpoint; skipping the index update",
                         name);
-                postAsyncRunStatsStatus(indexStats);
+                try {
+                    persistLastSuccessfulCycle(beforeCheckpoint, async.getLong(leasify(name)));
+                    postAsyncRunStatsStatus(indexStats);
+                } catch (CommitFailedException e) {
+                    log.warn("[{}] Unable to persist successful cycle timestamp", name, e);
+                    indexStats.failed(e);
+                }
                 return;
             } else {
                 before = state;
@@ -823,6 +831,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             builder.child(ASYNC).setProperty(name, afterCheckpoint);
             builder.child(ASYNC).setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
+            if (PERSIST_LAST_SUCCESSFUL_CYCLE) {
+                builder.child(ASYNC).setProperty(PropertyStates.createProperty(
+                        lastSuccessfulCycle(name), now(), Type.DATE));
+            }
             if (callback.isDirty() || before == MISSING_NODE) {
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(indexUpdate
@@ -851,6 +863,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     if (store.release(afterCheckpoint)) {
                         builder.child(ASYNC).removeProperty(name);
                         builder.child(ASYNC).removeProperty(lastIndexedTo);
+                        builder.child(ASYNC).removeProperty(lastSuccessfulCycle(name));
                     } else {
                         log.debug("[{}] Unable to release checkpoint {}", name, afterCheckpoint);
                     }
@@ -915,12 +928,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return name + "-LastIndexedTo";
     }
 
-    /**
-     * Returns the ":async/&lt;lane&gt;-LastIndexedTo" property of the given
-     * {@code :async} node as epoch millis, or 0 if it is absent.
-     */
-    private long lastIndexedToMillis(NodeState async) {
-        PropertyState ps = async.getProperty(lastIndexedTo);
+    static String lastSuccessfulCycle(String name) {
+        return name + "-LastSuccessfulCycle";
+    }
+
+    private long datePropertyMillis(NodeState node, String propertyName) {
+        PropertyState ps = node.getProperty(propertyName);
         if (ps == null) {
             return 0;
         }
@@ -929,37 +942,34 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     /**
-     * Refreshes the LAST_INDEXED_TIME metric from the repository state shared by
-     * all cluster members. The indexing job runs on the leader only, so without
-     * this the metric would never advance on the other cluster members.
-     * <p>
-     * If there are no visible changes since the checkpoint of this lane, the lane
-     * is up to date and the metric is set to the current time (this matches the
-     * leader, which updates the metric after every successful cycle, including
-     * cycles without changes). Otherwise, the metric is set to the persisted
-     * ":async/&lt;lane&gt;-LastIndexedTo" value. The metric never moves backwards.
-     * This method does not write to the repository. See OAK-12505.
+     * Refreshes the LAST_INDEXED_TIME metric from the persisted successful-cycle
+     * timestamp shared by all cluster members. The later of it and
+     * ":async/&lt;lane&gt;-LastIndexedTo" is used for compatibility with older
+     * cluster members. See OAK-12505.
      */
     public void refreshLastIndexedTime() {
         try {
-            NodeState root = store.getRoot();
-            NodeState async = root.getChildNode(ASYNC);
-            String checkpoint = async.getString(name);
-            if (checkpoint == null) {
-                // initial indexing not done yet
-                return;
-            }
-            NodeState state = store.retrieve(checkpoint);
-            long millis;
-            if (state != null && noVisibleChanges(state, root)) {
-                millis = System.currentTimeMillis();
-            } else {
-                millis = lastIndexedToMillis(async);
-            }
-            indexStats.getExecutionStats().advanceLastIndexedTime(millis);
+            indexStats.getExecutionStats().advanceLastIndexedTime(readLastSuccessfulCycleMillis());
         } catch (Exception e) {
             log.debug("[{}] Unable to refresh LAST_INDEXED_TIME metric", name, e);
         }
+    }
+
+    private long readLastSuccessfulCycleMillis() {
+        NodeState async = store.getRoot().getChildNode(ASYNC);
+        long successfulCycleMillis = PERSIST_LAST_SUCCESSFUL_CYCLE
+                ? datePropertyMillis(async, lastSuccessfulCycle(name)) : 0;
+        return Math.max(successfulCycleMillis, datePropertyMillis(async, lastIndexedTo));
+    }
+
+    private void persistLastSuccessfulCycle(String checkpoint, Long lease) throws CommitFailedException {
+        if (!PERSIST_LAST_SUCCESSFUL_CYCLE) {
+            return;
+        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(ASYNC).setProperty(PropertyStates.createProperty(
+                lastSuccessfulCycle(name), now(), Type.DATE));
+        mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, lease, name);
     }
 
     private static String getTempCpName(String name) {
@@ -1419,12 +1429,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             private final TimerStats indexerTimer;
             private final HistogramStats indexedNodePerCycleHisto;
             /**
-             * Counter storing the last-indexed time as epoch millis. Initialised at
-             * construction from the durable ":async/&lt;lane&gt;-LastIndexedTo" repository
-             * property so that a correct non-zero value is visible immediately after a
-             * restart, even if the lane has not yet completed a successful cycle.
+             * Counter storing the last-indexed time as epoch millis. Initialised from
+             * the later of the durable successful-cycle timestamp and
+             * ":async/&lt;lane&gt;-LastIndexedTo".
              * Updated on every successful cycle via {@link #doneOneCycle}. See OAK-12394.
-             * On all cluster members (including those that do not run the indexing job),
+             * On all cluster members, including those where the leader-only indexing task does not run,
              * it is also advanced by {@link AsyncIndexUpdate#refreshLastIndexedTime()}.
              * See OAK-12505.
              */
@@ -1444,7 +1453,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
                         .METRICS_ONLY);
                 lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"), StatsOptions.DEFAULT);
-                advanceLastIndexedTime(readLastIndexedToMillis());
+                advanceLastIndexedTime(readLastSuccessfulCycleMillis());
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                             "Consolidated stats", names,
@@ -1486,15 +1495,14 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             /**
-             * Reads the persisted ":async/&lt;lane&gt;-LastIndexedTo" property as epoch millis,
-             * or 0 when it is absent or cannot be parsed (e.g. before the initial index).
-             * Used to initialise the {@code lastIndexedTime} counter at construction.
+             * Reads the persisted successful-cycle timestamp, falling back to
+             * ":async/&lt;lane&gt;-LastIndexedTo" for repositories without that timestamp.
              */
-            private long readLastIndexedToMillis() {
+            private long readLastSuccessfulCycleMillis() {
                 try {
-                    return lastIndexedToMillis(store.getRoot().getChildNode(ASYNC));
+                    return AsyncIndexUpdate.this.readLastSuccessfulCycleMillis();
                 } catch (Exception e) {
-                    log.warn("[{}] Unable to read {} for LAST_INDEXED_TIME metric", name, lastIndexedTo, e);
+                    log.warn("[{}] Unable to read successful cycle timestamp for LAST_INDEXED_TIME metric", name, e);
                     return 0;
                 }
             }

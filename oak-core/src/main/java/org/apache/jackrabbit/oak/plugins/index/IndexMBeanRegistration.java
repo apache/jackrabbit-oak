@@ -46,7 +46,7 @@ public class IndexMBeanRegistration implements Registration {
                 "scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName()
         );
         regs.add(scheduleWithFixedDelay(whiteboard, task, config, delayInSeconds, RUN_ON_LEADER, true));
-        // the indexing job runs on the leader only; refresh the LAST_INDEXED_TIME
+        // the indexing task runs on the leader only; refresh LAST_INDEXED_TIME
         // metric on all cluster members (OAK-12505)
         Runnable refresh = task::refreshLastIndexedTime;
         regs.add(scheduleWithFixedDelay(whiteboard, refresh,
