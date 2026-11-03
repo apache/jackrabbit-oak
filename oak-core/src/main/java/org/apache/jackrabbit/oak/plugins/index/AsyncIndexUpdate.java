@@ -915,6 +915,53 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return name + "-LastIndexedTo";
     }
 
+    /**
+     * Returns the ":async/&lt;lane&gt;-LastIndexedTo" property of the given
+     * {@code :async} node as epoch millis, or 0 if it is absent.
+     */
+    private long lastIndexedToMillis(NodeState async) {
+        PropertyState ps = async.getProperty(lastIndexedTo);
+        if (ps == null) {
+            return 0;
+        }
+        Calendar cal = ISO8601.parse(ps.getValue(Type.STRING));
+        return cal != null ? cal.getTimeInMillis() : 0;
+    }
+
+    /**
+     * Refreshes the LAST_INDEXED_TIME metric from the repository state shared by
+     * all cluster members. The indexing job runs on the leader only, so without
+     * this the metric would never advance on the other cluster members.
+     * <p>
+     * If there are no visible changes since the checkpoint of this lane, the lane
+     * is up to date and the metric is set to the current time (this matches the
+     * leader, which updates the metric after every successful cycle, including
+     * cycles without changes). Otherwise, the metric is set to the persisted
+     * ":async/&lt;lane&gt;-LastIndexedTo" value. The metric never moves backwards.
+     * This method does not write to the repository. See OAK-12505.
+     */
+    public void refreshLastIndexedTime() {
+        try {
+            NodeState root = store.getRoot();
+            NodeState async = root.getChildNode(ASYNC);
+            String checkpoint = async.getString(name);
+            if (checkpoint == null) {
+                // initial indexing not done yet
+                return;
+            }
+            NodeState state = store.retrieve(checkpoint);
+            long millis;
+            if (state != null && noVisibleChanges(state, root)) {
+                millis = System.currentTimeMillis();
+            } else {
+                millis = lastIndexedToMillis(async);
+            }
+            indexStats.getExecutionStats().advanceLastIndexedTime(millis);
+        } catch (Exception e) {
+            log.debug("[{}] Unable to refresh LAST_INDEXED_TIME metric", name, e);
+        }
+    }
+
     private static String getTempCpName(String name) {
         return name + "-temp";
     }
@@ -1377,6 +1424,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
              * property so that a correct non-zero value is visible immediately after a
              * restart, even if the lane has not yet completed a successful cycle.
              * Updated on every successful cycle via {@link #doneOneCycle}. See OAK-12394.
+             * On all cluster members (including those that do not run the indexing job),
+             * it is also advanced by {@link AsyncIndexUpdate#refreshLastIndexedTime()}.
+             * See OAK-12505.
              */
             private final CounterStats lastIndexedTime;
             private StatisticsProvider statisticsProvider;
@@ -1394,10 +1444,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
                         .METRICS_ONLY);
                 lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"), StatsOptions.DEFAULT);
-                long initialMillis = readLastIndexedToMillis();
-                if (initialMillis > 0) {
-                    lastIndexedTime.inc(initialMillis);
-                }
+                advanceLastIndexedTime(readLastIndexedToMillis());
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                             "Consolidated stats", names,
@@ -1413,8 +1460,29 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodeCountMeter.mark(updates);
                 indexerTimer.update(timeInMillis, TimeUnit.MILLISECONDS);
                 indexedNodePerCycleHisto.update(updates);
-                long previousLastIndexedTime = lastIndexedTime.getCount();
-                lastIndexedTime.inc(System.currentTimeMillis() - previousLastIndexedTime);
+                setLastIndexedTime(System.currentTimeMillis());
+            }
+
+            /**
+             * Sets the {@code lastIndexedTime} counter to the given value. The counter
+             * only supports increments, so the difference to the current count is added.
+             */
+            private synchronized void setLastIndexedTime(long millis) {
+                lastIndexedTime.inc(millis - lastIndexedTime.getCount());
+            }
+
+            /**
+             * Raises the {@code lastIndexedTime} counter to the given value if it is
+             * larger than the current count; the counter never moves backwards.
+             */
+            synchronized void advanceLastIndexedTime(long millis) {
+                if (millis > lastIndexedTime.getCount()) {
+                    setLastIndexedTime(millis);
+                }
+            }
+
+            long getLastIndexedTime() {
+                return lastIndexedTime.getCount();
             }
 
             /**
@@ -1424,12 +1492,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
              */
             private long readLastIndexedToMillis() {
                 try {
-                    PropertyState ps = store.getRoot().getChildNode(ASYNC).getProperty(lastIndexedTo);
-                    if (ps == null) {
-                        return 0;
-                    }
-                    Calendar cal = ISO8601.parse(ps.getValue(Type.STRING));
-                    return cal != null ? cal.getTimeInMillis() : 0;
+                    return lastIndexedToMillis(store.getRoot().getChildNode(ASYNC));
                 } catch (Exception e) {
                     log.warn("[{}] Unable to read {} for LAST_INDEXED_TIME metric", name, lastIndexedTo, e);
                     return 0;
