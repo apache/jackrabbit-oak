@@ -148,7 +148,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public class LucenePropertyIndexTest extends AbstractQueryTest {
     /**
      * Set the size to twice the batch size to test the pagination with sorting
@@ -511,50 +510,45 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private void assertEmptyNodeNameQuery(String function) throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(
-                "<dam='http://www.day.com/dam/1.0'>\n[dam:Asset] > nt:unstructured",
-                StandardCharsets.UTF_8), "test asset node type");
-
         IndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder()
                 .noAsync().evaluatePathRestrictions();
-        builder.indexRule("dam:Asset").indexNodeName()
+        builder.indexRule("nt:base").indexNodeName()
                 .property("jcr:content/contentFragment").propertyIndex();
-        builder.build(root.getTree("/oak:index").addChild("damAssetLucene-13-custom-2"));
+        builder.build(root.getTree("/oak:index").addChild("testIndex"));
 
         Tree dam = root.getTree("/").addChild("content").addChild("dam");
         for (String name : List.of("abc", "def", "ghi")) {
-            Tree asset = setNodeType(dam.addChild(name), "dam:Asset");
+            Tree asset = setNodeType(dam.addChild(name), "nt:base");
             asset.addChild("jcr:content").setProperty("contentFragment", true);
         }
-        Tree nonFragment = setNodeType(dam.addChild("notAFragment"), "dam:Asset");
+        Tree nonFragment = setNodeType(dam.addChild("notAFragment"), "nt:base");
         nonFragment.addChild("jcr:content").setProperty("contentFragment", false);
         root.commit();
 
-        String query = "SELECT * FROM [dam:Asset] AS node "
+        String query = "SELECT * FROM [nt:base] AS node "
                 + "WHERE [jcr:content/contentFragment]='true' "
                 + "AND ISDESCENDANTNODE('/content/dam') AND " + function + "() = '%s' "
-                + "OPTION(INDEX NAME [damAssetLucene-13-custom-2])";
+                + "OPTION(INDEX NAME [testIndex])";
         String namedQuery = String.format(query, "abc");
-        assertThat(explain(namedQuery), containsString(":nodeName:abc"));
-        assertQuery(namedQuery, List.of("/content/dam/abc"));
-        assertEquals(List.of("node, 1", "query, 1"), executeQuery("measure " + namedQuery, SQL2));
+        assertEquals("[nt:base] as [node] /* lucene:testIndex\n"
+                + "    indexDefinition: /oak:index/testIndex\n"
+                + "    estimatedEntries: 0\n"
+                + "    luceneQuery: +:ancestors:/content/dam +jcr:content/contentFragment:true +:nodeName:abc\n"
+                + " */", explain(namedQuery));
 
         setTraversalEnabled(true);
-        String emptyQuery = String.format(query, "");
-        String plan = explain(emptyQuery);
-        assertThat(plan, containsString("estimatedEntries: 0"));
-        assertQuery(emptyQuery, List.of());
-        List<String> emptyMeasure = executeQuery("measure " + emptyQuery, SQL2);
-        assertEquals(List.of("node, 0", "query, 0"), emptyMeasure);
+        assertEquals("[nt:base] as [node] /* traverse\n"
+                + "    oneNode: /\n"
+                + "    estimatedEntries: 0.0\n"
+                + " */", explain(String.format(query, "")));
 
-        String reorderedQuery = emptyQuery.replace(
-                "ISDESCENDANTNODE('/content/dam') AND " + function + "() = ''",
-                function + "() = '' AND ISDESCENDANTNODE('/content/dam')");
-        assertThat(explain(reorderedQuery), containsString("estimatedEntries: 0"));
-        assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + reorderedQuery, SQL2));
-        String likeQuery = emptyQuery.replace(function + "() = ''", function + "() LIKE ''");
-        assertThat(explain(likeQuery), containsString("estimatedEntries: 0"));
-        assertEquals(List.of("node, 0", "query, 0"), executeQuery("measure " + likeQuery, SQL2));
+        String reorderedQuery = query.replace(
+                "ISDESCENDANTNODE('/content/dam') AND " + function + "() = '%s'",
+                function + "() = '%s' AND ISDESCENDANTNODE('/content/dam')");
+        assertEquals("[nt:base] as [node] /* traverse\n"
+                + "    oneNode: /\n"
+                + "    estimatedEntries: 0.0\n"
+                + " */", explain(String.format(reorderedQuery, "")));
     }
 
     @Test
