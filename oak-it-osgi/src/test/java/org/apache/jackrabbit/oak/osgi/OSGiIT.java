@@ -168,10 +168,10 @@ public class OSGiIT {
     }
 
     /**
-     * Checks that Oak libraries request the 1.7 logging contract, including on a 2.x runtime.
+     * Checks library logging contracts and the embedded Elastic client's shared SLF4J SPI.
      */
     @Test
-    public void slf4jImportRanges() throws InvalidSyntaxException {
+    public void slf4jImportRanges() throws InvalidSyntaxException, ClassNotFoundException {
         int imports = 0;
         for (Bundle bundle : context.getBundles()) {
             if (!bundle.getSymbolicName().startsWith("org.apache.jackrabbit.oak")) {
@@ -179,6 +179,11 @@ public class OSGiIT {
             }
             BundleWiring wiring = bundle.adapt(BundleWiring.class);
             Assert.assertNotNull(bundle.toString(), wiring);
+            boolean elastic = "org.apache.jackrabbit.oak-search-elastic".equals(bundle.getSymbolicName());
+            if (elastic) {
+                Class.forName("co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester",
+                        true, wiring.getClassLoader());
+            }
             for (BundleWire wire : wiring.getRequiredWires(PackageNamespace.PACKAGE_NAMESPACE)) {
                 String packageName = (String) wire.getCapability().getAttributes()
                         .get(PackageNamespace.PACKAGE_NAMESPACE);
@@ -191,7 +196,7 @@ public class OSGiIT {
                 Assert.assertTrue(message, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
                         PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("1.7.36"))));
-                Assert.assertFalse(message, filter.matches(Map.of(
+                Assert.assertEquals(message, elastic && packageName.equals("org.slf4j.spi"), filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
                         PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("2.0.20"))));
                 Assert.assertFalse(message, filter.matches(Map.of(
