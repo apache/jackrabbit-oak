@@ -57,10 +57,10 @@
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
     <mongo.driver.version>5.5.2</mongo.driver.version>
-    <slf4j.api.version>2.0.20</slf4j.api.version>
-    <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.6.4</logback.version>
-    <slf4j.osgi.import>org.slf4j.*;version="[1.7,3)"</slf4j.osgi.import>
+    <slf4j.api.version>1.7.36</slf4j.api.version>
+    <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback.runtime.version -->
+    <logback.version>1.2.13</logback.version> <!-- library test backend -->
+    <logback.runtime.version>1.6.4</logback.runtime.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
@@ -157,7 +157,6 @@
               <!-- Don't default to bundle version for packages without explicit export version.
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
-              <Import-Package>${slf4j.osgi.import},*</Import-Package>
             </instructions>
           </configuration>
           <executions>
@@ -948,13 +947,12 @@
   </dependencyManagement>
 
   <profiles>
-    <!-- Compatibility checks only; keep the current logging stack in released artifacts. -->
+    <!-- Runtime compatibility checks only; compile library classes against the default 1.7 API. -->
     <profile>
-      <id>slf4j-1.7</id>
+      <id>slf4j-2.0</id>
       <properties>
-        <slf4j.api.version>1.7.36</slf4j.api.version>
-        <slf4j.version>1.7.36</slf4j.version>
-        <logback.version>1.2.13</logback.version>
+        <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+        <logback.version>${logback.runtime.version}</logback.version>
       </properties>
     </profile>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  Unit testing profiles -->

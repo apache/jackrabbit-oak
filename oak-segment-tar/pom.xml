@@ -51,7 +51,6 @@
                             concurrentlinkedhashmap-lru
                         </Embed-Dependency>
                         <Import-Package>
-                            ${slf4j.osgi.import},
                             com.codahale.metrics*;version="[3.1,4)",
                             com.google.protobuf;version="[2.6,3)";resolution:=optional,
                             com.google.protobuf.nano;resolution:=optional,

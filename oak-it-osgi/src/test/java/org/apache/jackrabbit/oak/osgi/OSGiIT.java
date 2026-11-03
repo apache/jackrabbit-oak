@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -51,12 +53,16 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
 import org.osgi.framework.namespace.PackageNamespace;
+import org.osgi.framework.wiring.BundleCapability;
+import org.osgi.framework.wiring.BundleRequirement;
+import org.osgi.framework.wiring.BundleRevision;
 import org.osgi.framework.wiring.BundleWire;
 import org.osgi.framework.wiring.BundleWiring;
 
@@ -162,7 +168,7 @@ public class OSGiIT {
     }
 
     /**
-     * Checks that Oak's resolved logging imports allow both supported SLF4J generations.
+     * Checks that Oak libraries request the 1.7 logging contract, including on a 2.x runtime.
      */
     @Test
     public void slf4jImportRanges() throws InvalidSyntaxException {
@@ -185,7 +191,7 @@ public class OSGiIT {
                 Assert.assertTrue(message, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
                         PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("1.7.36"))));
-                Assert.assertTrue(message, filter.matches(Map.of(
+                Assert.assertFalse(message, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
                         PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("2.0.20"))));
                 Assert.assertFalse(message, filter.matches(Map.of(
@@ -195,6 +201,49 @@ public class OSGiIT {
             }
         }
         Assert.assertTrue("No Oak SLF4J imports were checked", imports > 0);
+    }
+
+    /**
+     * Checks the embedded AWS SDK's logging requirements against SLF4J alone, without Pax Logging exports.
+     */
+    @Test
+    public void cloudSlf4jImports() throws BundleException, InvalidSyntaxException {
+        Bundle provider = Arrays.stream(context.getBundles())
+                .filter(bundle -> "slf4j.api".equals(bundle.getSymbolicName()))
+                .findFirst().orElseThrow(() -> new IllegalStateException("SLF4J API bundle is missing"));
+        List<BundleCapability> exports = provider.adapt(BundleRevision.class)
+                .getDeclaredCapabilities(PackageNamespace.PACKAGE_NAMESPACE);
+        Bundle cloud = context.installBundle(
+                new File("target/test-bundles/cloud/oak-blob-cloud.jar").toURI().toString());
+        try {
+            boolean eventChecked = false;
+            for (BundleRequirement requirement : cloud.adapt(BundleRevision.class)
+                    .getDeclaredRequirements(PackageNamespace.PACKAGE_NAMESPACE)) {
+                String filterText = requirement.getDirectives()
+                        .get(PackageNamespace.REQUIREMENT_FILTER_DIRECTIVE);
+                if (!filterText.contains("(osgi.wiring.package=org.slf4j)")
+                        && !filterText.contains("(osgi.wiring.package=org.slf4j.")) {
+                    continue;
+                }
+                boolean optional = PackageNamespace.RESOLUTION_OPTIONAL.equals(requirement.getDirectives()
+                        .get(PackageNamespace.REQUIREMENT_RESOLUTION_DIRECTIVE));
+                String message = cloud + ": " + filterText + " against " + provider;
+                if (filterText.contains("(osgi.wiring.package=org.slf4j.event)")) {
+                    Assert.assertFalse(message, optional);
+                    Filter filter = FrameworkUtil.createFilter(filterText);
+                    Assert.assertFalse(message, filter.matches(Map.of(
+                            PackageNamespace.PACKAGE_NAMESPACE, "org.slf4j.event",
+                            PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("3.0.0"))));
+                    eventChecked = true;
+                }
+                if (!optional) {
+                    Assert.assertTrue(message, exports.stream().anyMatch(requirement::matches));
+                }
+            }
+            Assert.assertTrue("No AWS SDK SLF4J event import was checked", eventChecked);
+        } finally {
+            cloud.uninstall();
+        }
     }
 
     @Test

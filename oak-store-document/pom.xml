@@ -43,7 +43,6 @@
         <configuration>
           <instructions>
             <Import-Package>
-              ${slf4j.osgi.import},
               com.mongodb*;version="[5.2, 5.6)";resolution:=optional,
               org.bson*;version="[5.2, 5.6)";resolution:=optional,
               *

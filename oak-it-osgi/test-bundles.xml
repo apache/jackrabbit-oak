@@ -24,6 +24,15 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>
     <dependencySet>
+      <outputDirectory>cloud</outputDirectory>
+      <outputFileNameMapping>${artifact.artifactId}.jar</outputFileNameMapping>
+      <scope>test</scope>
+      <includes>
+        <include>org.apache.jackrabbit:oak-blob-cloud</include>
+      </includes>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+    </dependencySet>
+    <dependencySet>
       <outputDirectory/>
       <outputFileNameMapping>${artifact.artifactId}.jar</outputFileNameMapping>
       <scope>test</scope>
