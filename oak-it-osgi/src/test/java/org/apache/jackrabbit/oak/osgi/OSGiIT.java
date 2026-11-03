@@ -27,17 +27,33 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import javax.inject.Inject;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
@@ -248,6 +264,82 @@ public class OSGiIT {
             Assert.assertTrue("No AWS SDK SLF4J event import was checked", eventChecked);
         } finally {
             cloud.uninstall();
+        }
+    }
+
+    /**
+     * Verifies message delivery through the embedded dependencies' shared SPI and Level APIs.
+     */
+    @Test
+    public void embeddedSlf4jLogging() throws Exception {
+        Bundle elastic = Arrays.stream(context.getBundles())
+                .filter(bundle -> "org.apache.jackrabbit.oak-search-elastic".equals(bundle.getSymbolicName()))
+                .findFirst().orElseThrow(() -> new IllegalStateException("Elastic bundle is missing"));
+        Bundle api = Arrays.stream(context.getBundles())
+                .filter(bundle -> "slf4j.api".equals(bundle.getSymbolicName()))
+                .findFirst().orElseThrow(() -> new IllegalStateException("SLF4J API bundle is missing"));
+        String loggerName = OSGiIT.class.getName() + ".embedded";
+        Path sdkJar = Files.createTempFile("oak-slf4j-sdk-", ".jar");
+        LoggerContext loggerContext = new LoggerContext();
+        Logger logger = loggerContext.getLogger(loggerName);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.TRACE);
+        try (JarFile cloud = new JarFile("target/test-bundles/cloud/oak-blob-cloud.jar")) {
+            JarEntry utils = cloud.stream()
+                    .filter(entry -> entry.getName().startsWith("utils-")
+                            && !entry.getName().startsWith("utils-lite-") && entry.getName().endsWith(".jar"))
+                    .findFirst().orElseThrow(() -> new IllegalStateException("Embedded AWS SDK utils JAR is missing"));
+            try (InputStream input = cloud.getInputStream(utils)) {
+                Files.copy(input, sdkJar, StandardCopyOption.REPLACE_EXISTING);
+            }
+            Class<?> adapterClass = elastic.loadClass(
+                    "org.apache.commons.logging.impl.Slf4jLogFactory$Slf4jLocationAwareLog");
+            Constructor<?> adapterConstructor = adapterClass.getDeclaredConstructor(
+                    api.loadClass("org.slf4j.spi.LocationAwareLogger"));
+            adapterConstructor.setAccessible(true);
+            Object commonsLog = adapterConstructor.newInstance(logger);
+            Class<?> logClass = elastic.loadClass("org.apache.commons.logging.Log");
+            Class<?> levelClass = api.loadClass("org.slf4j.event.Level");
+            ClassLoader loggingLoader = new ClassLoader(null) {
+                @Override
+                protected Class<?> findClass(String name) throws ClassNotFoundException {
+                    if (name.startsWith("org.slf4j.")) {
+                        return api.loadClass(name);
+                    }
+                    throw new ClassNotFoundException(name);
+                }
+            };
+            try (URLClassLoader sdkLoader = new URLClassLoader(new URL[] {sdkJar.toUri().toURL()}, loggingLoader)) {
+                Class<?> sdkClass = sdkLoader.loadClass("software.amazon.awssdk.utils.Logger");
+                Assert.assertSame(sdkLoader, sdkClass.getClassLoader());
+                Constructor<?> sdkConstructor = sdkClass.getDeclaredConstructor(api.loadClass("org.slf4j.Logger"));
+                sdkConstructor.setAccessible(true);
+                Object sdkLog = sdkConstructor.newInstance(logger);
+                Assert.assertSame(logger, sdkClass.getMethod("logger").invoke(sdkLog));
+                for (String level : List.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR")) {
+                    appender.list.clear();
+                    logClass.getMethod(level.toLowerCase(Locale.ROOT), Object.class)
+                            .invoke(commonsLog, "commons-" + level);
+                    Object sdkLevel = levelClass.getField(level).get(null);
+                    Assert.assertEquals(true, sdkClass.getMethod("isLoggingLevelEnabled", levelClass)
+                            .invoke(sdkLog, sdkLevel));
+                    Supplier<String> message = () -> "aws-" + level;
+                    sdkClass.getMethod("log", levelClass, Supplier.class).invoke(sdkLog, sdkLevel, message);
+                    Assert.assertEquals(2, appender.list.size());
+                    Assert.assertEquals("commons-" + level, appender.list.get(0).getFormattedMessage());
+                    Assert.assertEquals("aws-" + level, appender.list.get(1).getFormattedMessage());
+                    for (ILoggingEvent event : appender.list) {
+                        Assert.assertEquals(Level.toLevel(level), event.getLevel());
+                    }
+                }
+            }
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+            loggerContext.stop();
+            Files.delete(sdkJar);
         }
     }
 
