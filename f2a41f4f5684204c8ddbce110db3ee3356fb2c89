@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "full",
+  "commit_sha": "f2a41f4f5684204c8ddbce110db3ee3356fb2c89",
+  "author": "anchela@adobe.com",
+  "timestamp": "2026-11-03T17:22:12+01:00",
+  "detection": {
+    "ai_assisted": true,
+    "method": "heuristic",
+    "tool": "copilot",
+    "model": "",
+    "confidence": 0.9
+  },
+  "stats": {
+    "total_additions": 730,
+    "total_deletions": 19,
+    "ai_additions": 730,
+    "ai_deletions": 19,
+    "human_additions": 0,
+    "human_deletions": 0
+  },
+  "files": {
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserAuthentication.java": {
+      "ai_additions": 12,
+      "human_additions": 0,
+      "ai_deletions": 3,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserConfigurationImpl.java": {
+      "ai_additions": 7,
+      "human_additions": 0,
+      "ai_deletions": 2,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserValidator.java": {
+      "ai_additions": 40,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserValidatorProvider.java": {
+      "ai_additions": 10,
+      "human_additions": 0,
+      "ai_deletions": 1,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/monitor/UserMonitor.java": {
+      "ai_additions": 27,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/monitor/UserMonitorImpl.java": {
+      "ai_additions": 45,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/AdminUserMonitorTest.java": {
+      "ai_additions": 388,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/UserImporterAdminMonitorTest.java": {
+      "ai_additions": 82,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/UserValidatorTest.java": {
+      "ai_additions": 3,
+      "human_additions": 0,
+      "ai_deletions": 2,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/monitor/UserMonitorImplTest.java": {
+      "ai_additions": 77,
+      "human_additions": 0,
+      "ai_deletions": 1,
+      "human_deletions": 0
+    },
+    "oak-doc/src/site/markdown/security/user/default.md": {
+      "ai_additions": 29,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "specs/OAK-12495/PLAN.md": {
+      "ai_additions": 10,
+      "human_additions": 0,
+      "ai_deletions": 10,
+      "human_deletions": 0
+    }
+  }
+}
