@@ -226,6 +226,39 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void normalize() throws Exception {
+        Tree luceneIndex = createIndex("normalized", Collections.emptySet());
+        Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("normalizedTitle");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "rep:normalize(@title)");
+        func.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        func.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
+        func.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+
+        Tree test = root.getTree("/").addChild("test");
+        List<String> titles = List.of("Éclair", "Æther", "Zèbre");
+        for (int i = 0; i < titles.size(); i++) {
+            Tree node = test.addChild("n" + i);
+            node.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+            node.setProperty("title", titles.get(i));
+        }
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:unstructured] where normalize([title])";
+        String ordered = "select [jcr:path] from [nt:unstructured] where [title] is not null "
+                + "order by normalize([title])";
+        assertEventually(() -> {
+            assertThat(explain(query + " = 'eclair'"), containsString(getIndexProvider() + "normalized"));
+            assertQuery(query + " = 'eclair'", List.of("/test/n0"));
+            assertThat(explain(ordered), containsString("sortOrder: [{ propertyName : function*normalize*@title"));
+            assertQuery(ordered, SQL2, List.of("/test/n1", "/test/n0", "/test/n2"), true, true);
+            assertQuery(ordered + " desc", SQL2, List.of("/test/n2", "/test/n0", "/test/n1"), true, true);
+        });
+    }
+
+    @Test
     public void path() throws Exception {
         Tree index = createIndex("pathIndex", Collections.emptySet());
         Tree func = index.addChild(FulltextIndexConstants.INDEX_RULES)
