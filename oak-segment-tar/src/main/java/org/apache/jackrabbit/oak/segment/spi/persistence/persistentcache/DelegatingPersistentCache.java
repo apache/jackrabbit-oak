@@ -19,10 +19,10 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.Callable;
 
 /**
@@ -34,7 +34,7 @@ public abstract class DelegatingPersistentCache implements PersistentCache {
     protected abstract PersistentCache delegate();
 
     @Override
-    public @Nullable Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
+    public @Nullable ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader) {
         return delegate().readSegment(msb, lsb, loader);
     }
 
@@ -44,7 +44,7 @@ public abstract class DelegatingPersistentCache implements PersistentCache {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, Buffer buffer) {
+    public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
         delegate().writeSegment(msb, lsb, buffer);
     }
 

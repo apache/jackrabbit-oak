@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,6 @@ import com.microsoft.aad.msal4j.MsalServiceException;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.ReferenceCountUtil;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -199,7 +199,7 @@ public class AzureHttpClientOperationsTest {
             writer.writeSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(),
                     data, 0, data.length, 1, 1, false);
             writer.flush();
-            Buffer result = writer.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+            ByteBuffer result = writer.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
             Assert.assertNotNull(result);
             byte[] actual = new byte[result.remaining()];
             result.get(actual);

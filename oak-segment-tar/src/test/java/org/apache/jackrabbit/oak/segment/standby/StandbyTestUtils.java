@@ -26,7 +26,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import org.apache.commons.codec.digest.MurmurHash3;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -50,7 +50,7 @@ public class StandbyTestUtils {
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
         SegmentId id = new SegmentId(store, msb, lsb);
-        Buffer data = Buffer.wrap(buffer);
+        ByteBuffer data = ByteBuffer.wrap(buffer);
         return new Segment(idProvider, id, data);
     }
 

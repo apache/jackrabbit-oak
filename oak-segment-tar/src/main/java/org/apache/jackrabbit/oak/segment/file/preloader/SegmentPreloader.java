@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.preloader;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
@@ -192,8 +192,8 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
     }
 
     @Override
-    public @Nullable Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
-        Buffer buffer = super.readSegment(msb, lsb, loader);
+    public @Nullable ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader) {
+        ByteBuffer buffer = super.readSegment(msb, lsb, loader);
         dispatch(msb, lsb, getReferencedSegments(lsb, buffer), 1);
         return buffer;
     }
@@ -338,7 +338,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         }
     }
 
-    private static SegmentIds getReferencedSegments(long lsb, @Nullable Buffer buffer) {
+    private static SegmentIds getReferencedSegments(long lsb, @Nullable ByteBuffer buffer) {
         if (buffer == null || !SegmentId.isDataSegmentId(lsb)) {
             return SegmentIds.EMPTY;
         }
@@ -378,7 +378,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             LOG.debug("Running: {}", this);
             try {
                 if (depth < preloadDepth || !containsSegment(msb, lsb)) {
-                    Buffer buffer = delegate().readSegment(msb, lsb, () -> tarFiles.readSegment(msb, lsb));
+                    ByteBuffer buffer = delegate().readSegment(msb, lsb, () -> tarFiles.readSegment(msb, lsb));
                     dispatch(msb, lsb, getReferencedSegments(lsb, buffer), depth + 1);
                 }
             } catch (RuntimeException e) {

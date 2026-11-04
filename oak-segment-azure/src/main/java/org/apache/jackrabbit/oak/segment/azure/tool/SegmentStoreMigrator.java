@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.fetchByteAr
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
 
 import com.azure.storage.blob.BlobContainerClient;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -212,8 +212,8 @@ public class SegmentStoreMigrator implements Closeable  {
     }
 
     private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
-        Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
-        Buffer binaryReferences = future.get();
+        Future<ByteBuffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
+        ByteBuffer binaryReferences = future.get();
         if (binaryReferences != null) {
             byte[] array = fetchByteArray(binaryReferences);
             RETRIER.execute(() -> writer.writeBinaryReferences(array));
@@ -240,7 +240,7 @@ public class SegmentStoreMigrator implements Closeable  {
 
         final SegmentArchiveEntry entry;
 
-        volatile Buffer data;
+        volatile ByteBuffer data;
 
         Segment(SegmentArchiveEntry entry) {
             this.entry = entry;

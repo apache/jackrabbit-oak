@@ -24,7 +24,7 @@ import static org.junit.Assert.assertNotEquals;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -98,7 +98,7 @@ public class SegmentReferencesTest {
 
     @Test
     public void shouldReadSegmentReferencesFromSegmentData() throws IOException {
-        SegmentData sampleSegmentData = SegmentData.newSegmentData(Buffer.wrap(new byte[] {
+        SegmentData sampleSegmentData = SegmentData.newSegmentData(ByteBuffer.wrap(new byte[] {
                 48, 97, 75, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 -116, -71, -35, -50, 87, -7, 64, 125, -96, -24, -82, 112, 44, -36, 63, 67, 0, 0, 0, 0, 4, 0, 3, -1, -40,
                 0, 0, 0, 1, 5, 0, 3, -1, -48, 0, 0, 0, 2, 4, 0, 3, -1, -56, 0, 0, 0, 3, 5, 0, 3, -1, -64, 0, 0, 0, 0, 0,
