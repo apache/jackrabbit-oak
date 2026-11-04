@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -59,6 +60,13 @@ import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
 public class UserQueryManager {
 
     private static final Logger log = LoggerFactory.getLogger(UserQueryManager.class);
+
+    /**
+     * Pattern an index tag must match before it is appended to the query as an
+     * {@code option(index tag <tag>)} clause. Restricting the value to word
+     * characters prevents query injection through the generated statement.
+     */
+    private static final Pattern INDEX_TAG_PATTERN = Pattern.compile("[a-zA-Z0-9_]+");
 
     private final UserManagerImpl userManager;
     private final NamePathMapper namePathMapper;
@@ -259,6 +267,14 @@ public class UserQueryManager {
                 statement.append(sortCol);
             }
             statement.append(' ').append(sortDir.getDirection());
+        }
+
+        String indexTag = builder.getIndexTag();
+        if (indexTag != null) {
+            if (!INDEX_TAG_PATTERN.matcher(indexTag).matches()) {
+                throw new RepositoryException("Invalid index tag '" + indexTag + "': must consist of word characters only.");
+            }
+            statement.append(" option(index tag ").append(indexTag).append(')');
         }
 
         return statement.toString();
