@@ -45,6 +45,7 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
     private final String apiKeyId;
     private final String apiSecretId;
     protected final Closer closer = Closer.create();
+    private ElasticConnection connection;
 
     public ElasticIndexImporterSupport(IndexHelper indexHelper ,String indexPrefix, String scheme,
                                        String host, int port,
@@ -70,10 +71,22 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
 
     @Override
     protected void addImportProviders(IndexImporter importer) {
-        importer.addImporterProvider(new ElasticIndexImporter());
+        importer.addImporterProvider(new ElasticIndexImporter(getConnection()));
     }
 
     private IndexEditorProvider createElasticEditorProvider() {
+        ElasticConnection connection = getConnection();
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+                new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
+                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+        return editorProvider;
+    }
+
+    private ElasticConnection getConnection() {
+        if (connection != null) {
+            return connection;
+        }
         final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
                 .withIndexPrefix(indexPrefix)
                 .withConnectionParameters(
@@ -81,18 +94,13 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
                         host,
                         port
                 );
-        final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
             connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
         } else {
             connection = buildStep.build();
         }
         closer.register(connection);
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                new ElasticMetricHandler(StatisticsProvider.NOOP));
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        return editorProvider;
+        return connection;
     }
 
     @Override
