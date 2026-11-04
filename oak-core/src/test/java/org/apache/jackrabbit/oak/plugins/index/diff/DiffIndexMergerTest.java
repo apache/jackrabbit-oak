@@ -21,8 +21,10 @@ import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -1796,6 +1798,26 @@ public class DiffIndexMergerTest {
                 }""", merged.toString());
     }
 
+    @Test
+    public void aggregateIncludeOrderIsPreserved() {
+        JsonObject diff = JsonObject.fromJson("""
+                {
+                    "aggregates": {
+                        "nt:unstructured": {
+                            "include0": { "path": "*" },
+                            "include1": { "path": "*/*" }
+                        }
+                    }
+                }
+                """, true);
+
+        JsonObject merged = getMerger().processMerge("custom.test", null, diff);
+        JsonObject aggregate = merged.getChildren().get("aggregates")
+                .getChildren().get("nt:unstructured");
+        assertEquals(List.of("include0", "include1"),
+                new ArrayList<>(aggregate.getChildren().keySet()));
+    }
+
     // GRANITE-69361: an empty child node in the diff (eg. an analyzer filter
     // without any properties, such as "LowerCase": {}) must be kept as an
     // empty node - just getting a "jcr:primaryType" added - and not be turned
@@ -1883,4 +1905,19 @@ public class DiffIndexMergerTest {
         DiffIndexMerger.removeDiffIndexEntries(definitions);
         assertEquals("[/oak:index/damAssetLucene-8]", definitions.getChildren().keySet().toString());
     }
+
+    @Test
+    public void mergeDiffsPreservesChildOrder() {
+        JsonObject a = JsonObject.fromJson("""
+                { "properties": { "existing": {} } }
+                """, true);
+        JsonObject b = JsonObject.fromJson("""
+                { "properties": { "include0": {}, "include1": {}, "existing": {} } }
+                """, true);
+
+        JsonObject merged = DiffIndexMerger.mergeDiffs(a, b);
+        assertEquals(List.of("existing", "include0", "include1"),
+                new ArrayList<>(merged.getChildren().get("properties").getChildren().keySet()));
+    }
+
 }
