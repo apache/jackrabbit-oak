@@ -601,6 +601,12 @@ public class Oak {
             LOG.info("Registered query optimizer feature: " + QueryEngineSettings.FT_QUERY_OPTIMIZER);
             closer.register(queryOptimizer);
             queryEngineSettings.unwrap().setQueryOptimizerFeature(queryOptimizer);
+            Feature emptyNodeNameRestrictionLegacyMode =
+                    newFeature(QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE, whiteboard);
+            LOG.info("Registered empty node name restriction legacy mode feature: "
+                    + QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE);
+            closer.register(emptyNodeNameRestrictionLegacyMode);
+            queryEngineSettings.setEmptyNodeNameRestrictionLegacyModeFeature(emptyNodeNameRestrictionLegacyMode);
         }
 
         return this;
@@ -1027,6 +1033,10 @@ public class Oak {
 
         public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {
             settings.setXmlNameCharsInPathFeature(feature);
+        }
+
+        public void setEmptyNodeNameRestrictionLegacyModeFeature(@Nullable Feature feature) {
+            settings.setEmptyNodeNameRestrictionLegacyModeFeature(feature);
         }
 
         @Override

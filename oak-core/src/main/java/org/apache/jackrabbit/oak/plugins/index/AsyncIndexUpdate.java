@@ -1398,6 +1398,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 if (initialMillis > 0) {
                     lastIndexedTime.inc(initialMillis);
                 }
+                // LAST_INDEXED_TIME is only updated where the indexing task runs (the leader).
+                // This gauge reads the shared ":async/<lane>-LastIndexedTo" on every read,
+                // so it is current on all cluster members. See OAK-12505.
+                statsProvider.getGauge(stats("LAST_INDEXED_TIME_CLUSTER"), this::readLastIndexedToMillis);
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                             "Consolidated stats", names,
@@ -1420,7 +1424,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             /**
              * Reads the persisted ":async/&lt;lane&gt;-LastIndexedTo" property as epoch millis,
              * or 0 when it is absent or cannot be parsed (e.g. before the initial index).
-             * Used to initialise the {@code lastIndexedTime} counter at construction.
+             * Used to initialise the {@code lastIndexedTime} counter at construction and
+             * as the value of the LAST_INDEXED_TIME_CLUSTER gauge.
              */
             private long readLastIndexedToMillis() {
                 try {

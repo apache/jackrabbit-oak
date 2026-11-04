@@ -77,6 +77,9 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String OAK_QUERY_OPTIMIZER = "oak.query.optimizer";
 
+    public static final String FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE =
+            "FT_OAK-12494";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -140,6 +143,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature opFunctionFeature;
     private Feature xmlNameCharsInPathFeature;
     private Feature queryOptimizerFeature;
+    private Feature emptyNodeNameRestrictionLegacyModeFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -303,6 +307,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public QueryOptimizer getQueryOptimizer() {
         return queryOptimizer;
+    }
+
+    public void setEmptyNodeNameRestrictionLegacyModeFeature(@Nullable Feature feature) {
+        this.emptyNodeNameRestrictionLegacyModeFeature = feature;
+    }
+
+    public boolean isEmptyNodeNameRestrictionEnabled() {
+        return emptyNodeNameRestrictionLegacyModeFeature == null
+                || !emptyNodeNameRestrictionLegacyModeFeature.isEnabled();
     }
 
     public String getStrictPathRestriction() {

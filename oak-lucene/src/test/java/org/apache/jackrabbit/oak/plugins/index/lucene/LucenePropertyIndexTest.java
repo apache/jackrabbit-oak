@@ -148,7 +148,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public class LucenePropertyIndexTest extends AbstractQueryTest {
     /**
      * Set the size to twice the batch size to test the pagination with sorting
@@ -485,6 +484,71 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", List.of("/test/bar"));
         assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", List.of("/foo"));
         assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", List.of("/camelCase"));
+    }
+
+    @Test
+    public void nodeNameEmptyString() throws Exception {
+        assertEmptyNodeNameQuery("NAME");
+    }
+
+    @Test
+    public void nodeLocalNameEmptyString() throws Exception {
+        assertEmptyNodeNameQuery("LOCALNAME");
+    }
+
+    @Test
+    public void emptyNodeNameMatchesRoot() throws Exception {
+        setTraversalEnabled(true);
+        for (String function : List.of("NAME", "LOCALNAME")) {
+            for (String operator : List.of("=", "LIKE")) {
+                String query = "SELECT [jcr:path] FROM [nt:base] AS node WHERE "
+                        + function + "() " + operator + " '' OPTION(TRAVERSAL FAIL)";
+                assertQuery(query, List.of("/"));
+                assertEquals(List.of("node, 1", "query, 1"), executeQuery("measure " + query, SQL2));
+            }
+        }
+    }
+
+    private void assertEmptyNodeNameQuery(String function) throws Exception {
+        IndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder()
+                .noAsync().evaluatePathRestrictions();
+        builder.indexRule("nt:base").indexNodeName()
+                .property("jcr:content/contentFragment").propertyIndex();
+        builder.build(root.getTree("/oak:index").addChild("testIndex"));
+
+        Tree dam = root.getTree("/").addChild("content").addChild("dam");
+        for (String name : List.of("abc", "def", "ghi")) {
+            Tree asset = setNodeType(dam.addChild(name), "nt:base");
+            asset.addChild("jcr:content").setProperty("contentFragment", true);
+        }
+        Tree nonFragment = setNodeType(dam.addChild("notAFragment"), "nt:base");
+        nonFragment.addChild("jcr:content").setProperty("contentFragment", false);
+        root.commit();
+
+        String query = "SELECT * FROM [nt:base] AS node "
+                + "WHERE [jcr:content/contentFragment]='true' "
+                + "AND ISDESCENDANTNODE('/content/dam') AND " + function + "() = '%s' "
+                + "OPTION(INDEX NAME [testIndex])";
+        String namedQuery = String.format(query, "abc");
+        assertEquals("[nt:base] as [node] /* lucene:testIndex\n"
+                + "    indexDefinition: /oak:index/testIndex\n"
+                + "    estimatedEntries: 0\n"
+                + "    luceneQuery: +:ancestors:/content/dam +jcr:content/contentFragment:true +:nodeName:abc\n"
+                + " */", explain(namedQuery));
+
+        setTraversalEnabled(true);
+        assertEquals("[nt:base] as [node] /* traverse\n"
+                + "    oneNode: /\n"
+                + "    estimatedEntries: 0.0\n"
+                + " */", explain(String.format(query, "")));
+
+        String reorderedQuery = query.replace(
+                "ISDESCENDANTNODE('/content/dam') AND " + function + "() = '%s'",
+                function + "() = '%s' AND ISDESCENDANTNODE('/content/dam')");
+        assertEquals("[nt:base] as [node] /* traverse\n"
+                + "    oneNode: /\n"
+                + "    estimatedEntries: 0.0\n"
+                + " */", explain(String.format(reorderedQuery, "")));
     }
 
     @Test
