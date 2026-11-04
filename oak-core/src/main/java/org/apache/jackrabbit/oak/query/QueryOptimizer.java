@@ -55,8 +55,15 @@ public class QueryOptimizer {
     static final int MAX_RULES = 1000;
     static final long CHAR_ACCESSES_PER_CHARACTER = 10_000;
 
-    private static final Logger LOG = LoggerFactory.getLogger(QueryOptimizer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryOptimizer.class);
     private static final long REFRESH_MILLIS = 10_000;
+    private static final String FIND = "find";
+    private static final String REPLACE = "replace";
+    private static final String FIND_REGEX = "findRegex";
+    private static final String REPLACE_REGEX = "replaceRegex";
+    private static final String LANGUAGE = "language";
+    private static final String STOP = "stop";
+    private static final String LOG = "log";
 
     private final LongSupplier clock;
     private final ReentrantLock refreshLock = new ReentrantLock();
@@ -83,8 +90,9 @@ public class QueryOptimizer {
             return statement;
         }
         refresh();
-        if (language.endsWith(QueryEngineImpl.NO_LITERALS)) {
-            language = language.substring(0, language.length() - QueryEngineImpl.NO_LITERALS.length());
+        String ruleLanguage = language;
+        if (ruleLanguage.endsWith(QueryEngineImpl.NO_LITERALS)) {
+            ruleLanguage = ruleLanguage.substring(0, ruleLanguage.length() - QueryEngineImpl.NO_LITERALS.length());
         }
         String original = statement;
         RegexBudget budget = new RegexBudget(CHAR_ACCESSES_PER_CHARACTER * original.length());
@@ -92,7 +100,7 @@ public class QueryOptimizer {
         // A single forward pass: later rules see the result of earlier ones.
         for (Rule rule : rules) {
             ruleIndex++;
-            if (rule.language != null && !rule.language.equals(language)) {
+            if (rule.language != null && !rule.language.equals(ruleLanguage)) {
                 continue;
             }
             try {
@@ -100,17 +108,27 @@ public class QueryOptimizer {
                 if (!matcher.find()) {
                     continue;
                 }
-                StringBuilder result = new StringBuilder();
-                do {
-                    matcher.appendReplacement(result, rule.replace);
-                } while (matcher.find());
-                matcher.appendTail(result);
-                statement = result.toString();
+                if (rule.replace == null) {
+                    if (rule.log) {
+                        LOGGER.info("Matched {} query: {}", language, statement);
+                    }
+                } else {
+                    StringBuilder result = new StringBuilder();
+                    do {
+                        matcher.appendReplacement(result, rule.replace);
+                    } while (matcher.find());
+                    matcher.appendTail(result);
+                    String rewritten = result.toString();
+                    if (rule.log && !statement.equals(rewritten)) {
+                        LOGGER.info("Rewriting {} query: {} to {}", language, statement, rewritten);
+                    }
+                    statement = rewritten;
+                }
                 if (rule.stop) {
                     break;
                 }
             } catch (RegexBudgetExceededException e) {
-                LOG.warn("Query rule {} exceeded regex character-access budget {}; using the original query",
+                LOGGER.warn("Query rule {} exceeded regex character-access budget {}; using the original query",
                         ruleIndex, budget.getLimit());
                 return original;
             } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
@@ -166,7 +184,7 @@ public class QueryOptimizer {
             lastData = data;
             lastModified = modified;
         } catch (IOException | IllegalArgumentException | IllegalStateException e) {
-            LOG.warn("Cannot refresh query rules; keeping the last valid rules", e);
+            LOGGER.warn("Cannot refresh query rules; keeping the last valid rules", e);
         } finally {
             refreshLock.unlock();
         }
@@ -192,41 +210,35 @@ public class QueryOptimizer {
 
     private static Rule readRule(JsonObject json) {
         Map<String, String> properties = json.getProperties();
-        if (!Set.of("find", "replace", "findRegex", "replaceRegex", "language").containsAll(properties.keySet())
-                || !Set.of("options").containsAll(json.getChildren().keySet())) {
+        if (!Set.of(FIND, REPLACE, FIND_REGEX, REPLACE_REGEX, LANGUAGE, STOP, LOG).containsAll(properties.keySet())
+                || !json.getChildren().isEmpty()) {
             throw new IllegalArgumentException("Invalid query rule field");
         }
-        boolean regex = properties.containsKey("findRegex") || properties.containsKey("replaceRegex");
-        if (regex && (properties.containsKey("find") || properties.containsKey("replace"))) {
+        boolean regex = properties.containsKey(FIND_REGEX) || properties.containsKey(REPLACE_REGEX);
+        if (regex && (properties.containsKey(FIND) || properties.containsKey(REPLACE))) {
             throw new IllegalArgumentException("Cannot mix template and regex query rule fields");
         }
-        String find = properties.get(regex ? "findRegex" : "find");
-        String replace = properties.get(regex ? "replaceRegex" : "replace");
-        String language = properties.get("language");
-        if (find == null || replace == null) {
-            throw new IllegalArgumentException("Query rules require find/replace or findRegex/replaceRegex strings");
+        String find = properties.get(regex ? FIND_REGEX : FIND);
+        String replace = properties.get(regex ? REPLACE_REGEX : REPLACE);
+        String language = properties.get(LANGUAGE);
+        if (find == null) {
+            throw new IllegalArgumentException("Query rules require a find or findRegex string");
         }
         find = JsopTokenizer.decodeQuoted(find);
-        replace = JsopTokenizer.decodeQuoted(replace);
+        replace = replace == null ? null : JsopTokenizer.decodeQuoted(replace);
         QueryTemplate template = regex ? null : new QueryTemplate(find, replace);
         return new Rule(regex ? Pattern.compile(find) : template.find,
                 regex ? replace : template.replace,
                 language == null ? null : JsopTokenizer.decodeQuoted(language),
-                readOptions(json.getChildren().get("options")));
+                readBoolean(properties, STOP, false), readBoolean(properties, LOG, true));
     }
 
-    private static boolean readOptions(JsonObject options) {
-        if (options == null) {
-            return false;
+    private static boolean readBoolean(Map<String, String> properties, String name, boolean defaultValue) {
+        String value = properties.getOrDefault(name, Boolean.toString(defaultValue));
+        if (!"true".equals(value) && !"false".equals(value)) {
+            throw new IllegalArgumentException("Query rule option " + name + " must be a boolean");
         }
-        if (!Set.of("stop").containsAll(options.getProperties().keySet()) || !options.getChildren().isEmpty()) {
-            throw new IllegalArgumentException("Invalid query rule option");
-        }
-        String stop = options.getProperties().getOrDefault("stop", "false");
-        if (!"true".equals(stop) && !"false".equals(stop)) {
-            throw new IllegalArgumentException("Query rule option stop must be a boolean");
-        }
-        return Boolean.parseBoolean(stop);
+        return Boolean.parseBoolean(value);
     }
 
     private static final class Rule {
@@ -234,12 +246,14 @@ public class QueryOptimizer {
         final String replace;
         final String language;
         final boolean stop;
+        final boolean log;
 
-        Rule(Pattern find, String replace, String language, boolean stop) {
+        Rule(Pattern find, String replace, String language, boolean stop, boolean log) {
             this.find = find;
             this.replace = replace;
             this.language = language;
             this.stop = stop;
+            this.log = log;
         }
     }
 }

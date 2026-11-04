@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,23 +76,23 @@ public class QueryOptimizerTest {
     @Test
     public void orderedRulesAndDefaultOptions() throws Exception {
         writeRules("[" + rule("a", "b") + ","
-                + "{\"findRegex\":\"b\",\"replaceRegex\":\"c\",\"options\":{}},"
-                + "{\"findRegex\":\"c\",\"replaceRegex\":\"aa\",\"options\":{\"stop\":false}}]");
+                + "{\"findRegex\":\"b\",\"replaceRegex\":\"c\"},"
+                + "{\"findRegex\":\"c\",\"replaceRegex\":\"aa\",\"stop\":false}]");
         assertEquals("aa aa", rewrite("a a"));
         assertEquals("xyz", rewrite("xyz"));
     }
 
     @Test
     public void stopOnlyAfterMatching() throws Exception {
-        writeRules("[{\"findRegex\":\"missing\",\"replaceRegex\":\"x\",\"options\":{\"stop\":true}},"
-                + "{\"findRegex\":\"a\",\"replaceRegex\":\"b\",\"options\":{\"stop\":true}},"
+        writeRules("[{\"findRegex\":\"missing\",\"replaceRegex\":\"x\",\"stop\":true},"
+                + "{\"findRegex\":\"a\",\"replaceRegex\":\"b\",\"stop\":true},"
                 + rule("b", "c") + "]");
         assertEquals("b b", rewrite("a a"));
     }
 
     @Test
     public void unchangedReplacementCanExcludeQuery() throws Exception {
-        writeRules("[{\"find\":\"a\",\"replace\":\"a\",\"options\":{\"stop\":true}},"
+        writeRules("[{\"find\":\"a\",\"replace\":\"a\",\"stop\":true},"
                 + rule("a", "b") + "]");
         assertEquals("a", rewrite("a"));
     }
@@ -99,7 +100,7 @@ public class QueryOptimizerTest {
     @Test
     public void optionalLanguageAndNoLiterals() throws Exception {
         writeRules("[{\"find\":\"a\",\"replace\":\"b\",\"language\":\"xpath\","
-                + "\"options\":{\"stop\":true}}," + rule("a", "c") + "]");
+                + "\"stop\":true}," + rule("a", "c") + "]");
         assertEquals("b", optimizer.rewrite("a", "xpath"));
         assertEquals("b", optimizer.rewrite("a", "xpath-noLiterals"));
         for (String language : new String[] {"JCR-SQL2", "sql", "JCR-JQOM", "JCR-SQL2-noLiterals"}) {
@@ -127,11 +128,77 @@ public class QueryOptimizerTest {
         String template = "/jcr:root/#1//element(*, cq:Page)[jcr:contains(., '#2')]";
         writeRules("[{\"find\":" + JsopBuilder.encode(template)
                 + ",\"replace\":" + JsopBuilder.encode(template + " option(index tag pages)")
-                + ",\"language\":\"xpath\",\"options\":{\"stop\":true}},"
+                + ",\"language\":\"xpath\",\"stop\":true},"
                 + rule("pages", "unreachable") + "]");
         String query = "/jcr:root/content/site/en//element(*, cq:Page)[jcr:contains(., 'John''s car')]";
         assertEquals("explain " + query + " option(index tag pages)", optimizer.rewrite("explain " + query, "xpath"));
         assertEquals(query, optimizer.rewrite(query, "JCR-SQL2"));
+    }
+
+    @Test
+    public void replacementLoggingIsPerRuleAndEnabledByDefault() throws Exception {
+        writeRules("[" + templateRule("a", "b") + ","
+                + "{\"findRegex\":\"b\",\"replaceRegex\":\"c\",\"log\":false},"
+                + "{\"find\":\"c\",\"replace\":\"d\",\"log\":true},"
+                + templateRule("d", "d") + "," + templateRule("missing", "unreachable") + "]");
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.INFO).create();
+        try {
+            logs.starting();
+            assertEquals("d", optimizer.rewrite("a", "JCR-SQL2-noLiterals"));
+            assertEquals(List.of("Rewriting JCR-SQL2-noLiterals query: a to b",
+                    "Rewriting JCR-SQL2-noLiterals query: c to d"), logs.getLogs());
+        } finally {
+            logs.finished();
+        }
+    }
+
+    @Test
+    public void templateLoggingCanBeDisabledWithoutChangingStopBehavior() throws Exception {
+        writeRules("[{\"find\":\"a\",\"replace\":\"b\",\"log\":false,\"stop\":true},"
+                + rule("b", "unreachable") + "]");
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.INFO).create();
+        try {
+            logs.starting();
+            assertEquals("b", rewrite("a"));
+            assertTrue(logs.getLogs().isEmpty());
+        } finally {
+            logs.finished();
+        }
+    }
+
+    @Test
+    public void missingReplacementLogsMatchesWithoutRewriting() throws Exception {
+        writeRules("[{\"find\":\"a\"},{\"findRegex\":\"a\"}]");
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.INFO).create();
+        try {
+            logs.starting();
+            assertEquals("a", rewrite("a"));
+            assertEquals(List.of("Matched JCR-SQL2 query: a", "Matched JCR-SQL2 query: a"), logs.getLogs());
+            assertEquals("a a", rewrite("a a"));
+            assertEquals(List.of("Matched JCR-SQL2 query: a", "Matched JCR-SQL2 query: a",
+                    "Matched JCR-SQL2 query: a a"), logs.getLogs());
+        } finally {
+            logs.finished();
+        }
+    }
+
+    @Test
+    public void logOnlyRulesSupportStopLanguageAndSilentMatching() throws Exception {
+        writeRules("[{\"find\":\"a\",\"language\":\"xpath\",\"stop\":true},"
+                + "{\"find\":\"missing\",\"stop\":true},"
+                + "{\"find\":\"a\",\"stop\":true,\"log\":false}," + rule("a", "b") + "]");
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.INFO).create();
+        try {
+            logs.starting();
+            assertEquals("a", rewrite("a"));
+            assertTrue(logs.getLogs().isEmpty());
+            writeRules("[{\"findRegex\":\"a\",\"log\":false}," + rule("a", "b") + "]");
+            clock.addAndGet(10_000);
+            assertEquals("b", rewrite("a"));
+            assertEquals(List.of("Rewriting JCR-SQL2 query: a to b"), logs.getLogs());
+        } finally {
+            logs.finished();
+        }
     }
 
     @Test
@@ -261,7 +328,7 @@ public class QueryOptimizerTest {
         writeRules("[" + rule("a", "b") + "]");
         assertEquals("b", rewrite("a"));
         String[] invalid = {
-                "{broken", "{}", "[{}]", "[{\"find\":\"a\"}]", "[{\"replace\":\"b\"}]",
+                "{broken", "{}", "[{}]", "[{\"replace\":\"b\"}]",
                 "[{\"find\":false,\"replace\":\"b\"}]", "[" + rule("[", "b") + "]",
                 "[{\"find\":{},\"replace\":\"b\"}]", "[{\"find\":\"a\",\"replace\":null}]",
                 "[{\"find\":\"a\",\"replace\":[]}]",
@@ -269,12 +336,14 @@ public class QueryOptimizerTest {
                 "[{\"find\":\"a\",\"replace\":\"b\",\"language\":{}}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"unknown\":true}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"unknown\":{}}]",
-                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":null}]",
-                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"unknown\":true}}]",
-                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"unknown\":{}}}]",
-                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":\"true\"}}]",
-                "[{\"find\":\"a\",\"replace\":\"b\",\"options\":{\"stop\":{}}}]",
-                "[{\"findRegex\":\"a\"}]", "[{\"replaceRegex\":\"b\"}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"stop\":\"true\"}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"stop\":{}}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"log\":\"true\"}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"log\":null}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"log\":1}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"log\":{}}]",
+                "[{\"find\":\"a\",\"replace\":\"b\",\"log\":[]}]",
+                "[{\"replaceRegex\":\"b\"}]",
                 "[{\"find\":\"a\",\"replaceRegex\":\"b\"}]",
                 "[{\"findRegex\":\"a\",\"replace\":\"b\"}]",
                 "[{\"find\":\"a\",\"replace\":\"b\",\"findRegex\":\"a\",\"replaceRegex\":\"b\"}]",

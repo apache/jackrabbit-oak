@@ -41,7 +41,7 @@ final class QueryTemplate {
     QueryTemplate(String find, String replace) {
         Map<String, Character> captures = new HashMap<>();
         this.find = Pattern.compile(PREFIX + compile(find, captures, false) + "\\z");
-        this.replace = "$1" + compile(replace, captures, true);
+        this.replace = replace == null ? null : "$1" + compile(replace, captures, true);
     }
 
     private static String compile(String template, Map<String, Character> captures, boolean replacement) {
@@ -127,8 +127,8 @@ final class QueryTemplate {
     }
 
     private static void appendLiteral(StringBuilder result, StringBuilder literal, boolean replacement) {
-        if (literal.length() != 0) {
-            String text = literal.toString();
+        String text = literal.toString();
+        if (!text.isEmpty()) {
             result.append(replacement ? Matcher.quoteReplacement(text) : Pattern.quote(text));
             literal.setLength(0);
         }

@@ -157,11 +157,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
         QueryEngineSettings settings = context.getSettings();
         if (settings.isQueryOptimizerEnabled() && !isInternal) {
-            String rewritten = settings.getQueryOptimizer().rewrite(statement, language);
-            if (!statement.equals(rewritten)) {
-                LOG.info("Rewriting {} query: {} to {}", language, statement, rewritten);
-                statement = rewritten;
-            }
+            statement = settings.getQueryOptimizer().rewrite(statement, language);
         }
         if (statement.length() > (settings.getQueryLengthErrorLimit())){
             LOG.error("Too large query: " + statement);

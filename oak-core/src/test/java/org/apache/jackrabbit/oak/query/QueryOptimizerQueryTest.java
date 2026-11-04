@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -58,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class QueryOptimizerQueryTest {
 
@@ -166,6 +168,42 @@ public class QueryOptimizerQueryTest {
         assertEquals(List.of("/test/b"), paths(result));
         assertTrue(settings.getQueryStats().asJson().contains(SQL2.replace("old", "new")));
         assertFalse(settings.getQueryStats().asJson().contains(SQL2));
+    }
+
+    @Test
+    public void engineDoesNotLogReplacementsSeparately() throws Exception {
+        toggle.setEnabled(true);
+        LogCustomizer optimizerLogs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.INFO).create();
+        LogCustomizer engineLogs = LogCustomizer.forLogger(QueryEngineImpl.class).enable(Level.INFO).create();
+        try {
+            optimizerLogs.starting();
+            engineLogs.starting();
+            assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
+            assertEquals(List.of("Rewriting JCR-SQL2 query: " + SQL2 + " to " + SQL2.replace("old", "new")),
+                    optimizerLogs.getLogs());
+            assertTrue(engineLogs.getLogs().isEmpty());
+            writeRules("[{\"findRegex\":\"old\",\"replaceRegex\":\"new\",\"log\":false}]");
+            assertEquals(List.of("/test/a", "/test/b"), paths(sql2()));
+            assertEquals(1, optimizerLogs.getLogs().size());
+            assertTrue(engineLogs.getLogs().isEmpty());
+        } finally {
+            engineLogs.finished();
+            optimizerLogs.finished();
+        }
+    }
+
+    @Test
+    public void logOnlyRuleLeavesExecutableQueryUnchanged() throws Exception {
+        toggle.setEnabled(true);
+        writeRules("[{\"findRegex\":\"old\"}]");
+        LogCustomizer logs = LogCustomizer.forLogger(QueryOptimizer.class).enable(Level.INFO).create();
+        try {
+            logs.starting();
+            assertEquals(List.of(), paths(sql2()));
+            assertEquals(List.of("Matched JCR-SQL2 query: " + SQL2), logs.getLogs());
+        } finally {
+            logs.finished();
+        }
     }
 
     @Test
