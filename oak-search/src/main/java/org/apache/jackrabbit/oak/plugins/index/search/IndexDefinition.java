@@ -1173,14 +1173,38 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
         /**
          * Returns <code>true</code> if the property with the given name is
-         * indexed according to this rule.
+         * indexed according to this rule. A property is considered indexed if it
+         * has a property definition in this rule or if it is referenced by a
+         * function of this rule.
          *
          * @param propertyName the name of a property.
          * @return <code>true</code> if the property is indexed;
          * <code>false</code> otherwise.
          */
         public boolean isIndexed(String propertyName) {
-            return getConfig(propertyName) != null;
+            return getConfig(propertyName) != null || isFunctionIndexed(propertyName);
+        }
+
+        /**
+         * Returns <code>true</code> if the property with the given name is referenced by a
+         * function of this rule and therefore participates in function-based indexing.
+         *
+         * @param propertyName the name of a property.
+         * @return <code>true</code> if the property is referenced by a function;
+         * <code>false</code> otherwise.
+         */
+        public boolean isFunctionIndexed(String propertyName) {
+            if (functionRestrictions.isEmpty()) {
+                return false;
+            }
+            for (PropertyDefinition pd : functionRestrictions) {
+                for (String referencedProperty : FunctionIndexProcessor.getProperties(pd.functionCode)) {
+                    if (referencedProperty.equals(propertyName)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
 
