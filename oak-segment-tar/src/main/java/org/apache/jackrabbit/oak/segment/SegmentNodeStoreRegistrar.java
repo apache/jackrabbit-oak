@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
 import org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.file.tar.TarReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.CachingPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
@@ -277,6 +278,11 @@ class SegmentNodeStoreRegistrar {
             return null;
         }
         registerCloseable(store);
+
+        registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
+                new FeatureToggle(TarReader.FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422,
+                        TarReader.FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422_ENABLED),
+                Collections.emptyMap()));
 
         // OAK-12214: bug-fix toggle (default on) so L2 eviction policy sees L1 memoised hits
         registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
