@@ -31,6 +31,8 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
+    <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+    <logback.version>${logback.runtime.version}</logback.version>
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:

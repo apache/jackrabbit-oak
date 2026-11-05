@@ -30,6 +30,11 @@
     <artifactId>oak-run-commons</artifactId>
     <name>Oak Commons for Runnable modules</name>
 
+    <properties>
+        <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+        <logback.version>${logback.runtime.version}</logback.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
