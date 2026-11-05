@@ -50,6 +50,8 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     @Override
     protected ModifiableCompositeOption baseConfiguration() {
+        SlingOptions.versionResolver.setVersion("org.apache.aries.spifly",
+                "org.apache.aries.spifly.dynamic.framework.extension", "1.3.8");
         String bundlePath = System.getProperty("bundle.filename");
         if (bundlePath == null) {
             throw new IllegalArgumentException("This IT has to be called with system property 'bundle.filename' set to the path of this bundle jar");
