@@ -130,7 +130,7 @@ final class DocFieldProcessor extends DocConsumer {
       }
     }
     
-    // If any errors occured, throw it.
+    // If any errors occurred, throw it.
     if (th != null) {
       if (th instanceof RuntimeException) throw (RuntimeException) th;
       if (th instanceof Error) throw (Error) th;
