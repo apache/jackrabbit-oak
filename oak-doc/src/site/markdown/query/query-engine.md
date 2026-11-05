@@ -235,7 +235,8 @@ The query will only consider the indexes that contain the specified tag (that is
 Each query supports one tag only.
 If a query doesn't explicitly uses this option, then all indexes are considered
 (including indexes with tags and indexes without tags).
-The tag name may only contain the characters `a-z, A-Z, 0-9, _`.
+The tag name may only contain the characters `a-z, A-Z, 0-9, _, -, .`.
+In SQL-2, a tag name that contains `-` or `.` must be enclosed in square brackets, for example `option(index tag [my-tag])`.
 
 Limitations:
 
