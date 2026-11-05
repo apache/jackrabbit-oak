@@ -59,7 +59,7 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.util
             </Export-Package>
             <Import-Package>
-              <!-- Embedded Commons Logging uses LocationAwareLogger in both SLF4J generations. -->
+              <!-- Embedding regenerates imports; preserve Commons Logging's declared SPI range. -->
               org.slf4j.spi;version="[1.7,3)",
               !com.ibm.*, <!-- see OAK-11076 -->
               !org.apache.derby.*, <!-- see OAK-11076 -->

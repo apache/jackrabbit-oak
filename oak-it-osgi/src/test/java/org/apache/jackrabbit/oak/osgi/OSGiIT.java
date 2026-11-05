@@ -53,6 +53,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.ThrowableProxy;
 import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -60,6 +61,7 @@ import org.junit.Test;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
+import org.ops4j.pax.exam.Constants;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
@@ -115,6 +117,8 @@ public class OSGiIT {
 
                 // required for slf4j 2.0.x
                 spyflyOptions(),
+                // Keep provider discovery inside OSGi rather than Maven's test classpath.
+                frameworkProperty("felix.bootdelegation.implicit").value("false"),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
@@ -133,6 +137,7 @@ public class OSGiIT {
             mavenBundle("org.ow2.asm", "asm-commons", "9.10.1"),
             mavenBundle("org.ow2.asm", "asm-util", "9.10.1"),
             mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.8")
+                    .startLevel(1)
         );
     }
 
@@ -163,9 +168,12 @@ public class OSGiIT {
 
     static Option jarBundles() throws MalformedURLException {
         DefaultCompositeOption composite = new DefaultCompositeOption();
+        List<String> loggingBundles = List.of("slf4j-api.jar", "logback-core.jar", "logback-classic.jar");
         for (File bundle : new File("target", "test-bundles").listFiles()) {
             if (bundle.getName().endsWith(".jar") && bundle.isFile()) {
-                composite.add(bundle(bundle.toURI().toURL().toString()));
+                // Make the provider available before framework services initialize SLF4J.
+                composite.add(bundle(bundle.toURI().toURL().toString()).startLevel(
+                        loggingBundles.contains(bundle.getName()) ? 1 : Constants.START_LEVEL_DEFAULT_PROVISION));
             }
         }
         return composite;
@@ -268,7 +276,7 @@ public class OSGiIT {
     }
 
     /**
-     * Verifies message delivery through the embedded dependencies' shared SPI and Level APIs.
+     * Verifies the embedded Commons Logging bridge and AWS logging against the selected runtime.
      */
     @Test
     public void embeddedSlf4jLogging() throws Exception {
@@ -279,12 +287,23 @@ public class OSGiIT {
                 .filter(bundle -> "slf4j.api".equals(bundle.getSymbolicName()))
                 .findFirst().orElseThrow(() -> new IllegalStateException("SLF4J API bundle is missing"));
         String loggerName = OSGiIT.class.getName() + ".embedded";
-        Path sdkJar = Files.createTempFile("oak-slf4j-sdk-", ".jar");
-        LoggerContext loggerContext = new LoggerContext();
+        LoggerContext loggerContext = (LoggerContext) api.loadClass("org.slf4j.LoggerFactory")
+                .getMethod("getILoggerFactory").invoke(null);
         Logger logger = loggerContext.getLogger(loggerName);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        Path sdkJar = Files.createTempFile("oak-slf4j-sdk-", ".jar");
+        Level previousLevel = logger.getLevel();
+        boolean previousAdditive = logger.isAdditive();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>() {
+            @Override
+            protected void append(ILoggingEvent event) {
+                // Capture caller data while the logging call is still on the stack.
+                event.getCallerData();
+                super.append(event);
+            }
+        };
         appender.start();
         logger.addAppender(appender);
+        logger.setAdditive(false);
         logger.setLevel(Level.TRACE);
         try (JarFile cloud = new JarFile("target/test-bundles/cloud/oak-blob-cloud.jar")) {
             JarEntry utils = cloud.stream()
@@ -294,12 +313,13 @@ public class OSGiIT {
             try (InputStream input = cloud.getInputStream(utils)) {
                 Files.copy(input, sdkJar, StandardCopyOption.REPLACE_EXISTING);
             }
-            Class<?> adapterClass = elastic.loadClass(
-                    "org.apache.commons.logging.impl.Slf4jLogFactory$Slf4jLocationAwareLog");
-            Constructor<?> adapterConstructor = adapterClass.getDeclaredConstructor(
-                    api.loadClass("org.slf4j.spi.LocationAwareLogger"));
-            adapterConstructor.setAccessible(true);
-            Object commonsLog = adapterConstructor.newInstance(logger);
+            Assert.assertSame(api.loadClass("org.slf4j.LoggerFactory"),
+                    elastic.loadClass("org.slf4j.LoggerFactory"));
+            Class<?> logFactoryClass = elastic.loadClass("org.apache.commons.logging.LogFactory");
+            Object commonsFactory = logFactoryClass.getMethod("getFactory").invoke(null);
+            Assert.assertEquals("org.apache.commons.logging.impl.Slf4jLogFactory",
+                    commonsFactory.getClass().getName());
+            Object commonsLog = logFactoryClass.getMethod("getLog", String.class).invoke(null, loggerName);
             Class<?> logClass = elastic.loadClass("org.apache.commons.logging.Log");
             Class<?> levelClass = api.loadClass("org.slf4j.event.Level");
             ClassLoader loggingLoader = new ClassLoader(null) {
@@ -319,8 +339,11 @@ public class OSGiIT {
                 Object sdkLog = sdkConstructor.newInstance(logger);
                 Assert.assertSame(logger, sdkClass.getMethod("logger").invoke(sdkLog));
                 for (String level : List.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR")) {
+                    String method = level.toLowerCase(Locale.ROOT);
+                    String enabledMethod = "is" + level.charAt(0) + method.substring(1) + "Enabled";
                     appender.list.clear();
-                    logClass.getMethod(level.toLowerCase(Locale.ROOT), Object.class)
+                    Assert.assertEquals(true, logClass.getMethod(enabledMethod).invoke(commonsLog));
+                    logClass.getMethod(method, Object.class)
                             .invoke(commonsLog, "commons-" + level);
                     Object sdkLevel = levelClass.getField(level).get(null);
                     Assert.assertEquals(true, sdkClass.getMethod("isLoggingLevelEnabled", levelClass)
@@ -333,12 +356,37 @@ public class OSGiIT {
                     for (ILoggingEvent event : appender.list) {
                         Assert.assertEquals(Level.toLevel(level), event.getLevel());
                     }
+                    StackTraceElement caller = Arrays.stream(appender.list.get(0).getCallerData())
+                            .filter(frame -> !frame.getClassName().startsWith("java.lang.reflect.")
+                                    && !frame.getClassName().startsWith("jdk.internal.reflect."))
+                            .findFirst().orElseThrow(() -> new AssertionError("Missing bridge caller data"));
+                    Assert.assertEquals(OSGiIT.class.getName(), caller.getClassName());
+                    Assert.assertEquals("embeddedSlf4jLogging", caller.getMethodName());
+
+                    Throwable failure = new IllegalStateException("commons-failure-" + level);
+                    logClass.getMethod(method, Object.class, Throwable.class)
+                            .invoke(commonsLog, "commons-failure-" + level, failure);
+                    Assert.assertEquals(3, appender.list.size());
+                    ILoggingEvent event = appender.list.get(2);
+                    Assert.assertEquals("commons-failure-" + level, event.getFormattedMessage());
+                    Assert.assertEquals(Level.toLevel(level), event.getLevel());
+                    Assert.assertSame(failure, ((ThrowableProxy) event.getThrowableProxy()).getThrowable());
+
+                    logger.setLevel(Level.OFF);
+                    appender.list.clear();
+                    Assert.assertEquals(false, logClass.getMethod(enabledMethod).invoke(commonsLog));
+                    logClass.getMethod(method, Object.class).invoke(commonsLog, "suppressed");
+                    logClass.getMethod(method, Object.class, Throwable.class)
+                            .invoke(commonsLog, "suppressed", failure);
+                    Assert.assertTrue(appender.list.isEmpty());
+                    logger.setLevel(Level.TRACE);
                 }
             }
         } finally {
             logger.detachAppender(appender);
+            logger.setLevel(previousLevel);
+            logger.setAdditive(previousAdditive);
             appender.stop();
-            loggerContext.stop();
             Files.delete(sdkJar);
         }
     }
