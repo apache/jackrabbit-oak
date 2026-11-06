@@ -194,6 +194,10 @@ public class AstElementFactory {
         return new UpperCaseImpl(operand);
     }
 
+    public NormalizeImpl normalize(DynamicOperandImpl operand) {
+        return new NormalizeImpl(operand);
+    }
+
     public ConstraintImpl in(DynamicOperandImpl left,
             ArrayList<StaticOperandImpl> list) {
         return new InImpl(left, list);

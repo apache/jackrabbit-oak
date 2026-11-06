@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.util.AsciiNormalizer;
 import org.apache.jackrabbit.oak.spi.query.FunctionIndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -221,6 +222,9 @@ public class FunctionIndexProcessor {
                 String s = ps.getValue(Type.STRING, i);
                 x = s.toUpperCase();
                 type = Type.STRING;
+            } else if ("normalize".equals(functionName)) {
+                x = AsciiNormalizer.normalize(ps.getValue(Type.STRING, i));
+                type = Type.STRING;
             } else if ("coalesce".equals(functionName)) {
                 x = ps.getValue(Type.STRING, i);
                 type = Type.STRING;
@@ -314,6 +318,9 @@ public class FunctionIndexProcessor {
         }
         if (match("fn:lower-case(") || match("lower(")) {
             return "lower*" + parse() + read(")");
+        }
+        if (match("rep:normalize(") || match("normalize(")) {
+            return "normalize*" + parse() + read(")");
         }
         if (match("fn:coalesce(") || match("coalesce(")) {
             return "coalesce*" + parse() + readCommaAndWhitespace() + parse() + read(")");

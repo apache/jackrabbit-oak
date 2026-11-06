@@ -752,6 +752,8 @@ public class SQL2Parser {
             op = factory.lowerCase(parseDynamicOperand());
         } else if ("UPPER".equalsIgnoreCase(functionName)) {
             op = factory.upperCase(parseDynamicOperand());
+        } else if ("NORMALIZE".equalsIgnoreCase(functionName)) {
+            op = factory.normalize(parseDynamicOperand());
         } else if ("PROPERTY".equalsIgnoreCase(functionName)) {
             PropertyValueImpl pv = parsePropertyValue(readName());
             read(",");
@@ -776,7 +778,7 @@ public class SQL2Parser {
             DynamicOperandImpl b = parseDynamicOperand();
             op = factory.op(a, operator, b);
         } else {
-            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, PROPERTY, IF, or EXISTS");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, NORMALIZE, PROPERTY, IF, or EXISTS");
         }
         read(")");
         return op;

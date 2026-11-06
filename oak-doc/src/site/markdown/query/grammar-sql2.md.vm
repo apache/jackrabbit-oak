@@ -257,6 +257,9 @@ Example: the condition `property(*, Reference) = $uuid` will search for any prop
 
 "lower", "upper", "length": Indexes on functions are supported `@since Oak 1.6`, see OAK-3574.
 
+"normalize": Applies ASCII folding and lower casing,
+for example `Straße` becomes `strasse` and `Éléphant` becomes `elephant`. Function indexes are supported.
+
 "first", "path": Supported `@since Oak 1.42`, see OAK-9625.
 
 "if", "exists": Supported `@since Oak 2.7`. `if(condition, trueValue, falseValue)`
