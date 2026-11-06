@@ -93,19 +93,17 @@ public class OSGiIT {
     }
 
     /**
-     * Provides Apache Aries SPI Fly 1.3.x for SLF4J 2.x service-loader mediation in OSGi.
-     * SPI Fly 1.2.x (bundled by sling.testing.paxexam 3.1.0) embeds ASM 5.x and cannot
-     * weave Java 11+ bytecode. Version 1.3.7 uses external ASM 9.x and supports modern class files.
+     * Provides service-loader mediation with ASM support for Java 25 class files.
      */
     static Option spyflyOptions() {
         return composite(
             mavenBundle("org.apache.aries", "org.apache.aries.util", "1.1.3"),
-            mavenBundle("org.ow2.asm", "asm", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-tree", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-analysis", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-commons", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-util", "9.7.1"),
-            mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.7")
+            mavenBundle("org.ow2.asm", "asm", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-tree", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-analysis", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-commons", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-util", "9.10.1"),
+            mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.8")
         );
     }
 

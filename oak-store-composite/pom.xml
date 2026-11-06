@@ -31,11 +31,6 @@
   <name>Oak Composite Store</name>
   <packaging>bundle</packaging>
 
-  <properties>
-    <!-- see https://issues.apache.org/jira/browse/OAK-12022 -->
-    <pax-exam.version>4.13.1</pax-exam.version>
-  </properties>
-
   <build>
     <plugins>
       <plugin>
