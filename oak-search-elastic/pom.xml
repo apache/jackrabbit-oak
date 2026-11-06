@@ -33,6 +33,11 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.34</minimum.line.coverage>
+    <minimum.branch.coverage>0.23</minimum.branch.coverage>
+
     <elasticsearch.java.client.version>9.5.4</elasticsearch.java.client.version>
     <!--
       Since ES 9.x the Lucene version is 10.x, but this would require a minimum of Java 21.
