@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class MemoryPersistentCache extends AbstractPersistentCache {
 
-    private final Map<String, Buffer> segments = new ConcurrentHashMap<>();
+    private final Map<String, ByteBuffer> segments = new ConcurrentHashMap<>();
 
     private boolean throwException = false;
 
@@ -43,7 +43,7 @@ class MemoryPersistentCache extends AbstractPersistentCache {
     }
 
     @Override
-    protected Buffer readSegmentInternal(long msb, long lsb) {
+    protected ByteBuffer readSegmentInternal(long msb, long lsb) {
         return segments.get(String.valueOf(msb) + lsb);
     }
 
@@ -53,12 +53,12 @@ class MemoryPersistentCache extends AbstractPersistentCache {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, Buffer buffer) {
+    public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
         segments.put(String.valueOf(msb) + lsb, buffer);
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) throws RepositoryNotReachableException {
+    public ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader) throws RepositoryNotReachableException {
         return super.readSegment(msb, lsb, () -> {
             if (throwException) {
                 throw new RepositoryNotReachableException(null);

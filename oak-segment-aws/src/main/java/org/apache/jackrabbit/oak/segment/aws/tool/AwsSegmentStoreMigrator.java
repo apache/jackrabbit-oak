@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.aws.tool;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeDescription;
 
+import java.nio.ByteBuffer;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +35,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
@@ -205,7 +205,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
     }
 
     private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
-        Buffer binaryReferences = reader.getBinaryReferences();
+        ByteBuffer binaryReferences = reader.getBinaryReferences();
         if (binaryReferences != null) {
             byte[] array = fetchByteArray(binaryReferences);
             writer.writeBinaryReferences(array);
@@ -264,7 +264,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
 
         private final SegmentArchiveEntry entry;
 
-        private volatile Buffer data;
+        private volatile ByteBuffer data;
 
         private Segment(SegmentArchiveEntry entry) {
             this.entry = entry;

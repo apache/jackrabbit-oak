@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -26,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -47,7 +47,7 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
 
     @Override
     @Nullable
-    public Buffer readSegment(long msb, long lsb) throws IOException {
+    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
         if (delegate.containsSegment(msb, lsb)) {
             return persistentCache.readSegment(msb, lsb, () -> delegate.readSegment(msb, lsb));
         } else {
@@ -77,7 +77,7 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
 
     @Override
     @Nullable
-    public Buffer getBinaryReferences() throws IOException {
+    public ByteBuffer getBinaryReferences() throws IOException {
         return delegate.getBinaryReferences();
     }
 

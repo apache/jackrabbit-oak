@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 
 /**
@@ -130,7 +130,7 @@ public class BinaryReferencesIndexWriter {
             }
         }
 
-        Buffer buffer = Buffer.allocate(binaryReferenceSize);
+        ByteBuffer buffer = ByteBuffer.allocate(binaryReferenceSize);
 
         for (Entry<Generation, Map<UUID, Set<String>>> be : entries.entrySet()) {
             Generation generation = be.getKey();

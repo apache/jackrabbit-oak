@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 @Internal
-@Version("2.1.1")
+@Version("3.0.0")
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;

@@ -22,7 +22,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -422,10 +422,10 @@ public class SegmentPreloaderTest {
 
     private static class MemoryTestCache implements PersistentCache {
 
-        Map<Long, Buffer> segments = new ConcurrentHashMap<>();
+        Map<Long, ByteBuffer> segments = new ConcurrentHashMap<>();
 
         @Override
-        public @Nullable Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
+        public @Nullable ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader) {
             return segments.computeIfAbsent(lsb, i -> {
                 try {
                     return loader.call();
@@ -441,7 +441,7 @@ public class SegmentPreloaderTest {
         }
 
         @Override
-        public void writeSegment(long msb, long lsb, Buffer buffer) {
+        public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
             segments.put(lsb, buffer);
         }
 

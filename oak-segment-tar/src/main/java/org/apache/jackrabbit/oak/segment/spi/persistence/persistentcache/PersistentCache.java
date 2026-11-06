@@ -18,10 +18,10 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.Callable;
 
 /**
@@ -40,7 +40,7 @@ public interface PersistentCache {
      * @return byte buffer containing the segment data or null if the segment doesn't exist
      */
     @Nullable
-    Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader);
+    ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader);
 
     /**
      * Check if the segment exists in the cache.
@@ -58,7 +58,7 @@ public interface PersistentCache {
      * @param lsb the least significant bits of the identifier of the segment
      * @param buffer the byte buffer containing the segment data
      */
-    void writeSegment(long msb, long lsb, Buffer buffer);
+    void writeSegment(long msb, long lsb, ByteBuffer buffer);
 
     /**
      * Purges the cache entries according to the implementation policy (e.g. maximum
