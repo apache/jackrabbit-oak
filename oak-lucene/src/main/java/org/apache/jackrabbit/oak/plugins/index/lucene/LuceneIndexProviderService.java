@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -133,6 +134,10 @@ public class LuceneIndexProviderService {
     // OAK-12173: bug fix, enabled by default - turn off only if synchronous
     // tracker seeding at startup causes a problem in some deployment.
     public static final AtomicBoolean FT_OAK_12173 = new AtomicBoolean(true);
+
+    // OAK-12469: bug fix, enabled by default - unregister services in reverse
+    // order, so the QueryIndexProvider goes after the IndexEditorProvider.
+    public static final AtomicBoolean FT_OAK_12469 = new AtomicBoolean(true);
 
     @ObjectClassDefinition(
             id = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
@@ -414,6 +419,9 @@ public class LuceneIndexProviderService {
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle("FT_OAK-12173", FT_OAK_12173),
                 emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle("FT_OAK-12469", FT_OAK_12469),
+                emptyMap()));
         if (FT_OAK_12173.get()) {
             // OAK-12173: update the tracker now, so indexes built before this
             // service started can be used right away. Without this, we'd have
@@ -457,6 +465,13 @@ public class LuceneIndexProviderService {
 
     @Deactivate
     private void deactivate() throws InterruptedException, IOException {
+        if (FT_OAK_12469.get()) {
+            // OAK-12469: the repository depends on the IndexEditorProvider (registered last),
+            // so unregistering it first stops the repository while queries can still use the
+            // QueryIndexProvider (registered first). In registration order, queries traverse.
+            Collections.reverse(regs);
+            Collections.reverse(oakRegs);
+        }
         for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
