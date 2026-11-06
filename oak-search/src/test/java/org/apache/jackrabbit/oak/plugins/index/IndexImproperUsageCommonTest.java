@@ -127,8 +127,9 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
             // List appender should not have any warn logs as we are searching under right descendant as per path restrictions
             assertFalse(isWarnMessagePresent(listAppender, PATH_RESTRICTION_WARN_MESSAGE));
             assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
-            // List appender now will have warn log as we are searching under root(/) but index definition have exclude path restriction.
-            assertTrue(isWarnMessagePresent(listAppender, PATH_RESTRICTION_WARN_MESSAGE));
+            // OAK-11628: excludedPaths are ignored by the (lenient) path filter check, so a query at
+            // the root no longer produces a path restriction warning for an exclude-only definition.
+            assertFalse(isWarnMessagePresent(listAppender, PATH_RESTRICTION_WARN_MESSAGE));
         });
     }
 
