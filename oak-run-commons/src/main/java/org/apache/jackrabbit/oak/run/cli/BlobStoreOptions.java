@@ -36,6 +36,7 @@ public class BlobStoreOptions implements OptionsBean {
     private final OptionSpec<String> fdsPathOption;
     private final OptionSpec<String> fakeDsPathOption;
     private final OptionSpec<Void> readWriteOption;
+    private final OptionSpec<Void> strictConfigCheckOption;
 
     private OptionSet options;
 
@@ -54,7 +55,9 @@ public class BlobStoreOptions implements OptionsBean {
         readWriteOption = parser.accepts("ds-read-write",
             "Connect to datastore in read-write mode. Use this option if only the datastore has to be opened "
                 + " in read-write mode and not the node store (i.e. --read-write not to be specified)");
-    }
+        strictConfigCheckOption = parser.accepts("strict-config-check",
+            "Fail on unknown properties in --fds config file instead of ignoring them with a warning. Disabled by default.");
+        }
 
     @Override
     public void configure(OptionSet options) {
@@ -118,5 +121,9 @@ public class BlobStoreOptions implements OptionsBean {
 
     public boolean isReadWrite(){
         return options.has(readWriteOption);
+    }
+
+    public boolean isStrictConfigCheck(){
+        return options.has(strictConfigCheckOption);
     }
 }

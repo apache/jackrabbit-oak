@@ -97,7 +97,7 @@ public class BlobStoreFixtureProvider {
             } else {
                 String cfgPath = bsopts.getFDSConfigPath();
                 Properties props = loadAndTransformProps(cfgPath);
-                populate(delegate, asMap(props), true);
+                populate(delegate, asMap(props), bsopts.isStrictConfigCheck());
             }
             delegate.init(null);
         }
