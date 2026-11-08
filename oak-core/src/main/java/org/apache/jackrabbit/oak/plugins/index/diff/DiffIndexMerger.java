@@ -22,7 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -493,7 +493,7 @@ public class DiffIndexMerger {
         }
         JsonObject result = JsonObject.fromJson(a.toString(), true);
         result.getProperties().putAll(b.getProperties());
-        HashSet<String> both = new HashSet<>(a.getChildren().keySet());
+        LinkedHashSet<String> both = new LinkedHashSet<>(a.getChildren().keySet());
         both.addAll(b.getChildren().keySet());
         for (String k : both) {
             result.getChildren().put(k, mergeDiffs(a.getChildren().get(k), b.getChildren().get(k)));
@@ -1006,7 +1006,7 @@ public class DiffIndexMerger {
                 }
                 if (targetChildName.equals(c)) {
                     // only create the child (properties are added below)
-                    target.getChildren().put(c, new JsonObject());
+                    target.getChildren().put(c, new JsonObject(true));
                 }
             } else {
                 childIsNew = false;

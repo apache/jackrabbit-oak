@@ -84,6 +84,53 @@ public class OptionIndexTagTests extends AbstractQueryTest {
     }
 
     @Test
+    public void optionIndexTagWithHyphen() throws Exception {
+        // disable the counter index, so that traversal is normally not used
+        // (only used if there is no index)
+        Tree index = root.getTree("/oak:index/counter");
+        index.remove();
+        index = root.getTree("/oak:index/uuid");
+        index.setProperty("tags", "semantic-pages");
+        root.commit();
+        String statement, result;
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag [semantic-pages])";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag \"semantic-pages\")";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+        statement = "explain /jcr:root//element(*, mix:versionable)[@jcr:uuid = 1] option(index tag semantic-pages)";
+        result = executeQuery(statement, Query.XPATH, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag [semantic-other])";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* traverse"));
+    }
+
+    @Test
+    public void optionIndexTagWithDot() throws Exception {
+        // disable the counter index, so that traversal is normally not used
+        // (only used if there is no index)
+        Tree index = root.getTree("/oak:index/counter");
+        index.remove();
+        index = root.getTree("/oak:index/uuid");
+        index.setProperty("tags", "semantic.pages");
+        root.commit();
+        String statement, result;
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag [semantic.pages])";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+        statement = "explain /jcr:root//element(*, mix:versionable)[@jcr:uuid = 1] option(index tag semantic.pages)";
+        result = executeQuery(statement, Query.XPATH, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag [semantic.other])";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* traverse"));
+    }
+
+    @Test
     public void optionIndexName() throws Exception {
         // disable the counter index, so that traversal is never used
         Tree index = root.getTree("/oak:index/counter");

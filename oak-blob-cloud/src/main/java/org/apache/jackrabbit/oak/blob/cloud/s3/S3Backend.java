@@ -287,25 +287,43 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     void setBinaryTransferAccelerationEnabled(final boolean enabled) {
-        closePresignClient();
-        if (!enabled) {
-            s3PresignClient = s3Client;
-            s3PresignService = Utils.createPresigner(s3Client, properties, false);
-            return;
+        boolean accelerated = false;
+        if (enabled) {
+            GetBucketAccelerateConfigurationResponse accelerateConfig = s3Client.getBucketAccelerateConfiguration(
+                    b -> b.bucket(bucket).build());
+            accelerated = Objects.equals(BucketAccelerateStatus.ENABLED, accelerateConfig.status());
+            if (!accelerated) {
+                LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URIs. To enable set {}",
+                        bucket, S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
+            }
         }
 
-        GetBucketAccelerateConfigurationResponse accelerateConfig = s3Client.getBucketAccelerateConfiguration(
-                b -> b.bucket(bucket).build());
+        S3Client replacementClient = accelerated ? Utils.openService(properties, true) : s3Client;
+        S3Presigner replacementPresigner;
+        try {
+            replacementPresigner = Utils.createPresigner(replacementClient, properties, accelerated);
+        } catch (RuntimeException failure) {
+            if (replacementClient != s3Client) {
+                replacementClient.close();
+            }
+            throw failure;
+        }
 
-        if (Objects.equals(BucketAccelerateStatus.ENABLED, accelerateConfig.status())) {
-            s3PresignClient = Utils.openService(properties, true);
-            s3PresignService = Utils.createPresigner(s3PresignClient, properties, true);
+        S3Presigner previousPresigner = s3PresignService;
+        S3Client previousClient = s3PresignClient;
+        s3PresignService = replacementPresigner;
+        s3PresignClient = replacementClient;
+        try {
+            if (previousPresigner != null) {
+                previousPresigner.close();
+            }
+        } finally {
+            if (previousClient != null && previousClient != s3Client) {
+                previousClient.close();
+            }
+        }
+        if (accelerated) {
             LOG.info("S3 Transfer Acceleration enabled for presigned URIs.");
-        } else {
-            LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URIs. To enable set {}",
-                    bucket, S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
-            s3PresignClient = s3Client;
-            s3PresignService = Utils.createPresigner(s3Client, properties, false);
         }
     }
 

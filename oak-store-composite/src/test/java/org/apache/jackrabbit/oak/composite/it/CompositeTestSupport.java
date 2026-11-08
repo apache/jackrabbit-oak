@@ -50,6 +50,8 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     @Override
     protected ModifiableCompositeOption baseConfiguration() {
+        SlingOptions.versionResolver.setVersion("org.apache.aries.spifly",
+                "org.apache.aries.spifly.dynamic.framework.extension", "1.3.8");
         String bundlePath = System.getProperty("bundle.filename");
         if (bundlePath == null) {
             throw new IllegalArgumentException("This IT has to be called with system property 'bundle.filename' set to the path of this bundle jar");
@@ -107,7 +109,7 @@ public abstract class CompositeTestSupport extends TestSupport {
     protected static Option logging(String level) {
         return composite(
             mavenBundle("org.ops4j.pax.logging", "pax-logging-api", "1.11.13"),
-            SlingOptions.spyfly(),
+            SlingOptions.spifly(),
             mavenBundle("org.slf4j", "slf4j-api", "2.0.12"),
             mavenBundle("org.slf4j", "slf4j-simple", "2.0.12"),
             systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value(level),

@@ -76,7 +76,7 @@ import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -416,7 +416,7 @@ public final class DocumentNodeStore
      * Key: PathRev, value: DocumentNodeState
      */
     private final Cache<PathRev, DocumentNodeState> nodeCache;
-    private final AbstractCacheStats nodeCacheStats;
+    private final CacheStats nodeCacheStats;
 
     /**
      * Child node cache.
@@ -424,7 +424,7 @@ public final class DocumentNodeStore
      * Key: PathRev, value: Children
      */
     private final Cache<NamePathRev, DocumentNodeState.Children> nodeChildrenCache;
-    private final AbstractCacheStats nodeChildrenCacheStats;
+    private final CacheStats nodeChildrenCacheStats;
 
     /**
      * The change log to keep track of commits for diff operations.
@@ -1279,16 +1279,16 @@ public final class DocumentNodeStore
         return clusterNodeInfo;
     }
 
-    public AbstractCacheStats getNodeCacheStats() {
+    public CacheStats getNodeCacheStats() {
         return nodeCacheStats;
     }
 
-    public AbstractCacheStats getNodeChildrenCacheStats() {
+    public CacheStats getNodeChildrenCacheStats() {
         return nodeChildrenCacheStats;
     }
 
     @NotNull
-    public Iterable<AbstractCacheStats> getDiffCacheStats() {
+    public Iterable<CacheStats> getDiffCacheStats() {
         return diffCache.getStats();
     }
 

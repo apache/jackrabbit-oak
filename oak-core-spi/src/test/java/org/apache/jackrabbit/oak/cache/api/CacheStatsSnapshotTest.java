@@ -92,6 +92,29 @@ public class CacheStatsSnapshotTest {
         Assert.assertEquals(0, delta.evictionCount());
     }
 
+    /** Verifies that {@code plus()} produces the correct per-field sum of two snapshots. */
+    @Test
+    public void plusProducesSum() {
+        CacheStatsSnapshot first  = stats(6,  3, 2, 0,  400, 1);
+        CacheStatsSnapshot second = stats(4,  2, 2, 1,  600, 2);
+        CacheStatsSnapshot sum    = first.plus(second);
+
+        Assert.assertEquals(10,   sum.hitCount());
+        Assert.assertEquals(5,    sum.missCount());
+        Assert.assertEquals(4,    sum.loadSuccessCount());
+        Assert.assertEquals(1,    sum.loadFailureCount());
+        Assert.assertEquals(1000, sum.totalLoadTime());
+        Assert.assertEquals(3,    sum.evictionCount());
+    }
+
+    /** Verifies that {@code plus()} throws when the sum of a field overflows a {@code long}. */
+    @Test(expected = ArithmeticException.class)
+    public void plusThrowsOnOverflow() {
+        CacheStatsSnapshot first  = stats(Long.MAX_VALUE, 0, 0, 0, 0, 0);
+        CacheStatsSnapshot second = stats(1, 0, 0, 0, 0, 0);
+        first.plus(second);
+    }
+
     /** Verifies that all record accessors return the values supplied to the canonical constructor. */
     @Test
     public void accessorsReturnConstructorValues() {

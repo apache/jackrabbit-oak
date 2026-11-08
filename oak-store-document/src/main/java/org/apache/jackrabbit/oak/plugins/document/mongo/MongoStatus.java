@@ -72,8 +72,9 @@ public class MongoStatus implements ServerMonitorListener {
     }
 
     public void checkVersion() {
-        if (!isVersion(2, 6)) {
-            String msg = "MongoDB version 2.6.0 or higher required. " +
+        // Match the oldest supported driver; newer drivers enforce their own minimum.
+        if (!isVersion(4, 0)) {
+            String msg = "MongoDB version 4.0.0 or higher required. " +
                     "Currently connected to a MongoDB with version: " + version;
             throw new RuntimeException(msg);
         }

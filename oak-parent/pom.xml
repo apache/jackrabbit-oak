@@ -55,10 +55,9 @@
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
     <mongo.url />
-    <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <mongo.driver.version>5.4.0</mongo.driver.version>
+    <mongo.driver.version>5.5.2</mongo.driver.version>
     <slf4j.api.version>2.0.20</slf4j.api.version>
     <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.6.4</logback.version>
@@ -66,14 +65,14 @@
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
     <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
-    <jackson.version>2.21.7</jackson.version>
+    <jackson.version>2.21.8</jackson.version>
     <jackson.annotations.version>2.21</jackson.annotations.version> <!-- not necessarily aligned with other jackson modules -->
     <testcontainers.version>2.0.5</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>4.0.33</groovy.version>
     <netty.version>4.1.139.Final</netty.version>
-    <aws.sdk.version>2.37.5</aws.sdk.version>
+    <aws.sdk.version>2.38.9</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>17</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -590,7 +589,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.23.0</version>
+        <version>5.24.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -677,7 +676,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.22.1</version>
+        <version>1.23.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -762,7 +761,7 @@
       <dependency>
         <groupId>at.yawk.lz4</groupId>
         <artifactId>lz4-java</artifactId>
-        <version>1.11.2</version>
+        <version>1.11.4</version>
       </dependency>
       <!-- Testcontainers dependency -->
       <dependency>
@@ -875,7 +874,7 @@
       <dependency>
         <groupId>org.apache.sling</groupId>
         <artifactId>org.apache.sling.testing.paxexam</artifactId>
-        <version>3.1.0</version>
+        <version>4.1.2</version>
         <scope>test</scope>
       </dependency>
       <dependency>

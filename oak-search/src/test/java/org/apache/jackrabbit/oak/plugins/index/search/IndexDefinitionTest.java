@@ -898,6 +898,37 @@ public class IndexDefinitionTest {
         assertTrue(defn.hasSyncPropertyDefinitions());
     }
 
+    @Test
+    public void functionIndexReferencedPropertyIsIndexed() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").function("lower([foo])");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        IndexingRule rule = defn.getApplicableIndexingRule("nt:base");
+
+        assertNotNull(rule);
+        assertTrue("Property referenced by function is indexed", rule.isIndexed("foo"));
+        assertTrue("Property referenced by function is flagged as function-indexed", rule.isFunctionIndexed("foo"));
+        assertFalse("Unrelated property is not function-indexed", rule.isFunctionIndexed("bar"));
+    }
+
+    @Test
+    public void functionIndexReferencedPropertyIsCaseSensitive() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("lowerTitle").function("lower([Title])");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        IndexingRule rule = defn.getApplicableIndexingRule("nt:base");
+
+        assertNotNull(rule);
+        assertTrue(rule.isFunctionIndexed("Title"));
+        assertTrue(rule.isIndexed("Title"));
+        assertFalse(rule.isFunctionIndexed("title"));
+        assertFalse(rule.isFunctionIndexed("TITLE"));
+        assertFalse(rule.isIndexed("title"));
+        assertFalse(rule.isIndexed("TITLE"));
+    }
+
     //~----------------------------------< nodetype >
 
 
