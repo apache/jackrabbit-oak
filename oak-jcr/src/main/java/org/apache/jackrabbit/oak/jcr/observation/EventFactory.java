@@ -250,8 +250,8 @@ public class EventFactory {
             @Override
             public Map<?, ?> getInfo() {
                 Map<Object, Object> builder = new HashMap<>();
-                builder.put("srcChildRelPath", mapper.getJcrName(name));
-                builder.put("destChildRelPath", mapper.getJcrName(destName));
+                builder.put("srcChildRelPath", mapper.getJcrPath(itemPath));
+                builder.put("destChildRelPath", mapper.getJcrPath(destName));
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
                 return Collections.unmodifiableMap(builder);
             }
@@ -280,18 +280,18 @@ public class EventFactory {
         /**
          * Path of the parent node of the item this event is about.
          */
-        private final String parent;
+        private final String parentPath;
 
         /**
-         * Name of the item this event is about.
+         * Path of the item this event is about.
          */
-        protected final String name;
+        protected final String itemPath;
 
         private final String identifier;
 
-        EventImpl(String parent, String name, String identifier) {
-            this.parent = parent;
-            this.name = name;
+        EventImpl(String parentPath, String itemPath, String identifier) {
+            this.parentPath = parentPath;
+            this.itemPath = itemPath;
             this.identifier = identifier;
         }
 
@@ -300,7 +300,7 @@ public class EventFactory {
         @Override
         public String getPath() {
             return PathUtils.concat(
-                    mapper.getJcrPath(parent), mapper.getJcrName(name));
+                    mapper.getJcrPath(parentPath), mapper.getJcrPath(itemPath));
         }
 
         @Override
