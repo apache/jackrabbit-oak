@@ -269,29 +269,21 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         }
     }
 
-    private void delete(List<BlobItem> from, Set<UUID> recoveredEntries) {
-        from.forEach(blobItem -> {
-            String name = getName(blobItem);
-            if (RemoteUtilities.isSegmentName(name) && !recoveredEntries.contains(RemoteUtilities.getSegmentUUID(name))) {
-                try {
-                    writeBlobContainerClient.getBlobClient(blobItem.getName()).delete();
-                } catch (BlobStorageException e) {
-                    log.error("Can't delete segment {}", blobItem.getName(), e);
-                }
-            }
-        });
-    }
-
     /**
-     * Method is not deleting  segments from the directory given with {@code archiveName}, if they are in the set of recovered segments.
-     * Reason for that is because during execution of this method, remote repository can be accessed by another application, and deleting a valid segment can
-     * cause consistency issues there.
+     * Moves only discarded segments to the backup archive. Recovered segments
+     * remain in place so that recovery can reuse their data.
      */
     @Override
     public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
-        List<BlobItem> blobItems = getBlobs(archiveName);
-        batchCopyBlobs(blobItems, backupArchiveName);
-        delete(blobItems, recoveredEntries);
+        String backupDirectory = getDirectory(backupArchiveName);
+        for (BlobItem blobItem : getBlobs(archiveName)) {
+            String name = getName(blobItem);
+            if (RemoteUtilities.isSegmentName(name)
+                    && !recoveredEntries.contains(RemoteUtilities.getSegmentUUID(name))) {
+                writeAccessController.checkWritingAllowed();
+                renameBlob(blobItem, backupDirectory);
+            }
+        }
     }
 
     /**
