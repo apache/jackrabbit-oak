@@ -38,7 +38,7 @@ import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIEN
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRET_KEY;
-
+import static org.apache.jackrabbit.oak.segment.azure.AzurePersistence.WriteMode.FOLDER;
 
 public class AzurePersistenceManager {
 
@@ -194,7 +194,7 @@ public class AzurePersistenceManager {
 
         final String rootPrefixNormalized = normalizePath(rootPrefix);
 
-        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy, null);
+        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, FOLDER, azureHttpRequestLoggingPolicy, null);
     }
 
     private static RequestRetryOptions readRequestRetryOptions(boolean enableSecondaryLocation, String accountName) {

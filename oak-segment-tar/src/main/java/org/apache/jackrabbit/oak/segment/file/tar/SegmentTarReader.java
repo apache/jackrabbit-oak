@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIn
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,21 +53,79 @@ public class SegmentTarReader implements SegmentArchiveReader {
 
     private static final IndexLoader indexLoader = newIndexLoader(BLOCK_SIZE);
 
-    private final FileAccess access;
-
-    private final File file;
+    private final IOReadAccess io;
 
     private final IOMonitor ioMonitor;
 
-    private final String name;
-
     private final Index index;
 
-    public SegmentTarReader(File file, FileAccess access, Index index, IOMonitor ioMonitor) {
-        this.access = access;
-        this.file = file;
+    static class FileIOReadAccess implements IOReadAccess {
+
+        protected final File file;
+
+        protected FileAccess readAccess;
+
+        protected FileIOReadAccess(File file) {
+            this.file = file;
+        }
+
+        private FileIOReadAccess(File file, FileAccess access) {
+            this(file);
+            this.readAccess = access;
+        }
+
+        private void initIfNeeded() throws IOException {
+            if (readAccess == null) {
+                readAccess = new FileAccess.Random(new RandomAccessFile(file, "r"));
+            }
+        }
+
+        @Override
+        public String getName() {
+            return file.getName();
+        }
+
+        @Override
+        public Buffer read(int position, int length) throws IOException {
+            initIfNeeded();
+            return readAccess.read(position, length);
+        }
+
+        @Override
+        public int length() {
+            try {
+                initIfNeeded();
+                return readAccess.length();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (readAccess != null) {
+                readAccess.close();
+                readAccess = null;
+            }
+        }
+    }
+
+    static SegmentArchiveReader create(File file, FileAccess fileAccess, IOMonitor ioMonitor) throws IOException {
+        return create(new FileIOReadAccess(file, fileAccess), ioMonitor);
+    }
+
+    public static @Nullable SegmentArchiveReader create(IOReadAccess io, IOMonitor ioMonitor) throws IOException {
+        Index index = loadAndValidateIndex(io);
+        if (index == null) {
+            log.info("No index found in tar file {}, skipping...", io.getName());
+            return null;
+        }
+        return new SegmentTarReader(io, index, ioMonitor);
+    }
+
+    private SegmentTarReader(IOReadAccess io, Index index, IOMonitor ioMonitor) {
+        this.io = io;
         this.index = index;
-        this.name = file.getName();
         this.ioMonitor = ioMonitor;
     }
 
@@ -76,9 +136,10 @@ public class SegmentTarReader implements SegmentArchiveReader {
             return null;
         }
         IndexEntry indexEntry = index.entry(i);
+        File file = new File(io.getName());
         ioMonitor.beforeSegmentRead(file, msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Buffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
+        Buffer buffer = io.read(indexEntry.getPosition(), indexEntry.getLength());
         long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         ioMonitor.afterSegmentRead(file, msb, lsb, indexEntry.getLength(), elapsed);
         return buffer;
@@ -99,40 +160,34 @@ public class SegmentTarReader implements SegmentArchiveReader {
         return Arrays.asList(entries);
     }
 
-    public static Index loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
-        long length = file.length();
+    public static Index loadAndValidateIndex(IOReadAccess io) throws IOException {
+        int length = io.length();
         if (length % BLOCK_SIZE != 0) {
-            log.warn("Unable to load index of file {}: Invalid alignment", name);
+            log.warn("Unable to load index of file {}: Invalid alignment", io.getName());
             return null;
         }
         if (length < 6 * BLOCK_SIZE) {
-            log.warn("Unable to load index of file {}: File too short", name);
-            return null;
-        }
-        if (length > Integer.MAX_VALUE) {
-            log.warn("Unable to load index of file {}: File too long", name);
+            log.warn("Unable to load index of file {}: File too short", io.getName());
             return null;
         }
         ReaderAtEnd r = (whence, size) -> {
-            Buffer buffer = Buffer.allocate(size);
-            file.seek(length - 2 * BLOCK_SIZE - whence);
-            file.readFully(buffer.array());
-            return buffer;
+            int offset = length - 2 * BLOCK_SIZE - whence;
+            return io.read(offset, size);
         };
         try {
             return indexLoader.loadIndex(r);
         } catch (InvalidIndexException e) {
-            log.warn("Unable to load index of file {}: {}", name, e.getMessage());
+            log.warn("Unable to load index of file {}: {}", io.getName(), e.getMessage());
         }
         return null;
     }
 
     @Override
     public @NotNull SegmentGraph getGraph() throws IOException {
-        int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
-        SegmentGraph graph = SegmentGraph.load((whence, amount) -> access.read(end - whence, amount));
+        int end = io.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
+        SegmentGraph graph = SegmentGraph.load((whence, amount) -> io.read(end - whence, amount));
         if (graph == null) {
-            log.warn("Recomputing missing graph for {}.", name);
+            log.warn("Recomputing missing graph for {}.", io.getName());
             graph = SegmentGraph.compute(this);
         }
         return graph;
@@ -141,8 +196,8 @@ public class SegmentTarReader implements SegmentArchiveReader {
     @Override
     public @NotNull Buffer getBinaryReferences() throws IOException {
         try {
-            int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
-            return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
+            int end = io.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
+            return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> io.read(end - whence, amount));
         } catch (InvalidBinaryReferencesIndexException e) {
             throw new IOException(e);
         }
@@ -150,17 +205,17 @@ public class SegmentTarReader implements SegmentArchiveReader {
 
     @Override
     public long length() {
-        return file.length();
+        return io.length();
     }
 
     @Override
     public @NotNull String getName() {
-        return name;
+        return io.getName();
     }
 
     @Override
     public void close() throws IOException {
-        access.close();
+        io.close();
     }
 
     @Override

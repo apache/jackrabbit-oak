@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
@@ -29,15 +30,22 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -50,7 +58,7 @@ public class TarWriterTest {
     protected TestFileStoreMonitor monitor = new TestFileStoreMonitor();
 
     @Test
-    public void createNextGenerationTest() throws Exception {
+    public final void createNextGenerationTest() throws Exception {
         int counter = 2222;
         TarWriter t0 = new TarWriter(getSegmentArchiveManager(), counter, NoopStats.INSTANCE);
 
@@ -69,7 +77,27 @@ public class TarWriterTest {
     }
 
     @Test
-    public void failToClose() throws Exception {
+    public final void closeWritesBrfGraphAndIndex() throws Exception {
+        SegmentArchiveManager segmentArchiveManager = getSegmentArchiveManager();
+        String fileName;
+        try (TarWriter tarWriter = new TarWriter(segmentArchiveManager, 2222, NoopStats.INSTANCE)) {
+            fileName = tarWriter.getFileName();
+            writeEntry(tarWriter);
+            writeEntry(tarWriter);
+            writeEntry(tarWriter);
+        }
+
+        try (SegmentArchiveReader reader = segmentArchiveManager.open(fileName)) {
+            assertNotNull(reader);
+            List<SegmentArchiveEntry> segments = reader.listSegments();
+            assertEquals(3, segments.size());
+            assertNotNull(reader.getGraph());
+            assertNotNull(reader.getBinaryReferences());
+        }
+    }
+
+    @Test
+    public final void failToClose() throws Exception {
         TarWriter tarWriter = new TarWriter(getFailingSegmentArchiveManager(), 1111, NoopStats.INSTANCE);
 
         writeEntry(tarWriter);
@@ -93,13 +121,11 @@ public class TarWriterTest {
     }
 
     @NotNull
-    protected SegmentArchiveManager getFailingSegmentArchiveManager() throws Exception {
-        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
-        File segmentstoreDir = folder.newFolder();
-        return new SegmentTarManager(segmentstoreDir, monitor, ioMonitor, false, false) {
+    protected final SegmentArchiveManager getFailingSegmentArchiveManager() throws Exception {
+        return new DelegatingSegmentArchiveManager(getSegmentArchiveManager()) {
             @Override
-            public @NotNull SegmentArchiveWriter create(String archiveName) {
-                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
+            public @NotNull SegmentArchiveWriter create(@NotNull String archiveName) throws IOException {
+                return new DelegatingSegmentArchiveWriter(super.create(archiveName)) {
                     @Override
                     public void writeGraph(byte[] data) throws IOException {
                         throw new IOException("test");
@@ -121,7 +147,7 @@ public class TarWriterTest {
     }
 
     @Test
-    public void testFileStoreMonitor() throws Exception {
+    public final void testFileStoreMonitor() throws Exception {
         try (TarWriter writer = new TarWriter(getSegmentArchiveManager(), 0, NoopStats.INSTANCE)) {
             long sizeBefore = writer.fileLength();
             long writtenBefore = monitor.written;
@@ -133,16 +159,12 @@ public class TarWriterTest {
     }
 
     @Test
-    public void testTarWriterFailOnExcessiveEntryCount() throws Exception {
+    public final void testTarWriterFailOnExcessiveEntryCount() throws Exception {
         final int ENTRY_LIMIT = 8;
-        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
-        File segmentstoreDir = folder.newFolder();
-        SegmentArchiveManager archiveManager = new SegmentTarManager(
-                segmentstoreDir, monitor, ioMonitor, false, false
-        ) {
+        SegmentArchiveManager archiveManager = new DelegatingSegmentArchiveManager(getSegmentArchiveManager()) {
             @Override
-            public @NotNull SegmentArchiveWriter create(String archiveName) {
-                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
+            public @NotNull SegmentArchiveWriter create(@NotNull String archiveName) throws IOException {
+                return new DelegatingSegmentArchiveWriter(super.create(archiveName)) {
                     @Override
                     public int getMaxEntryCount() {
                         return ENTRY_LIMIT;
@@ -157,5 +179,146 @@ public class TarWriterTest {
         }
         assertThrows(IllegalStateException.class, () -> writeEntry(tarWriter));
         tarWriter.close();
+    }
+
+    private static class DelegatingSegmentArchiveManager implements SegmentArchiveManager {
+
+        private final SegmentArchiveManager delegate;
+
+        protected DelegatingSegmentArchiveManager(SegmentArchiveManager delegate) {
+            this.delegate = delegate;
+        }
+
+        @NotNull
+        @Override
+        public SegmentArchiveWriter create(@NotNull String archiveName) throws IOException {
+            return delegate.create(archiveName);
+        }
+
+        @Override
+        public boolean delete(@NotNull String archiveName) {
+            return delegate.delete(archiveName);
+        }
+
+        @Override
+        public boolean exists(@NotNull String archiveName) {
+            return delegate.exists(archiveName);
+        }
+
+        @Override
+        public @NotNull List<String> listArchives() throws IOException {
+            return delegate.listArchives();
+        }
+
+        @Override
+        public @Nullable SegmentArchiveReader open(@NotNull String archiveName) throws IOException {
+            return delegate.open(archiveName);
+        }
+
+        @Override
+        public @Nullable SegmentArchiveReader forceOpen(String archiveName) throws IOException {
+            return delegate.forceOpen(archiveName);
+        }
+
+        @Override
+        public boolean renameTo(@NotNull String from, @NotNull String to) {
+            return delegate.renameTo(from, to);
+        }
+
+        @Override
+        public void copyFile(@NotNull String from, @NotNull String to) throws IOException {
+            delegate.copyFile(from, to);
+        }
+
+        @Override
+        public void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException {
+            delegate.recoverEntries(archiveName, entries);
+        }
+
+        @Override
+        public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+            delegate.backup(archiveName, backupArchiveName, recoveredEntries);
+        }
+
+        @Override
+        public boolean isReadOnly(String archiveName) {
+            return delegate.isReadOnly(archiveName);
+        }
+    }
+
+    private static class DelegatingSegmentArchiveWriter implements SegmentArchiveWriter {
+
+        private final SegmentArchiveWriter delegate;
+
+        protected DelegatingSegmentArchiveWriter(SegmentArchiveWriter delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        @NotNull
+        public void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException {
+            delegate.writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+        }
+
+        @Override
+        public @Nullable Buffer readSegment(long msb, long lsb) throws IOException {
+            return delegate.readSegment(msb, lsb);
+        }
+
+        @Override
+        public boolean containsSegment(long msb, long lsb) {
+            return delegate.containsSegment(msb, lsb);
+        }
+
+        @Override
+        public void writeGraph(@NotNull byte[] data) throws IOException {
+            delegate.writeGraph(data);
+        }
+
+        @Override
+        public void writeBinaryReferences(@NotNull byte[] data) throws IOException {
+            delegate.writeBinaryReferences(data);
+        }
+
+        @Override
+        public long getLength() {
+            return delegate.getLength();
+        }
+
+        @Override
+        public int getEntryCount() {
+            return delegate.getEntryCount();
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+        }
+
+        @Override
+        public boolean isCreated() {
+            return delegate.isCreated();
+        }
+
+        @Override
+        public void flush() throws IOException {
+            delegate.flush();
+        }
+
+        @Override
+        @NotNull
+        public String getName() {
+            return delegate.getName();
+        }
+
+        @Override
+        public boolean isRemote() {
+            return delegate.isRemote();
+        }
+
+        @Override
+        public int getMaxEntryCount() {
+            return delegate.getMaxEntryCount();
+        }
     }
 }
