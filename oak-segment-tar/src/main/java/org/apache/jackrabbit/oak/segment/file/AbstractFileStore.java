@@ -35,11 +35,8 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
-import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
-import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentBufferMonitor;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -56,6 +53,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesCollector;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -278,11 +276,9 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     private static void populateTarBinaryReferences(final Segment segment, final EntryRecovery w) {
         final GCGeneration generation = segment.getGcGeneration();
         final UUID id = segment.getSegmentId().asUUID();
-        segment.forEachRecord((number, type, offset) -> {
-            if (type == RecordType.BLOB_ID) {
-                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number, w.getRecoveredSegments()));
-            }
-        });
+        for (String reference : BinaryReferencesCollector.readBinaryReferences(segment, w.getRecoveredSegments())) {
+            w.recoverBinaryReference(generation, id, reference);
+        }
     }
 
     static Set<UUID> readReferences(Segment segment) {
@@ -291,21 +287,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             references.add(segment.getReferencedSegmentId(i));
         }
         return references;
-    }
-
-    static Set<String> readBinaryReferences(final Segment segment) {
-        final Set<String> binaryReferences = new HashSet<>();
-        segment.forEachRecord(new RecordConsumer() {
-
-            @Override
-            public void consume(int number, RecordType type, int offset) {
-                if (type == RecordType.BLOB_ID) {
-                    binaryReferences.add(SegmentBlob.readBlobId(segment, number));
-                }
-            }
-
-        });
-        return binaryReferences;
     }
 
     @Override

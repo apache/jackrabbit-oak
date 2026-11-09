@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyMap;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -51,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesCollector;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
@@ -574,7 +576,7 @@ public class FileStore extends AbstractFileStore {
 
                 generation = segment.getGcGeneration();
                 references = readReferences(segment);
-                binaryReferences = readBinaryReferences(segment);
+                binaryReferences = BinaryReferencesCollector.readBinaryReferences(segment, emptyMap());
             }
 
             tarFiles.writeSegment(

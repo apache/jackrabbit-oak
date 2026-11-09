@@ -20,12 +20,18 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.fetchByteAr
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
 
 import com.azure.storage.blob.BlobContainerClient;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesCollector;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -39,12 +45,14 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -78,6 +86,10 @@ public class SegmentStoreMigrator implements Closeable  {
     private final Integer revisionCount;
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
+
+    private File sourceFileStoreDirectory;
+
+    private ReadOnlyFileStore sourceFileStore;
 
     private SegmentStoreMigrator(Builder builder) {
         this.source = builder.source;
@@ -182,11 +194,15 @@ public class SegmentStoreMigrator implements Closeable  {
             try (SegmentArchiveReader reader = sourceManager.forceOpen(archiveName)) {
                 SegmentArchiveWriter writer = targetManager.create(archiveName);
                 try {
-                    migrateSegments(reader, writer);
-                    migrateBinaryRef(reader, writer);
+                    Buffer sourceBinaryReferences = readBinaryReferences(reader);
+                    List<Segment> segments = migrateSegments(reader, writer);
+                    byte[] binaryReferences = sourceBinaryReferences != null
+                            ? fetchByteArray(sourceBinaryReferences)
+                            : rebuildBinaryReferences(archiveName, segments);
+                    writeBinaryReferences(writer, binaryReferences);
                     migrateGraph(reader, writer);
                 } catch (Exception e) {
-                    log.error("Can't write archive", e);
+                    log.error("Can't write archive {}/{}", sourceName, archiveName, e);
                     throw e;
                 } finally {
                     writer.close();
@@ -195,7 +211,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
+    private List<Segment> migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
             futures.add(executor.submit(() -> RETRIER.execute(() -> {
@@ -205,19 +221,50 @@ public class SegmentStoreMigrator implements Closeable  {
             })));
         }
 
+        List<Segment> segments = new ArrayList<>(futures.size());
         for (Future<Segment> future : futures) {
             Segment segment = future.get();
             RETRIER.execute(() -> segment.write(writer));
+            segments.add(segment);
         }
+        return segments;
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
+    private @Nullable Buffer readBinaryReferences(SegmentArchiveReader reader) throws ExecutionException, InterruptedException {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
-        Buffer binaryReferences = future.get();
-        if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
-            RETRIER.execute(() -> writer.writeBinaryReferences(array));
+        return future.get();
+    }
+
+    private byte[] rebuildBinaryReferences(String archiveName, List<Segment> segments) {
+        log.warn("{}/{} has no binary references, rebuilding them from its segments", sourceName, archiveName);
+        BinaryReferencesCollector collector = new BinaryReferencesCollector(this::sourceFileStore);
+        for (Segment segment : segments) {
+            collector.addSegment(segment.entry, segment.data);
         }
+        return collector.write();
+    }
+
+    /**
+     * Opened only when a binary reference can't be resolved from the segments of the migrated
+     * archive. It must be read-only: a writable store would recover and modify the source.
+     */
+    private SegmentStore sourceFileStore() {
+        if (sourceFileStore == null) {
+            log.info("Opening {} read-only to resolve binary references", sourceName);
+            try {
+                sourceFileStoreDirectory = Files.createTempDirectory("segment-store-migrator").toFile();
+                sourceFileStore = FileStoreBuilder.fileStoreBuilder(sourceFileStoreDirectory)
+                        .withCustomPersistence(source)
+                        .buildReadOnly();
+            } catch (IOException | InvalidFileStoreVersionException e) {
+                throw new IllegalStateException("Can't open " + sourceName + " read-only", e);
+            }
+        }
+        return sourceFileStore;
+    }
+
+    private void writeBinaryReferences(SegmentArchiveWriter writer, byte[] binaryReferences) throws IOException {
+        RETRIER.execute(() -> writer.writeBinaryReferences(binaryReferences));
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
@@ -233,6 +280,11 @@ public class SegmentStoreMigrator implements Closeable  {
             while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS));
         } catch (InterruptedException e) {
             throw new IOException(e);
+        } finally {
+            if (sourceFileStore != null) {
+                sourceFileStore.close();
+            }
+            FileUtils.deleteQuietly(sourceFileStoreDirectory);
         }
     }
 
