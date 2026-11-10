@@ -124,7 +124,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -556,10 +555,6 @@ public final class DocumentNodeStore
 
     private final Predicate<Path> nodeCachePredicate;
 
-    private final Feature cancelInvalidationFeature;
-
-    private Boolean cancelInvalidationLogged;
-
     private CacheWarming cacheWarming;
 
     public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
@@ -633,7 +628,6 @@ public final class DocumentNodeStore
             leaseUpdateThread.start();
         }
 
-        this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
         this.avoidMergeLock = isAvoidMergeLockEnabled(builder);
         this.cacheWarming = new CacheWarming(s);
 
@@ -1150,7 +1144,6 @@ public final class DocumentNodeStore
     }
 
     void canceled(Commit c) {
-        invalidatePathsOnCancel(c);
         if (commitQueue.contains(c.getRevision())) {
             try {
                 commitQueue.canceled(c.getRevision());
@@ -1173,56 +1166,6 @@ public final class DocumentNodeStore
                     backgroundOperationLock.readLock().unlock();
                 }
             }
-        }
-    }
-
-    void invalidatePathsOnCancel(Commit c) {
-        final boolean cancelInvalidationEnabled = (cancelInvalidationFeature != null
-                && cancelInvalidationFeature.isEnabled());
-        if (cancelInvalidationLogged == null
-                || (cancelInvalidationLogged.booleanValue() != cancelInvalidationEnabled)) {
-            // log at info at first use and when toggle changes, for observability
-            LOG.info("invalidatePathsOnCancel : cancelInvalidationEnabled = {}",
-                    cancelInvalidationEnabled);
-            // thread holds the merge lock at this point, no synchronization needed
-            cancelInvalidationLogged = cancelInvalidationEnabled;
-        }
-        if (!cancelInvalidationEnabled) {
-            return;
-        }
-        Iterable<Path> pathsToInvalidate = c.getModifiedPaths();
-        if (!pathsToInvalidate.iterator().hasNext()) {
-            // nothing to do
-            return;
-        }
-        if (changes != null) {
-            // first check if a new journal entry is needed at all
-            for (String pri : pendingRollbackInvalidations) {
-                JournalEntry je = store.find(JOURNAL, pri);
-                if (je == null) {
-                    // quite unexpected
-                    continue;
-                }
-                if (je.containsModified(pathsToInvalidate)) {
-                    return;
-                }
-            }
-        }
-        try {
-            // create the invalidation journal entry (branch commit style)
-            createInvalidationJournalEntries(pathsToInvalidate, "rollback invalidation", "");
-            // but also, already push it now, not waiting for backgroundWrite
-            // reason being that otherwise it might get lost on a crash,
-            // in which case the peers still would have uncommitted revisions
-            // in their nodesCache which might become "committed" on a
-            // subsequent fresh parent lastRev change of a future
-            // incarnation of this clusterId.
-            // thanks to pendingRollbackInvalidations however, this expensive
-            // journal entry push is only done once per collision (within
-            // a backgroundWrite cycle)
-            pushJournalEntry(Revision.newRevision(clusterId));
-        } catch(DocumentStoreException e) {
-            LOG.error("invalidatePathsOnCancel: " + e.getMessage());
         }
     }
 

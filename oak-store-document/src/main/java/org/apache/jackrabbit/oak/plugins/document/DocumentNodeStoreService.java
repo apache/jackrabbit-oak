@@ -255,7 +255,6 @@ public class DocumentNodeStoreService {
     private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
-    private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private ComponentContext context;
@@ -528,7 +527,6 @@ public class DocumentNodeStoreService {
                 setBundlingDisabled(config.bundlingDisabled()).
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
-                setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
@@ -689,8 +687,7 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        closeFeatures(cancelInvalidationFeature, prevNoPropCacheFeature,
-                docStoreAvoidMergeLockFeature);
+        closeFeatures(prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();
     }
