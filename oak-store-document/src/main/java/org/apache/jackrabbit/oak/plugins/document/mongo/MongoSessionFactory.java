@@ -23,6 +23,7 @@ import com.mongodb.TransactionOptions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.TransactionBody;
 import com.mongodb.internal.TimeoutContext;
+import com.mongodb.internal.observability.micrometer.TransactionSpan;
 import com.mongodb.session.ServerSession;
 
 import org.bson.BsonDocument;
@@ -212,6 +213,11 @@ class MongoSessionFactory {
         @Override
         public void notifyOperationInitiated(Object operation) {
             session.notifyOperationInitiated(operation);
+        }
+        
+        @Override
+        public TransactionSpan getTransactionSpan() {
+            return session.getTransactionSpan();
         }
     }
 }

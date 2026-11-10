@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoDriverInformation;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
@@ -237,5 +238,10 @@ class MongoTestClient implements MongoClient {
     @Override
     public ClusterDescription getClusterDescription() {
         return delegate.getClusterDescription();
+    }
+
+    @Override
+    public void appendMetadata(MongoDriverInformation mongoDriverInformation) {
+        delegate.appendMetadata(mongoDriverInformation);
     }
 }
