@@ -80,11 +80,6 @@
                             <!-- Reactive Streams (embedded, don't import) -->
                             !org.reactivestreams,
 
-                            <!-- Truly optional: not used by AWS SDK Java client -->
-                            kotlin;resolution:=optional,
-                            kotlin.*;resolution:=optional,
-                            scala.*;resolution:=optional,
-
                             <!-- Import everything else -->
                             *
                         </Import-Package>

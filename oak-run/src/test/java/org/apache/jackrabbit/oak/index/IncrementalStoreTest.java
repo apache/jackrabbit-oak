@@ -219,6 +219,7 @@ public class IncrementalStoreTest {
     public void incrementalFFSTest(boolean customRegexFilter, boolean customExcludedPathsFilter) throws Exception {
         Backend rwBackend = createNodeStore(false);
         createBaseContent(rwBackend.documentNodeStore);
+        rwBackend.documentNodeStore.runBackgroundOperations();
         String initialCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
         Backend roBackend = createNodeStore(true);
 
@@ -228,6 +229,7 @@ public class IncrementalStoreTest {
         Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.emptyList())), initialCheckpoint, "initial", getNodeStateAtCheckpoint1(customRegexFilter, customExcludedPathsFilter));
 
         createIncrementalContent(rwBackend.documentNodeStore);
+        rwBackend.documentNodeStore.runBackgroundOperations();
         String finalCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
         Backend roBackend1 = createNodeStore(true);
 
@@ -731,7 +733,7 @@ public class IncrementalStoreTest {
         if (readOnly) {
             builder.setReadOnlyMode();
         }
-        builder.setAsyncDelay(1);
+        builder.setAsyncDelay(0);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         BlobStore blobStore = new MemoryBlobStore();
         return new Backend(c.getMongoURI(), (MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase(), blobStore);

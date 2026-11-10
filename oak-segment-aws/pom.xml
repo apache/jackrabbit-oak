@@ -80,7 +80,6 @@
                             com.amazonaws.util;version=1.0.0,
                             com.fasterxml.jackson.dataformat.cbor;version=3.0.0,
                             com.sun.org.apache.xpath.internal,
-                            kotlin,
                             org.bouncycastle.jce.provider,
                             software.amazon.ion*
                         </Export-Package>
