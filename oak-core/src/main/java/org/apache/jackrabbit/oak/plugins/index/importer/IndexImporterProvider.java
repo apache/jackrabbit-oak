@@ -49,7 +49,7 @@ public interface IndexImporterProvider {
      *
      * @param nodeStore repository after definition removal
      * @param indexPath path of the removed definition
-     * @param definition generated definition supplied to the import
+     * @param definition committed definition of the abandoned import
      */
     default void cleanupFailedImport(NodeStore nodeStore, String indexPath, NodeState definition)
             throws IOException {

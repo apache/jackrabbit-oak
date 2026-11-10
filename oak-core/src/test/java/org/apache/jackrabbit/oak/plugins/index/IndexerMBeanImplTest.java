@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -50,6 +51,7 @@ import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUp
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -102,6 +104,39 @@ public class IndexerMBeanImplTest {
         // Never activated: mbeanReg, providerTracker and the feature toggle are all null;
         // deactivate must tolerate that without failing.
         MockOsgi.deactivate(new IndexerMBeanImpl(), context.bundleContext());
+    }
+
+    @Test
+    public void importFailureIsReportedByMBeanWithRecoveryEnabled() throws Exception {
+        assertImportFailureIsReported(true);
+    }
+
+    @Test
+    public void importFailureIsReportedByMBeanWithRecoveryDisabled() throws Exception {
+        assertImportFailureIsReported(false);
+    }
+
+    private void assertImportFailureIsReported(boolean recovery) throws Exception {
+        String indexDir = prepareImportDir();
+        NodeBuilder root = store.getRoot().builder();
+        root.getChildNode(":async").removeProperty("async");
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        String property = IndexImporter.OAK_INDEX_IMPORTER_RECOVER_FAILED_IMPORT;
+        String previous = System.getProperty(property);
+        System.setProperty(property, Boolean.toString(recovery));
+        IndexerMBeanImpl mbean = createAndActivateMBean();
+        try {
+            CommitFailedException failure = assertThrows(CommitFailedException.class,
+                    () -> mbean.importIndex(indexDir, true));
+            assertTrue(failure.getMessage().contains("No current checkpoint"));
+        } finally {
+            MockOsgi.deactivate(mbean, context.bundleContext());
+            if (previous == null) {
+                System.clearProperty(property);
+            } else {
+                System.setProperty(property, previous);
+            }
+        }
     }
 
     private IndexerMBeanImpl createAndActivateMBean() {

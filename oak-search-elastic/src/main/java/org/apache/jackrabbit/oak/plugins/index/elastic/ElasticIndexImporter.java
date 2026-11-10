@@ -19,7 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -30,6 +32,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.Properties;
 import java.util.Set;
 
 public class ElasticIndexImporter implements IndexImporterProvider {
@@ -47,8 +52,20 @@ public class ElasticIndexImporter implements IndexImporterProvider {
 
     @Override
     public void importIndex(NodeState root, NodeBuilder definitionBuilder, File indexDir) throws IOException, CommitFailedException {
-        // NOOP for elastic
-        LOG.info("No need to import data in case of elastic since this is a remote index. Exiting with NOOP");
+        Properties metadata = new Properties();
+        try (InputStream input = Files.newInputStream(new File(indexDir, IndexerInfo.INDEX_METADATA_FILE_NAME).toPath())) {
+            metadata.load(input);
+        }
+        String path = metadata.getProperty(IndexerInfo.PROP_INDEX_PATH);
+        if (path == null || !PathUtils.isAbsolute(path)) {
+            throw new IOException("Missing or invalid indexPath in " + indexDir);
+        }
+        String remote = generatedIndexName(path, definitionBuilder.getNodeState());
+        if (!connection.getClient().indices().exists(r -> r.index(remote)).value()) {
+            throw new IOException("Generated Elasticsearch index " + remote
+                    + " is missing; rebuild the index data before retrying the import");
+        }
+        LOG.info("Validated generated Elasticsearch index {}; no local data copy is required", remote);
     }
 
     @Override
@@ -58,18 +75,10 @@ public class ElasticIndexImporter implements IndexImporterProvider {
 
     @Override
     public void cleanupFailedImport(NodeStore store, String path, NodeState definition) throws IOException {
-        if (connection == null) {
-            throw new IOException("No Elasticsearch connection available for failed-import cleanup of " + path);
-        }
-        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(definition.getString("type"))
-                || !definition.hasProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED)) {
-            throw new IOException("Cannot establish generated Elasticsearch index identity for " + path);
-        }
+        String remote = generatedIndexName(path, definition);
         String prefix = connection.getIndexPrefix();
-        String remote = ElasticIndexNameHelper.getRemoteIndexName(prefix, path, definition.builder());
         String alias = ElasticIndexNameHelper.getElasticSafeIndexName(prefix, path);
-        if (remote.contains("*") || remote.contains("?") || remote.contains(",")
-                || alias.contains("*") || alias.contains("?") || alias.contains(",")) {
+        if (alias.contains("*") || alias.contains("?") || alias.contains(",")) {
             throw new IOException("Refusing non-exact Elasticsearch cleanup of " + remote);
         }
         NodeState root = store.getRoot();
@@ -123,6 +132,21 @@ public class ElasticIndexImporter implements IndexImporterProvider {
             throw new IOException("Generated Elasticsearch index deletion was not completed: " + remote);
         }
         LOG.info("Removed abandoned generated ES index {} and its exclusively owned alias", remote);
+    }
+
+    private String generatedIndexName(String path, NodeState definition) throws IOException {
+        if (connection == null) {
+            throw new IOException("No Elasticsearch connection available for import of " + path);
+        }
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(definition.getString("type"))
+                || !definition.hasProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED)) {
+            throw new IOException("Cannot establish generated Elasticsearch index identity for " + path);
+        }
+        String remote = ElasticIndexNameHelper.getRemoteIndexName(connection.getIndexPrefix(), path, definition.builder());
+        if (remote.contains("*") || remote.contains("?") || remote.contains(",")) {
+            throw new IOException("Refusing non-exact Elasticsearch index name " + remote);
+        }
+        return remote;
     }
 
     private boolean references(NodeState definition, String path, String remote, String alias) {

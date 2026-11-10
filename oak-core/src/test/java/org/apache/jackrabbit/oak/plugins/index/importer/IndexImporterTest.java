@@ -540,6 +540,8 @@ public class IndexImporterTest {
         assertFalse(lock.isLocked("async"));
 
         AsyncIndexerLock lock2 = new AsyncIndexerLock() {
+            private boolean firstUnlock = true;
+
             @Override
             public LockToken lock(String asyncIndexerLane) throws CommitFailedException {
                 return mock(LockToken.class);
@@ -547,6 +549,10 @@ public class IndexImporterTest {
 
             @Override
             public void unlock(LockToken token) throws CommitFailedException {
+                if (firstUnlock) {
+                    firstUnlock = false;
+                    return;
+                }
                 throw new IllegalStateException("Exception in unlock");
             }
         };
@@ -558,6 +564,7 @@ public class IndexImporterTest {
             fail();
         } catch (RuntimeException ignore) {
             assertEquals(exceptionMessage, ignore.getMessage());
+            assertEquals("Exception in unlock", ignore.getSuppressed()[0].getMessage());
         }
     }
 

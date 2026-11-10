@@ -170,15 +170,22 @@ following ways
 Import failures are propagated to the caller even when recovery succeeds. During
 catch-up, the importer validates the current async checkpoint while holding the lane
 lock. A missing checkpoint is reported as an import failure rather than a null-pointer
-exception.
+exception. Existing async lanes are also locked briefly while switching their
+definitions to temporary lanes, so an earlier async cycle cannot commit index data
+after the switch. These locks are released before copying the generated data.
 
-Failed-import recovery is enabled by default and can be disabled with
-`-Doak.index.importer.recoverFailedImport=false`. Recovery removes newly installed,
+Cleanup of incomplete new imports is enabled by default and can be disabled with
+`-Doak.index.importer.recoverFailedImport=false`. Cleanup removes newly installed,
 incomplete index definitions only when they still match the state committed by this
-import. Completed lanes are preserved. Existing definitions are restored if their
-data has not yet been replaced; incomplete existing-index replacements remain on
-their temporary lanes with import state and an explicit recovery-required log.
-Restoring only their lane could expose data which has not caught up.
+import. Completed imports are preserved, including synchronous paths whose data
+installation has finished; this does not change the existing synchronous import
+or catch-up behavior. Existing definitions are restored if their data has not yet
+been replaced, even when cleanup of new imports is disabled. Incomplete existing-index
+replacements remain on their temporary lanes with import state. Their paths and
+recovery requirements are logged, included in the indexing report, and attached to
+the original exception as suppressed exceptions. Restoring only their lane could
+expose data which has not caught up. The switch does not restore the former behavior
+of swallowing import failures.
 
 Backend resources are handled by the corresponding importer provider after definition
 removal. Repository-contained index data is removed with the definition; shared blobs
@@ -186,13 +193,24 @@ are not deleted directly. The Elasticsearch provider deletes only the exact gene
 backing index when repository references can be ruled out and any alias is the expected
 alias pointing exclusively to that backing index. Unexpected or ambiguous ownership is
 logged and the backing index is retained. Backend cleanup errors are attached to the
-original import exception.
+original import exception. Cleanup uses the definition snapshot committed by the
+import. Repository recovery retries transient merge failures and rechecks ownership
+on each attempt.
 
 This recovery handles failures in the running import process. It is not a transactional
 rollback across the repository and Elasticsearch, does not restore existing-index
 replacements after data installation, and does not provide automatic recovery after
-process termination. Preserve import metadata and inspect retained artifacts before
-retrying a failed import.
+process termination. For a retained existing-index replacement, preserve the import
+metadata and generation checkpoint, resolve the reported failure, and retry the import
+only while its generated data and checkpoints remain valid. If they are no longer
+available, regenerate the index data; do not restore the normal lane by itself.
+
+Elasticsearch import validates that the exact generated backing index exists before
+installing the definition. When failed-import cleanup has deleted that backing index,
+the import directory is no longer sufficient to retry: rebuild the index data first.
+A retry with missing Elasticsearch data fails explicitly instead of installing a
+definition that references a missing index. The Elasticsearch importer requires a
+connection for this validation.
 
 ##### <a name="import-index-oak-run"></a>4.1 - Via oak-run
 

@@ -173,6 +173,59 @@ public class ElasticIndexImporterTest {
         assertFalse(requests.contains("DELETE " + remote));
     }
 
+    private File importDirectory() throws Exception {
+        new IndexerInfo(tmp.getRoot(), store.checkpoint(60_000)).save();
+        File directory = new File(tmp.getRoot(), "testIndex");
+        assertTrue(directory.mkdir());
+        Files.writeString(new File(directory, IndexerInfo.INDEX_METADATA_FILE_NAME).toPath(), "indexPath=" + PATH);
+        Files.writeString(new File(tmp.getRoot(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON).toPath(),
+                "{\"" + PATH + "\":{\"jcr:primaryType\":\"nam:oak:QueryIndexDefinition\","
+                + "\"type\":\"elasticsearch\",\":nameSeed\":42,\"async\":[\"import-async\"]}}");
+        return directory;
+    }
+
+    @Test
+    public void validatesBackingIndexBeforeImport() throws Exception {
+        importer.importIndex(store.getRoot(), generated.builder(), importDirectory());
+        assertEquals(List.of("HEAD " + remote), requests);
+        assertTrue(exists);
+    }
+
+    @Test
+    public void missingBackingIndexFailsBeforeDefinitionInstallation() throws Exception {
+        exists = false;
+        IOException failure = assertThrows(IOException.class,
+                () -> importer.importIndex(store.getRoot(), generated.builder(), importDirectory()));
+        assertTrue(failure.getMessage().contains(remote));
+        assertTrue(failure.getMessage().contains("rebuild"));
+        assertFalse(store.getRoot().getChildNode("oak:index").hasChildNode("testIndex"));
+        assertFalse(requests.contains("DELETE " + remote));
+    }
+
+    @Test
+    public void disabledRecoveryRetainsTheBackingIndexAndDefinition() throws Exception {
+        importDirectory();
+        String property = IndexImporter.OAK_INDEX_IMPORTER_RECOVER_FAILED_IMPORT;
+        String previous = System.getProperty(property);
+        System.setProperty(property, "false");
+        try {
+            IndexImporter shared = new IndexImporter(store, tmp.getRoot(),
+                    new CompositeIndexEditorProvider(new PropertyIndexEditorProvider(), new ReferenceEditorProvider()),
+                    AsyncIndexerLock.NOOP_LOCK);
+            shared.addImporterProvider(importer);
+            assertThrows(CommitFailedException.class, shared::importIndex);
+            assertTrue(store.getRoot().getChildNode("oak:index").hasChildNode("testIndex"));
+            assertTrue(exists);
+            assertFalse(requests.contains("DELETE " + remote));
+        } finally {
+            if (previous == null) {
+                System.clearProperty(property);
+            } else {
+                System.setProperty(property, previous);
+            }
+        }
+    }
+
     @Test
     public void deletesExactUnaliasedIndexAndIsIdempotent() throws Exception {
         cleanup();
@@ -327,13 +380,7 @@ public class ElasticIndexImporterTest {
 
     @Test
     public void sharedImporterDelegatesEsCleanupAfterRealCheckpointFailure() throws Exception {
-        new IndexerInfo(tmp.getRoot(), store.checkpoint(60_000)).save();
-        File directory = new File(tmp.getRoot(), "testIndex");
-        assertTrue(directory.mkdir());
-        Files.writeString(new File(directory, IndexerInfo.INDEX_METADATA_FILE_NAME).toPath(), "indexPath=" + PATH);
-        Files.writeString(new File(tmp.getRoot(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON).toPath(),
-                "{\"" + PATH + "\":{\"jcr:primaryType\":\"nam:oak:QueryIndexDefinition\","
-                + "\"type\":\"elasticsearch\",\":nameSeed\":42,\"async\":[\"import-async\"]}}");
+        importDirectory();
         String missing = store.checkpoint(60_000);
         assertTrue(store.release(missing));
         NodeBuilder root = store.getRoot().builder();
@@ -351,5 +398,17 @@ public class ElasticIndexImporterTest {
         assertFalse(exists);
         assertTrue(requests.contains("ALIAS " + alias));
         assertTrue(requests.contains("DELETE " + remote));
+
+        root = store.getRoot().builder();
+        root.child(":async").setProperty("import-async", store.checkpoint(60_000));
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        IndexImporter retry = new IndexImporter(store, tmp.getRoot(),
+                new CompositeIndexEditorProvider(new PropertyIndexEditorProvider(), new ReferenceEditorProvider()),
+                AsyncIndexerLock.NOOP_LOCK);
+        retry.addImporterProvider(importer);
+        IOException retryFailure = assertThrows(IOException.class, retry::importIndex);
+        assertTrue(retryFailure.getMessage().contains("rebuild"));
+        assertFalse(store.getRoot().getChildNode("oak:index").hasChildNode("testIndex"));
+        assertFalse(exists);
     }
 }
