@@ -970,6 +970,18 @@
             </plugins>
          </build>
     </profile>
+    <profile>
+      <id>skip-jacoco-on-single-test</id>
+      <activation>
+        <property>
+          <name>test</name>
+        </property>
+      </activation>
+      <properties>
+        <jacoco.skip>true</jacoco.skip>
+      </properties>
+    </profile>
+
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Integration testing profiles -->
     <profile>
       <!-- runs all the IT agains the default fixture. See <properties> section -->

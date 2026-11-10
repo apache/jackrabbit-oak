@@ -28,6 +28,12 @@
   <name>Oak Segment Remote</name>
   <packaging>bundle</packaging>
 
+  <properties>
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.67</minimum.line.coverage>
+    <minimum.branch.coverage>0.66</minimum.branch.coverage>
+  </properties>
+
 	<build>
       <plugins>
         <plugin>

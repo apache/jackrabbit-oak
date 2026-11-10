@@ -30,10 +30,14 @@
   <artifactId>oak-upgrade</artifactId>
   <name>Oak upgrade</name>
   <description>Tooling for upgrading Jackrabbit repositories to Oak</description>
-
   <properties>
     <slf4j.api.version>${slf4j.version}</slf4j.api.version>
     <logback.version>${logback.runtime.version}</logback.version>
+
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.70</minimum.line.coverage>
+    <minimum.branch.coverage>0.63</minimum.branch.coverage>
   </properties>
 
   <build>
