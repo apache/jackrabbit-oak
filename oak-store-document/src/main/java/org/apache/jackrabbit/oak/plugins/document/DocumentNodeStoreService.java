@@ -199,11 +199,6 @@ public class DocumentNodeStoreService {
     static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 0L;
 
     /**
-     * Feature toggle name to enable invalidation on cancel (due to a merge collision)
-     */
-    private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
-
-    /**
      * Feature toggle name to avoid exclusive merge lock for merging changes in repository in case of a conflict
      */
     private static final String FT_NAME_AVOID_MERGE_LOCK = "FT_AVOID_MERGE_LOCK_OAK-11720";
@@ -297,7 +292,6 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
-        cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
