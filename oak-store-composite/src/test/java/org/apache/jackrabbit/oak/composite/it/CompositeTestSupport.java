@@ -110,8 +110,6 @@ public abstract class CompositeTestSupport extends TestSupport {
         return composite(
             mavenBundle("org.ops4j.pax.logging", "pax-logging-api", "1.11.13"),
             SlingOptions.spifly(),
-            mavenBundle("org.slf4j", "slf4j-api", "2.0.12"),
-            mavenBundle("org.slf4j", "slf4j-simple", "2.0.12"),
             systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value(level),
             SlingOptions.logback()
         );

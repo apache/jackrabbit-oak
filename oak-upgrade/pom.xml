@@ -31,6 +31,11 @@
   <name>Oak upgrade</name>
   <description>Tooling for upgrading Jackrabbit repositories to Oak</description>
 
+  <properties>
+    <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+    <logback.version>${logback.runtime.version}</logback.version>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
