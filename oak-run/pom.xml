@@ -36,6 +36,8 @@
     <minimum.line.coverage>0.19</minimum.line.coverage>
     <minimum.branch.coverage>0.18</minimum.branch.coverage>
 
+    <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+    <logback.version>${logback.runtime.version}</logback.version>
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:

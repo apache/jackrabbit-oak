@@ -35,6 +35,8 @@
         <skip.coverage>false</skip.coverage>
         <minimum.line.coverage>0.53</minimum.line.coverage>
         <minimum.branch.coverage>0.50</minimum.branch.coverage>
+        <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+        <logback.version>${logback.runtime.version}</logback.version>
     </properties>
 
     <build>

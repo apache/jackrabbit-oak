@@ -57,9 +57,10 @@
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
     <mongo.driver.version>5.5.2</mongo.driver.version>
-    <slf4j.api.version>2.0.20</slf4j.api.version>
-    <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.6.4</logback.version>
+    <slf4j.api.version>1.7.36</slf4j.api.version>
+    <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback.runtime.version -->
+    <logback.version>1.2.13</logback.version> <!-- library test backend -->
+    <logback.runtime.version>1.6.4</logback.runtime.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
@@ -598,22 +599,22 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>log4j-over-slf4j</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>jcl-over-slf4j</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>jul-to-slf4j</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>ch.qos.logback</groupId>
@@ -946,6 +947,14 @@
   </dependencyManagement>
 
   <profiles>
+    <!-- Runtime compatibility checks only; compile library classes against the default 1.7 API. -->
+    <profile>
+      <id>slf4j-2.0</id>
+      <properties>
+        <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+        <logback.version>${logback.runtime.version}</logback.version>
+      </properties>
+    </profile>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  Unit testing profiles -->
     <profile>
          <id>unittesting</id>

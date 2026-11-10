@@ -65,6 +65,8 @@
 
                             <!-- SLF4J -->
                             org.slf4j;version="[1.7,2)",
+                            <!-- Embedded AWS SDK uses the Level API shared by both generations. -->
+                            org.slf4j.event;version="[1.7,3)",
 
                             <!-- AWS SDK CRT (truly optional - only needed for CRT HTTP client) -->
                             software.amazon.awssdk.crt;resolution:=optional,

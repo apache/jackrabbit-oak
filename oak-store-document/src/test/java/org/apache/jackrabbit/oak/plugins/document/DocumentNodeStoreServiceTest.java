@@ -166,10 +166,30 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
+    public void revisionGCCustomExpression() throws Exception {
+        assertRevisionGCExpression("0 0 2 * * ?");
+    }
+
+    @Test
+    public void revisionGCMixedLastDayExpression() throws Exception {
+        assertRevisionGCExpression("0 0 2 L,15 * ?");
+    }
+
+    @Test
+    public void revisionGCMixedLastDayOffsetExpression() throws Exception {
+        assertRevisionGCExpression("0 0 2 L-3,10 * ?");
+    }
+
+    @Test
+    public void revisionGCMixedLastWeekdayExpression() throws Exception {
+        assertRevisionGCExpression("0 0 2 LW,L * ?");
+    }
+
+    @Test
     public void continuousRGCInvalidExpressionFallsBackToDefault() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
-        // 'L' is only valid in day-of-month/day-of-week fields; quartz 2.4.1 now
-        // rejects it here at parse time instead of failing later at runtime
+        // 'L' is only valid in day-of-month/day-of-week fields; Quartz rejects
+        // it in the seconds field at parse time.
         config.put("versionGCExpression", "L * * * * ?");
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
         MockOsgi.activate(service, context.bundleContext());
@@ -389,6 +409,20 @@ public class DocumentNodeStoreServiceTest {
         assertNull(MethodUtils.invokeMethod(service, true, "closeFeatures",
                 new Object[]{feature1, feature2, null, feature3, feature4},
                 new Class[]{Feature[].class}));
+    }
+
+    private void assertRevisionGCExpression(String expression) throws Exception {
+        MongoUtils.dropCollections(MongoUtils.DB);
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("versionGCExpression", expression);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+        boolean jobScheduled = false;
+        String filter = "(scheduler.expression=" + expression.replace("*", "\\*") + ")";
+        for (Runnable r : context.getServices(Runnable.class, filter)) {
+            jobScheduled |= r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class);
+        }
+        assertTrue("Revision GC not registered with expression " + expression, jobScheduled);
     }
 
     private void doRecoveryDelayMillis(long recoveryDelayMillis) {

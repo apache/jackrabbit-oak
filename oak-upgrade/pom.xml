@@ -37,6 +37,11 @@
     <minimum.branch.coverage>0.63</minimum.branch.coverage>
   </properties>
 
+  <properties>
+    <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+    <logback.version>${logback.runtime.version}</logback.version>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
