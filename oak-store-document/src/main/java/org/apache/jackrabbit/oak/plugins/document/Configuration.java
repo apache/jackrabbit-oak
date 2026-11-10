@@ -270,7 +270,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "schedule a run every five seconds (also known as Continuous Revision Garbage " +
                     "Collection). Otherwise, the schedule can be configured with a cron " +
                     "expression. E.g. the following expression triggers a GC run every night at 2 AM: '" +
-                    DocumentNodeStoreService.CLASSIC_RGC_EXPR + "'."
+                    DocumentNodeStoreService.CLASSIC_RGC_EXPR + "'. " +
+                    "The expression must also be supported by the runtime Sling Commons Scheduler. " +
+                    "Oak accepts mixed last-day-of-month lists such as '0 0 2 L,15 * ?', " +
+                    "but these require a scheduler using Quartz 2.5 or newer. An older scheduler " +
+                    "may reject the expression and leave Revision GC unscheduled."
     )
     String versionGCExpression() default DocumentNodeStoreService.DEFAULT_VER_GC_EXPRESSION;
 
