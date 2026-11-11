@@ -1591,19 +1591,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         //Now disable extraction for application/xml and see that query
         //does not return any result for that
         idx = root.getTree("/oak:index/test");
-        String tikaConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<properties>\n" +
-                "  <detectors>\n" +
-                "    <detector class=\"org.apache.tika.detect.DefaultDetector\"/>\n" +
-                "  </detectors>\n" +
-                "  <parsers>\n" +
-                "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
-                "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
-                "      <mime>application/xml</mime>\n" +
-                "    </parser>\n" +
-                "  </parsers>\n" +
-                "</properties>";
-
+        String tikaConfig = """
+                {
+                  "detectors": [
+                    "default-detector"
+                  ],
+                  "parsers": [
+                    "default-parser",
+                    {
+                      "empty-parser": {
+                        "_mime-include": [
+                          "application/xml"
+                        ]
+                      }
+                    }
+                  ]
+                }""";
         idx.addChild(LuceneIndexConstants.TIKA)
                 .addChild(LuceneIndexConstants.TIKA_CONFIG)
                 .addChild(JCR_CONTENT)
