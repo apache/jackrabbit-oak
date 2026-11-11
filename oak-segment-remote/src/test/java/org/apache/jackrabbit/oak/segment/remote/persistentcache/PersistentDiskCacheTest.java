@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
@@ -64,14 +64,14 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
         persistentCache.close();
         persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0, new DiskCacheIOMonitor(StatisticsProvider.NOOP), 500);
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
-        final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);
+        final List<Map<String, ByteBuffer>> segmentsRead = new ArrayList<>(THREADS);
 
         for (int i = 0; i < SEGMENTS; ++i) {
             testSegments.add(TestSegment.createSegment());
         }
 
         for (int i = 0; i < THREADS; ++i) {
-            final Map<String, Buffer> segmentsReadThisThread = new HashMap<>(SEGMENTS_PER_THREAD);
+            final Map<String, ByteBuffer> segmentsReadThisThread = new HashMap<>(SEGMENTS_PER_THREAD);
             segmentsRead.add(segmentsReadThisThread);
         }
 
@@ -102,8 +102,8 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             final TestSegment segment = testSegments.get(nSegment);
             final long[] id = segment.getSegmentId();
             try {
-                final Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(nThread);
-                final Buffer segmentRead = persistentCache.readSegment(id[0], id[1], () -> null);
+                final Map<String, ByteBuffer> segmentsReadThisThread = segmentsRead.get(nThread);
+                final ByteBuffer segmentRead = persistentCache.readSegment(id[0], id[1], () -> null);
                 segmentsReadThisThread.put(new UUID(id[0], id[1]).toString(), segmentRead);
             } catch (Throwable t) {
                 errors.incrementAndGet();
@@ -121,9 +121,9 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
         for (int i = 0; i < THREADS; ++i) {
             for (int j = i * SEGMENTS_PER_THREAD; j < (i + 1) * SEGMENTS_PER_THREAD; ++j) {
                 TestSegment testSegment = testSegments.get(j);
-                Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(i);
+                Map<String, ByteBuffer> segmentsReadThisThread = segmentsRead.get(i);
                 long[] segmentReadId = testSegment.getSegmentId();
-                Buffer segmentRead = segmentsReadThisThread.get(new UUID(segmentReadId[0], segmentReadId[1]).toString());
+                ByteBuffer segmentRead = segmentsReadThisThread.get(new UUID(segmentReadId[0], segmentReadId[1]).toString());
                 if (segmentRead == null) {
                     errors.incrementAndGet();
                 }

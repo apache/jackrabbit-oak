@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.util;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 /**
  * Read raw data from the end of an underlying data source. The data source is
@@ -39,6 +39,6 @@ public interface ReaderAtEnd {
      * @throws IOException if an error occurs while reading from the underlying
      *                     data source.
      */
-    Buffer readAtEnd(int whence, int amount) throws IOException;
+    ByteBuffer readAtEnd(int whence, int amount) throws IOException;
 
 }

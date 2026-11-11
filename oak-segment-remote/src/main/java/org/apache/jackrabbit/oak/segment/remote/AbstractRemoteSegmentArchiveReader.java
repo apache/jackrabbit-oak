@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.remote;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -30,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -82,18 +82,14 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb) throws IOException {
+    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
         RemoteSegmentArchiveEntry indexEntry = index.get(msb, lsb);
         if (indexEntry == null) {
             return null;
         }
 
-        Buffer buffer;
-        if (OFF_HEAP) {
-            buffer = Buffer.allocateDirect(indexEntry.getLength());
-        } else {
-            buffer = Buffer.allocate(indexEntry.getLength());
-        }
+        int length = indexEntry.getLength();
+        ByteBuffer buffer = OFF_HEAP ? ByteBuffer.allocateDirect(length) : ByteBuffer.allocate(length);
         ioMonitor.beforeSegmentRead(archivePathAsFile(), msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
         String segmentFileName = getSegmentFileName(indexEntry);
@@ -126,7 +122,7 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
 
     @Override
     public @NotNull SegmentGraph getGraph() throws IOException {
-        Buffer buffer = doReadDataFile(".gph");
+        ByteBuffer buffer = doReadDataFile(".gph");
         if (buffer != null) {
             return SegmentGraph.parse(buffer);
         }
@@ -134,7 +130,7 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     }
 
     @Override
-    public @Nullable Buffer getBinaryReferences() throws IOException {
+    public @Nullable ByteBuffer getBinaryReferences() throws IOException {
         return doReadDataFile(".brf");
     }
 
@@ -153,14 +149,14 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
      * @param segmentFileName, the name of the segment (msb + lsb) prefixed by its position in the archive
      * @param buffer, the buffer to which to read
      */
-    protected abstract void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException;
+    protected abstract void doReadSegmentToBuffer(String segmentFileName, ByteBuffer buffer) throws IOException;
 
     /**
      * Reads a data file inside the archive. This entry is not a segment. Its full name is given by archive name + extension.
      * @param extension, extension of the file
      * @return the buffer containing the data file bytes
      */
-    protected abstract Buffer doReadDataFile(String extension) throws IOException;
+    protected abstract ByteBuffer doReadDataFile(String extension) throws IOException;
 
     /**
      * Returns the decoded file component of this archive.

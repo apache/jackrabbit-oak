@@ -23,7 +23,6 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.azure.FileStoreTestUtil;
@@ -41,6 +40,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -92,7 +92,7 @@ public class AzureReadSegmentV8Test {
                     CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
                     return new AzureSegmentArchiveReaderV8(archiveDirectory, ioMonitor) {
                         @Override
-                        public Buffer readSegment(long msb, long lsb) throws IOException {
+                        public ByteBuffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(
                                     new RuntimeException("Cannot access Azure storage"));
                         }
@@ -104,7 +104,7 @@ public class AzureReadSegmentV8Test {
                     CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
                     return new AzureSegmentArchiveWriterV8(archiveDirectory, ioMonitor, fileStoreMonitor, writeAccessController) {
                         @Override
-                        public Buffer readSegment(long msb, long lsb) throws IOException {
+                        public ByteBuffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(
                                     new RuntimeException("Cannot access Azure storage"));                        }
                     };

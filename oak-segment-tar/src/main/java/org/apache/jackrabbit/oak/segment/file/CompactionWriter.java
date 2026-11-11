@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
@@ -72,7 +72,7 @@ public class CompactionWriter {
 
     public @NotNull FullyCompactedNodeState writeFullyCompactedNode(
             @NotNull NodeState nodeState,
-            @Nullable Buffer stableId
+            @Nullable ByteBuffer stableId
     ) throws IOException {
         RecordId nodeId = targetWriter.writeNode(nodeState, stableId);
         return new FullyCompactedNodeState(reader, targetWriter, blobStore, nodeId);
@@ -80,7 +80,7 @@ public class CompactionWriter {
 
     public @Nullable PartiallyCompactedNodeState writePartiallyCompactedNode(
             @NotNull NodeState nodeState,
-            @Nullable Buffer stableId
+            @Nullable ByteBuffer stableId
     ) throws IOException {
         RecordId nodeId = partialWriter.writeNode(nodeState, stableId);
         return new PartiallyCompactedNodeState(reader, partialWriter, blobStore, nodeId);

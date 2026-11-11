@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
 import java.io.EOFException;
@@ -33,7 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
@@ -132,18 +133,17 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb) throws IOException {
+    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
         IndexEntry indexEntry = index.get(new UUID(msb, lsb));
         if (indexEntry == null) {
             return null;
         }
         Validate.checkState(channel != null); // implied by entry != null
-        Buffer data = Buffer.allocate(indexEntry.getLength());
-        if (data.readFully(channel, indexEntry.getPosition()) < indexEntry.getLength()) {
+        ByteBuffer data = ByteBuffer.allocate(indexEntry.getLength());
+        if (readFully(channel, indexEntry.getPosition(), data) < indexEntry.getLength()) {
             throw new EOFException();
         }
-        data.rewind();
-        return data;
+        return data.rewind();
     }
 
     @Override

@@ -20,11 +20,11 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -61,12 +61,12 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
     }
 
     @Override
-    protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
+    protected void doReadSegmentToBuffer(String segmentFileName, ByteBuffer buffer) throws IOException {
         readBufferFully(getBlobClient(segmentFileName), buffer);
     }
 
     @Override
-    protected Buffer doReadDataFile(String extension) throws IOException {
+    protected ByteBuffer doReadDataFile(String extension) throws IOException {
         return readBlob(getName() + extension);
     }
 
@@ -84,14 +84,14 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
         }
     }
 
-    private Buffer readBlob(String name) throws IOException {
+    private ByteBuffer readBlob(String name) throws IOException {
         try {
             BlockBlobClient blob = getBlobClient(name);
             if (!blob.exists()) {
                 return null;
             }
             long length = blob.getProperties().getBlobSize();
-            Buffer buffer = Buffer.allocate((int) length);
+            ByteBuffer buffer = ByteBuffer.allocate((int) length);
             AzureUtilities.readBufferFully(blob, buffer);
             return buffer;
         } catch (BlobStorageException e) {

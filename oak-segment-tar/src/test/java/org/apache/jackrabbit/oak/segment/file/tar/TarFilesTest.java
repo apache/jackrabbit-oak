@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -131,7 +131,7 @@ public class TarFilesTest {
     }
 
     private byte[] readSegment(UUID id) {
-        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        ByteBuffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
         if (buffer == null) {
             return null;
         }

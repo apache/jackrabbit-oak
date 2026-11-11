@@ -24,12 +24,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -167,14 +167,14 @@ public abstract class SegmentCopyTestBase {
                 assertEquals(srcSegment.getFullGeneration(), destSegment.getFullGeneration());
                 assertEquals(srcSegment.getGeneration(), destSegment.getFullGeneration());
 
-                Buffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
-                Buffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
+                ByteBuffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
+                ByteBuffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
 
                 assertEquals(srcDataBuffer, destDataBuffer);
             }
 
-            Buffer srcBinRefBuffer = srcArchiveReader.getBinaryReferences();
-            Buffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
+            ByteBuffer srcBinRefBuffer = srcArchiveReader.getBinaryReferences();
+            ByteBuffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
             assertEquals(srcBinRefBuffer, destBinRefBuffer);
 
             SegmentGraph srcGraph = srcArchiveReader.getGraph();
