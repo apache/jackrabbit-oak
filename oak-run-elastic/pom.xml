@@ -211,6 +211,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-serialization</artifactId>
+            <version>${tika.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob-cloud-azure</artifactId>
             <version>${project.version}</version>

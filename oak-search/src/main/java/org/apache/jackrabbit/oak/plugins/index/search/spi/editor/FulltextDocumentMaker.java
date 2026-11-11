@@ -280,7 +280,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                   NodeState state,
                                   PropertyState property,
                                   String pname,
-                                  PropertyDefinition pd) {
+                                  PropertyDefinition pd) throws IOException {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
 
         boolean dirty = false;
@@ -480,7 +480,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return name.charAt(0) != ':';
     }
 
-    private List<String> newBinary(PropertyState property, NodeState state, String path) {
+    private List<String> newBinary(PropertyState property, NodeState state, String path) throws IOException {
         if (textExtractor == null) {
             //Skip text extraction for sync indexing
             return List.of();
@@ -630,7 +630,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
         @Override
         public void onResult(Aggregate.NodeIncludeResult result) {
-            dirtyFlag |= indexAggregatedNode(path, document, result);
+            try {
+                dirtyFlag |= indexAggregatedNode(path, document, result);
+            } catch (IOException e) {
+                log.warn("Failed to index aggregated document at {}", path, e);
+            }
         }
 
         @Override
@@ -638,7 +642,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (result.pd.ordered) {
                 dirtyFlag |= addTypedOrderedFields(document, result.propertyState, result.propertyPath, result.pd);
             }
-            dirtyFlag |= indexProperty(path, document, ctx, state, result.propertyState, result.propertyPath, result.pd);
+            try {
+                dirtyFlag |= indexProperty(path, document, ctx, state, result.propertyState, result.propertyPath, result.pd);
+            } catch (IOException e) {
+                log.warn("Failed to index property at {}", path, e);
+            }
 
             if (result.pd.facet) {
                 facetFlag = true;
@@ -650,7 +658,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * Create the fulltext field from the aggregated nodes. If result is for aggregate for a relative node
      * include then
      */
-    private boolean indexAggregatedNode(String path, D doc, Aggregate.NodeIncludeResult result) {
+    private boolean indexAggregatedNode(String path, D doc, Aggregate.NodeIncludeResult result) throws IOException {
         //rule for node being aggregated might be null if such nodes
         //are not indexed on their own. In such cases we rely on current
         //rule for some checks
