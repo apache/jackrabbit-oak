@@ -237,13 +237,6 @@ public class FulltextBinaryTextExtractor {
 
     //~-------------------------------------------< Tika >
 
-//    private TikaJsonConfig getTikaConfig() {
-//        if (tikaConfig == null) {
-//            tikaConfig = initializeTikaConfig(definition);
-//        }
-//        return tikaConfig.config;
-//    }
-
     private Parser getParser() throws TikaConfigException, IOException {
         if (parser == null) {
             parser = initializeTikaParser(definition);
