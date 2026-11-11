@@ -55,6 +55,8 @@
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-collections4</include>
+        <include>org.apache.httpcomponents:httpclient-osgi</include>
+        <include>org.apache.httpcomponents:httpcore-osgi</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:oak-api</include>
         <include>org.apache.jackrabbit:oak-jackrabbit-api</include>
