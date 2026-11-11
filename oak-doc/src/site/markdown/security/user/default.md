@@ -277,6 +277,38 @@ detail in section [Caching Results of Principal Resolution](../principal/cache.h
 It is not related to user management s.str. but affects the implementation
 specific `PrincipalProvider` implementation exposed by `UserConfiguration.getUserPrincipalProvider`.
 
+<a name="monitoring"></a>
+### Monitoring
+
+The default implementation exposes the following metrics through the `StatisticsProvider`:
+
+| Name                                          | Type  | Description |
+|-----------------------------------------------|-------|-------------|
+| `security.user.add_members.succeeded`         | Meter | Number of members successfully added to groups |
+| `security.user.add_members.failed`            | Meter | Number of members that failed to be added to groups |
+| `security.user.add_members.timer`             | Timer | Time spent adding members to groups |
+| `security.user.remove_members.succeeded`      | Meter | Number of members successfully removed from groups |
+| `security.user.remove_members.failed`         | Meter | Number of members that failed to be removed from groups |
+| `security.user.remove_members.timer`          | Timer | Time spent removing members from groups |
+| `security.user.get_members.timer`             | Timer | Time spent retrieving the members of a group |
+| `security.user.get_declared_members.timer`    | Timer | Time spent retrieving the declared members of a group |
+| `security.user.memberof.timer`                | Timer | Time spent retrieving the group membership of an authorizable |
+| `security.user.declared_memberof.timer`       | Timer | Time spent retrieving the declared group membership of an authorizable |
+| `security.user.admin.login.succeeded`         | Meter | Successful password logins of the admin user (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.login.failed`            | Meter | Failed password logins of the admin user, including expired passwords not changed during login (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.impersonation.succeeded` | Meter | Successful impersonations of the admin user (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.impersonation.failed`    | Meter | Failed impersonations of the admin user (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.password.added`          | Meter | Addition of a password to an existing admin user that had none (e.g. created with `omitAdminPw`), irrespective of the API used (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.password.changed`        | Meter | Changes of an existing admin password, irrespective of the API used (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.impersonators.granted`   | Meter | Number of principals granted to impersonate the admin user, as observed in `rep:impersonators` (since Oak 2.10, [OAK-12495]) |
+| `security.user.admin.impersonators.revoked`   | Meter | Number of principals revoked from impersonating the admin user, as observed in `rep:impersonators` (since Oak 2.10, [OAK-12495]) |
+
+Note that the admin password and impersonator metrics are best-effort: they record changes observed during commit
+validation. A subsequent validation or merge failure may still leave them incremented, and commit retries may
+overcount. They support alerting and investigation, but do not prove that a change was persisted and do not replace an
+audit trail. Creating the admin user itself is not recorded. Logins with token, guest or pre-authenticated credentials, system sessions, and logins handled by a custom
+`UserAuthenticationFactory` are not covered by the admin metrics.
+
 <a name="pluggability"></a>
 ### Pluggability
 
@@ -338,5 +370,6 @@ implementation.
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html
 [OAK-6072]: https://issues.apache.org/jira/browse/OAK-6072
 [OAK-10173]: https://issues.apache.org/jira/browse/OAK-10173
+[OAK-12495]: https://issues.apache.org/jira/browse/OAK-12495
 [Impersonation]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Impersonation.html
 

@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -69,7 +70,7 @@ public class UserMonitorImplTest {
 
     @Test
     public void testConstructor() {
-        verify(statisticsProvider, times(4)).getMeter(anyString(), any(StatsOptions.class));
+        verify(statisticsProvider, times(12)).getMeter(anyString(), any(StatsOptions.class));
         verify(statisticsProvider, times(6)).getTimer(anyString(), any(StatsOptions.class));
         verifyNoMoreInteractions(statisticsProvider);
         verifyNoInteractions(meter);
@@ -117,6 +118,85 @@ public class UserMonitorImplTest {
         verify(meter, times(1)).mark(succeeded);
         verify(meter, times(1)).mark(failed);
         verify(timer, times(1)).update(time, NANOSECONDS);
+    }
+
+    @Test
+    public void testAdminLogin() {
+        MeterStats succeeded = mockMeter("security.user.admin.login.succeeded");
+        MeterStats failed = mockMeter("security.user.admin.login.failed");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.adminLogin(true);
+        m.adminLogin(true);
+        m.adminLogin(false);
+
+        verify(succeeded, times(2)).mark();
+        verify(failed, times(1)).mark();
+        verifyNoMoreInteractions(succeeded, failed);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testAdminImpersonated() {
+        MeterStats succeeded = mockMeter("security.user.admin.impersonation.succeeded");
+        MeterStats failed = mockMeter("security.user.admin.impersonation.failed");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.adminImpersonated(false);
+        m.adminImpersonated(false);
+        m.adminImpersonated(true);
+
+        verify(succeeded, times(1)).mark();
+        verify(failed, times(2)).mark();
+        verifyNoMoreInteractions(succeeded, failed);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testAdminPasswordChanged() {
+        MeterStats added = mockMeter("security.user.admin.password.added");
+        MeterStats changed = mockMeter("security.user.admin.password.changed");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.adminPasswordChanged(false);
+        m.adminPasswordChanged(false);
+        m.adminPasswordChanged(true);
+
+        verify(changed, times(2)).mark();
+        verify(added, times(1)).mark();
+        verifyNoMoreInteractions(added, changed);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testAdminImpersonatorsChanged() {
+        MeterStats granted = mockMeter("security.user.admin.impersonators.granted");
+        MeterStats revoked = mockMeter("security.user.admin.impersonators.revoked");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.adminImpersonatorsChanged(3, 1);
+
+        verify(granted, times(1)).mark(3);
+        verify(revoked, times(1)).mark(1);
+        verifyNoMoreInteractions(granted, revoked);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testNoopAdminMethods() {
+        UserMonitor noop = UserMonitor.NOOP;
+        noop.adminLogin(true);
+        noop.adminImpersonated(true);
+        noop.adminPasswordChanged(true);
+        noop.adminImpersonatorsChanged(1, 1);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @NotNull
+    private MeterStats mockMeter(@NotNull String name) {
+        MeterStats m = mock(MeterStats.class);
+        when(statisticsProvider.getMeter(eq(name), any(StatsOptions.class))).thenReturn(m);
+        return m;
     }
 
     @Test
