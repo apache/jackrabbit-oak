@@ -32,7 +32,8 @@
       <excludes>
         <exclude>org.apache.lucene</exclude>
         <exclude>org.apache.tika:tika-core:*</exclude>
-        <exclude>org.apache.tika:tika-parsers-standard-package:*</exclude>
+        <exclude>org.apache.tika:tika-serialization:*</exclude>
+        <exclude>org.apache.tika:tika-bundle-standard:*</exclude>
         <exclude>org.apache.jackrabbit:jackrabbit-aws-ext:*</exclude>
         <exclude>io.prometheus:simpleclient*:*</exclude>
       </excludes>
@@ -60,7 +61,8 @@
       <outputDirectory>/</outputDirectory>
       <includes>
         <include>org.apache.tika:tika-core</include>
-        <include>org.apache.tika:tika-parsers-standard-package</include>
+        <include>org.apache.tika:tika-serialization:*</include>
+        <include>org.apache.tika:tika-bundle-standard:*</include>
         <include>commons-logging:commons-logging</include>
       </includes>
       <useStrictFiltering>true</useStrictFiltering>

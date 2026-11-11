@@ -25,7 +25,8 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.tika.config.TikaConfig;
+import org.apache.tika.config.loader.TikaJsonConfig;
+import org.apache.tika.config.loader.TikaLoader;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.ParseContext;
@@ -35,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-public class TikaParserConfig {
+class TikaParserConfig {
 
     private static final Logger log = LoggerFactory.getLogger(TikaParserConfig.class);
 
@@ -45,18 +46,19 @@ public class TikaParserConfig {
      * @param configStream stream for tika config
      * @return set of MediaTypes which are not indexed
      */
-    public static Set<MediaType> getNonIndexedMediaTypes(InputStream configStream) throws
+    static Set<MediaType> getNonIndexedMediaTypes(InputStream configStream) throws
             TikaException, IOException, SAXException {
         Set<MediaType> result = new HashSet<>();
-        TikaConfig config = new TikaConfig(configStream);
-        if (config.getParser() instanceof org.apache.tika.parser.CompositeParser) {
+        TikaJsonConfig jsonConfig = TikaJsonConfig.load(configStream);
+        TikaLoader loader = TikaLoader.load(jsonConfig, Thread.currentThread().getContextClassLoader());
+        Parser parser = loader.loadParsers();
+        ParseContext parseContext = loader.loadParseContext();
+        if (parser instanceof org.apache.tika.parser.CompositeParser composite) {
             // pick the (decorated) empty parser
-            Optional<Parser> emptyParser = ((org.apache.tika.parser.CompositeParser) config.getParser()).getAllComponentParsers().stream()
-                    .filter(p -> isEmptyParser(p))
+            Optional<Parser> emptyParser = composite.getAllComponentParsers().stream()
+                    .filter(TikaParserConfig::isEmptyParser)
                     .findFirst();
-            if (emptyParser.isPresent()) {
-                emptyParser.get().getSupportedTypes(new ParseContext()).forEach(result::add);
-            }
+            emptyParser.ifPresent(value -> result.addAll(value.getSupportedTypes(parseContext)));
         } else {
             log.debug("Tika CompositeParser not used, no parsers configured via custom tika config");
         }

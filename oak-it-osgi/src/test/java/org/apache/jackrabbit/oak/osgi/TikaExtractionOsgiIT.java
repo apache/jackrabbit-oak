@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
@@ -28,7 +29,6 @@ import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
-import org.ops4j.pax.exam.options.DefaultCompositeOption;
 import org.ops4j.pax.exam.options.SystemPropertyOption;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
@@ -41,24 +41,18 @@ import org.slf4j.LoggerFactory;
 
 import org.xml.sax.ContentHandler;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import static java.util.Arrays.stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
-import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
@@ -123,7 +117,8 @@ public class TikaExtractionOsgiIT {
         return composite(
                 composite(
                         mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
-                        , mavenBundle("org.apache.tika", "tika-parsers-standard-package", versions.get(TIKA_VERSION))
+                        , mavenBundle("org.apache.tika", "tika-serialization", versions.get(TIKA_VERSION))
+                        , mavenBundle("org.apache.tika", "tika-bundle-standard", versions.get(TIKA_VERSION))
                         // for csv parsing
                         , mavenBundle("org.apache.commons", "commons-csv", versions.get(COMMONS_CSV_VERSION))
                         // poi dependency start
@@ -213,8 +208,9 @@ public class TikaExtractionOsgiIT {
         InputStream stream = getClass().getResourceAsStream(resName);
         assertNotNull("Input stream must not be null", stream);
         try {
-            parser.parse(stream, handler, metadata);
-
+            try (TikaInputStream tis = TikaInputStream.get(stream)) {
+                parser.parse(tis, handler, metadata);
+            }
             String actual = handler.toString().trim();
             assertEquals(parsedContent, actual);
         } finally {
