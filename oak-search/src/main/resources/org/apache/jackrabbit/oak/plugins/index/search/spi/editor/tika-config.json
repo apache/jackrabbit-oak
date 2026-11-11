@@ -1,0 +1,36 @@
+{
+  "detectors": [
+    "type-detector"
+  ],
+  "parsers": [
+    "default-parser",
+    {
+      "empty-parser": {
+        "_mime-include": [
+          "application/x-archive",
+          "application/x-bzip",
+          "application/x-bzip2",
+          "application/x-cpio",
+          "application/x-gtar",
+          "application/x-gzip",
+          "application/x-tar",
+          "application/zip",
+          "image/bmp",
+          "image/gif",
+          "image/jpeg",
+          "image/png",
+          "image/tiff",
+          "image/vnd.wap.wbmp",
+          "image/x-icon",
+          "image/x-xcf",
+          "application/photoshop",
+          "application/psd",
+          "application/x-photoshop",
+          "image/psd",
+          "image/vnd.adobe.photoshop",
+          "image/x-psd"
+        ]
+      }
+    }
+  ]
+}
