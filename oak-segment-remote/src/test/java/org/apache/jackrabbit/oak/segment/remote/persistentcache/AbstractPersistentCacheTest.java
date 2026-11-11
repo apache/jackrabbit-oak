@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -71,14 +71,14 @@ public abstract class AbstractPersistentCacheTest {
     @Ignore("OAK-10543")
     public void writeAndReadManySegments() {
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
-        final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);
+        final List<Map<String, ByteBuffer>> segmentsRead = new ArrayList<>(THREADS);
 
         for (int i = 0; i < SEGMENTS; ++i) {
             testSegments.add(TestSegment.createSegment());
         }
 
         for (int i = 0; i < THREADS; ++i) {
-            final Map<String, Buffer> segmentsReadThisThread = new HashMap<>(SEGMENTS_PER_THREAD);
+            final Map<String, ByteBuffer> segmentsReadThisThread = new HashMap<>(SEGMENTS_PER_THREAD);
             segmentsRead.add(segmentsReadThisThread);
         }
 
@@ -102,11 +102,11 @@ public abstract class AbstractPersistentCacheTest {
 
         done.set(0);
         runConcurrently((nThread, nSegment) -> {
-            final Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(nThread);
+            final Map<String, ByteBuffer> segmentsReadThisThread = segmentsRead.get(nThread);
             final TestSegment segment = testSegments.get(nSegment);
             final long[] id = segment.getSegmentId();
             try {
-                final Buffer segmentRead = persistentCache.readSegment(id[0], id[1], () -> null);
+                final ByteBuffer segmentRead = persistentCache.readSegment(id[0], id[1], () -> null);
                 segmentsReadThisThread.put(new UUID(id[0], id[1]).toString(), segmentRead);
             } finally {
                 done.incrementAndGet();
@@ -121,9 +121,9 @@ public abstract class AbstractPersistentCacheTest {
         for (int i = 0; i < THREADS; ++i) {
             for (int j = i * SEGMENTS_PER_THREAD; j < (i + 1) * SEGMENTS_PER_THREAD; ++j) {
                 TestSegment testSegment = testSegments.get(j);
-                Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(i);
+                Map<String, ByteBuffer> segmentsReadThisThread = segmentsRead.get(i);
                 long[] segmentReadId = testSegment.getSegmentId();
-                Buffer segmentRead = segmentsReadThisThread.get(new UUID(segmentReadId[0], segmentReadId[1]).toString());
+                ByteBuffer segmentRead = segmentsReadThisThread.get(new UUID(segmentReadId[0], segmentReadId[1]).toString());
                 if (segmentRead == null) {
                     errors.incrementAndGet();
                     continue;
@@ -221,7 +221,7 @@ public abstract class AbstractPersistentCacheTest {
 
         waitWhile(() -> done.get() < SEGMENTS);
 
-        Buffer segmentRead = persistentCache.readSegment(segmentId[0], segmentId[1], () -> null);
+        ByteBuffer segmentRead = persistentCache.readSegment(segmentId[0], segmentId[1], () -> null);
         assertNotNull("The segment was not found", segmentRead);
         assertSegmentBufferEquals(testSegment.getSegmentBuffer(), segmentRead);
     }
@@ -252,7 +252,7 @@ public abstract class AbstractPersistentCacheTest {
         }
 
         protected long[] getSegmentId() {
-            final Buffer buffer = Buffer.allocate(segmentId.length);
+            final ByteBuffer buffer = ByteBuffer.allocate(segmentId.length);
             buffer.put(segmentId);
             long[] ret = new long[2];
             ret[0] = buffer.getLong(0);
@@ -260,8 +260,8 @@ public abstract class AbstractPersistentCacheTest {
             return ret;
         }
 
-        protected Buffer getSegmentBuffer() {
-            return Buffer.wrap(segmentBytes);
+        protected ByteBuffer getSegmentBuffer() {
+            return ByteBuffer.wrap(segmentBytes);
         }
 
         private TestSegment(byte[] segmentId, byte[] segmentBytes) {
@@ -274,7 +274,7 @@ public abstract class AbstractPersistentCacheTest {
         }
     }
 
-    protected static void assertSegmentBufferEquals(Buffer expected, Buffer actual) {
+    protected static void assertSegmentBufferEquals(ByteBuffer expected, ByteBuffer actual) {
         expected.rewind();
         actual.rewind();
         assertEquals("Segment size is different", TestSegment.SEGMENT_LEN, actual.remaining());

@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
@@ -73,12 +73,12 @@ public class TarFileTest {
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
-            assertEquals(Buffer.wrap(data), writer.readEntry(msb, lsb));
+            assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         }
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             assertEquals(getWriteAndReadExpectedSize(), reader.size());
-            assertEquals(Buffer.wrap(data), reader.readEntry(msb, lsb));
+            assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         }
     }
 

@@ -23,14 +23,14 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.junit.Test;
 
 public class IndexV1Test {
 
     @Test
     public void testGetUUIDs() throws Exception {
-        Buffer buffer = Buffer.allocate(2 * IndexEntryV1.SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
                 .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10);
@@ -42,7 +42,7 @@ public class IndexV1Test {
 
     @Test
     public void testFindEntry() throws Exception {
-        Buffer buffer = Buffer.allocate(4 * IndexEntryV1.SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(4 * IndexEntryV1.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(1).putInt(0).putInt(0).putInt(0)
                 .putLong(1).putLong(3).putInt(0).putInt(0).putInt(0)
@@ -61,7 +61,7 @@ public class IndexV1Test {
 
     @Test
     public void testSize() throws Exception {
-        Buffer buffer = Buffer.allocate(IndexEntryV1.SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV1.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5);
         assertEquals(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE, new IndexV1(buffer).size());
@@ -69,7 +69,7 @@ public class IndexV1Test {
 
     @Test
     public void testCount() throws Exception {
-        Buffer buffer = Buffer.allocate(2 * IndexEntryV1.SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
                 .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10);
@@ -78,7 +78,7 @@ public class IndexV1Test {
 
     @Test
     public void testEntry() throws Exception {
-        Buffer buffer = Buffer.allocate(IndexEntryV1.SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV1.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5);
         IndexEntryV1 entry = new IndexV1(buffer).entry(0);

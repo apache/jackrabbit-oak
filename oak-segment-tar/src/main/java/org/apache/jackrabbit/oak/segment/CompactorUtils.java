@@ -18,13 +18,13 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 final class CompactorUtils {
-    static @Nullable Buffer getStableIdBytes(@NotNull NodeState state) {
+    static @Nullable ByteBuffer getStableIdBytes(@NotNull NodeState state) {
         if (state instanceof SegmentNodeState) {
             return ((SegmentNodeState) state).getStableIdBytes();
         } else {

@@ -35,6 +35,8 @@
   <description>Standalone application based on Spring Boot then embeds a Jackrabbit Oak content repository</description>
 
   <properties>
+    <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+    <logback.version>${logback.runtime.version}</logback.version>
     <skip.deployment>true</skip.deployment>
     <spring.boot.version>2.7.18</spring.boot.version>
   </properties>

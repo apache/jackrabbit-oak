@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.queue.SegmentWriteAction;
 import org.apache.jackrabbit.oak.segment.remote.queue.SegmentWriteQueue;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -25,6 +24,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -73,11 +73,11 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb) throws IOException {
+    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
         UUID uuid = new UUID(msb, lsb);
         Optional<SegmentWriteAction> segment = queue.map(q -> q.read(uuid));
         if (segment.isPresent()) {
-            return segment.get().toBuffer();
+            return segment.get().toByteBuffer();
         }
 
         RemoteSegmentArchiveEntry indexEntry = index.get(uuid);
@@ -176,7 +176,7 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
      * @param indexEntry, the archive index entry to read
      * @return th buffer containing the segment bytes
      */
-    protected abstract Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException;
+    protected abstract ByteBuffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException;
 
     /**
      * Writes a data file inside the archive. This entry is not a segment. Its full name is given by archive name + extension.

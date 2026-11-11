@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 
 class SegmentDataV12 implements SegmentData {
@@ -62,9 +62,9 @@ class SegmentDataV12 implements SegmentData {
 
     // Relative to a record reference - END
 
-    final Buffer buffer;
+    final ByteBuffer buffer;
 
-    SegmentDataV12(Buffer buffer) {
+    SegmentDataV12(ByteBuffer buffer) {
         this.buffer = buffer;
     }
 
@@ -167,7 +167,7 @@ class SegmentDataV12 implements SegmentData {
     }
 
     @Override
-    public Buffer readBytes(int recordReferenceOffset, int size) {
+    public ByteBuffer readBytes(int recordReferenceOffset, int size) {
         return SegmentDataUtils.readBytes(buffer, index(recordReferenceOffset), size);
     }
 

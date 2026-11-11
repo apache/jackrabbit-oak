@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.commons.io.FileUtils;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.junit.After;
 import org.junit.Before;
@@ -50,7 +51,7 @@ import static org.mockito.Mockito.verify;
  * <p>Before the OAK-12212 fix, the in-memory {@code cacheSize} counter
  * maintained by {@link PersistentDiskCache} could drift well above the actual
  * size of the cache directory: the {@code writesPending} guard in
- * {@link PersistentDiskCache#writeSegment(long, long, org.apache.jackrabbit.oak.commons.Buffer)}
+ * {@link PersistentDiskCache#writeSegment(long, long, java.nio.ByteBuffer)}
  * only prevents <em>simultaneously running</em> write tasks for the same
  * segment id, not <em>sequentially running</em> ones. Every {@code writeSegment}
  * invocation that reached the body still added {@code fileSize} to
@@ -136,7 +137,7 @@ public class PersistentDiskCacheSizeAccountingTest {
         final int writes = 4; // mirrors the ~4x drift seen in the heap dump
 
         for (int i = 0; i < writes; i++) {
-            persistentCache.writeSegment(msb, lsb, org.apache.jackrabbit.oak.commons.Buffer.wrap(segmentBytes));
+            persistentCache.writeSegment(msb, lsb, java.nio.ByteBuffer.wrap(segmentBytes));
             drainExecutor(persistentCache);
         }
 
@@ -193,7 +194,7 @@ public class PersistentDiskCacheSizeAccountingTest {
         final int writes = 8;
 
         for (int i = 0; i < writes; i++) {
-            persistentCache.writeSegment(msb, lsb, org.apache.jackrabbit.oak.commons.Buffer.wrap(segmentBytes));
+            persistentCache.writeSegment(msb, lsb, java.nio.ByteBuffer.wrap(segmentBytes));
             drainExecutor(persistentCache);
         }
 
@@ -235,7 +236,7 @@ public class PersistentDiskCacheSizeAccountingTest {
         final int writes = 4;
 
         for (int i = 0; i < writes; i++) {
-            persistentCache.writeSegment(msb, lsb, org.apache.jackrabbit.oak.commons.Buffer.wrap(segmentBytes));
+            persistentCache.writeSegment(msb, lsb, java.nio.ByteBuffer.wrap(segmentBytes));
             drainExecutor(persistentCache);
         }
 

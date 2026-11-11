@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarManager;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -74,10 +74,10 @@ public class CachingSegmentArchiveReaderTest {
 
         // Open the archives and read the segment. This will trigger caching of the segments.
         SegmentArchiveReader tar1 = cachingArchiveManager.open(archive1Name);
-        assertEquals(Buffer.wrap(data1), tar1.readSegment(msb1, lsb1));
+        assertEquals(ByteBuffer.wrap(data1), tar1.readSegment(msb1, lsb1));
 
         SegmentArchiveReader tar2 = cachingArchiveManager.open(archive2Name);
-        assertEquals(Buffer.wrap(data2), tar2.readSegment(msb2, lsb2));
+        assertEquals(ByteBuffer.wrap(data2), tar2.readSegment(msb2, lsb2));
 
         // Both segments are cached
         // Now check that each tar file only contains its own segment, that is, when searching for a segment that is

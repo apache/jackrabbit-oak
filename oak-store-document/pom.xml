@@ -33,6 +33,10 @@
 
   <properties>
     <test.opts.memory>-Xmx512m -Xss256k</test.opts.memory>
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.71</minimum.line.coverage>
+    <minimum.branch.coverage>0.65</minimum.branch.coverage>
   </properties>
 
   <build>
@@ -164,7 +168,7 @@
     <dependency>
       <groupId>org.quartz-scheduler</groupId>
       <artifactId>quartz</artifactId>
-      <version>2.4.1</version>
+      <version>2.5.2</version>
       <scope>provided</scope>
     </dependency>
 
