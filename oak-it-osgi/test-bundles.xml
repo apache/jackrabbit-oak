@@ -71,6 +71,7 @@
         <include>org.apache.jackrabbit:oak-search-elastic:jar</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
+        <include>org.apache.jackrabbit:oak-blob-cloud</include>
         <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>
         <include>org.apache.jackrabbit:oak-core-spi</include>
         <include>org.apache.jackrabbit:oak-store-spi</include>
