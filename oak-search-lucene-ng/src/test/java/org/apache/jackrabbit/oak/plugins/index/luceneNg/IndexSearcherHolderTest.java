@@ -1,0 +1,148 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.luceneNg;
+
+import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.IndexSearcherHolder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.index.FieldInfos;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.apache.lucene.util.BytesRef;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class IndexSearcherHolderTest {
+
+    @TempDir
+    public Path tempDir;
+
+    @Test
+    public void testGetSearcher() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        // Simulate canonical storage under /oak:index/test/:luceneNg
+        NodeBuilder storageBuilder = builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
+
+        // Write an empty index at the storage path
+        OakDirectory directory = new OakDirectory(storageBuilder, "test", false);
+        IndexWriterConfig config = new IndexWriterConfig();
+        IndexWriter writer = new IndexWriter(directory, config);
+        writer.commit();
+        writer.close();
+        directory.close();
+
+        // Read back via IndexSearcherHolder using the committed NodeState
+        IndexSearcherHolder holder = new IndexSearcherHolder(
+                builder.getNodeState().getChildNode("oak:index").getChildNode("test")
+                        .getChildNode(LuceneNgIndexStorage.STORAGE_NODE_NAME),
+                "test");
+        IndexSearcher searcher = holder.getSearcher();
+
+        assertNotNull(searcher, "Searcher should not be null");
+        assertEquals(0, searcher.getIndexReader().numDocs(), "Empty index should have 0 docs");
+
+        holder.close();
+    }
+
+    @Test
+    public void sortMetadataIsLazyAndScopedToTheReaderGeneration() throws Exception {
+        NodeBuilder definition = InitialContentHelper.INITIAL_CONTENT.builder()
+                .child("oak:index").child("test");
+        NodeBuilder storage = LuceneNgIndexStorage.getOrCreateStorageBuilder(definition);
+        try (OakDirectory directory = new OakDirectory(storage, "test", false);
+             IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig())) {
+            Document doc = new Document();
+            doc.add(new SortedDocValuesField("first", new BytesRef("a")));
+            writer.addDocument(doc);
+        }
+        try (IndexSearcherHolder first = new IndexSearcherHolder(
+                LuceneNgIndexStorage.storageState(definition.getNodeState()), "test")) {
+            java.lang.reflect.Field cache = IndexSearcherHolder.class.getDeclaredField("fieldInfos");
+            cache.setAccessible(true);
+            assertNull(cache.get(first));
+            FieldInfos oldInfos = first.getFieldInfos();
+            assertSame(oldInfos, first.getFieldInfos());
+            assertNotNull(oldInfos.fieldInfo("first"));
+            assertNull(oldInfos.fieldInfo("second"));
+            try (OakDirectory directory = new OakDirectory(storage, "test", false);
+                 IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig())) {
+                Document doc = new Document();
+                doc.add(new SortedDocValuesField("second", new BytesRef("b")));
+                writer.addDocument(doc);
+            }
+            try (IndexSearcherHolder second = new IndexSearcherHolder(
+                    LuceneNgIndexStorage.storageState(definition.getNodeState()), "test")) {
+                assertNull(cache.get(second));
+                FieldInfos newInfos = second.getFieldInfos();
+                assertNotSame(oldInfos, newInfos);
+                assertSame(newInfos, second.getFieldInfos());
+                assertNotNull(newInfos.fieldInfo("second"));
+                assertNull(first.getFieldInfos().fieldInfo("second"));
+            }
+        }
+    }
+
+    @Test
+    public void wrapsDirectoryWhenCopierProvided() throws Exception {
+        String indexPath = "/oak:index/test";
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeBuilder indexDef = builder.child("oak:index").child("test");
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        NodeBuilder storageBuilder = indexDef.child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
+
+        // Write a populated (non-empty) index at the storage path, so there is at least one
+        // real committed segment file for the copier to cache locally.
+        OakDirectory remote = new OakDirectory(storageBuilder, "test", false);
+        try (IndexWriter writer = new IndexWriter(remote, new IndexWriterConfig())) {
+            writer.addDocument(new Document());
+            writer.commit();
+        }
+        remote.close();
+
+        NodeState root = builder.getNodeState();
+        NodeState indexState = root.getChildNode("oak:index").getChildNode("test");
+        NodeState storageState = indexState.getChildNode(LuceneNgIndexStorage.STORAGE_NODE_NAME);
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(root, indexState, indexPath);
+
+        File localRoot = Files.createTempDirectory(tempDir, "folder").toFile();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
+
+        try (IndexSearcherHolder holder = new IndexSearcherHolder(storageState, "test", copier, definition)) {
+            assertNotNull(holder.getReader());
+            // Only the real wrapForRead/CopyOnReadDirectory copy path increments this counter
+            // (LuceneNgIndexCopier's constructor itself only creates the generic indexWriterDir
+            // work folder, which is not proof that a wrap+copy actually happened - see
+            // LuceneNgIndexCopier#doneCopy, only reached via CopyOnReadDirectory#openInput).
+            assertTrue(copier.getDownloadCount() > 0,
+                    "expected at least one file to have been copied from remote to local");
+        } finally {
+            copier.close();
+        }
+    }
+}
