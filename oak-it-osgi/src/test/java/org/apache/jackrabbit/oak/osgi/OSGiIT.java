@@ -27,23 +27,15 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 import javax.inject.Inject;
 import javax.jcr.Repository;
@@ -71,7 +63,6 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleException;
 import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
@@ -122,6 +113,7 @@ public class OSGiIT {
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
+                jarBundles(new File("target/test-bundles/cloud")),
                 jpmsOptions());
     }
 
@@ -167,9 +159,13 @@ public class OSGiIT {
     }
 
     static Option jarBundles() throws MalformedURLException {
+        return jarBundles(new File("target/test-bundles"));
+    }
+
+    private static Option jarBundles(File directory) throws MalformedURLException {
         DefaultCompositeOption composite = new DefaultCompositeOption();
         List<String> loggingBundles = List.of("slf4j-api.jar", "logback-core.jar", "logback-classic.jar");
-        for (File bundle : new File("target", "test-bundles").listFiles()) {
+        for (File bundle : directory.listFiles()) {
             if (bundle.getName().endsWith(".jar") && bundle.isFile()) {
                 // Make the provider available before framework services initialize SLF4J.
                 composite.add(bundle(bundle.toURI().toURL().toString()).startLevel(
@@ -196,14 +192,19 @@ public class OSGiIT {
      */
     @Test
     public void slf4jImportRanges() throws InvalidSyntaxException, ClassNotFoundException {
+        Version slf4j17 = new Version("1.7.36");
+        Version slf4j20 = new Version("2.0.20");
+        Version slf4j30 = new Version("3.0.0");
         int imports = 0;
         for (Bundle bundle : context.getBundles()) {
             if (!bundle.getSymbolicName().startsWith("org.apache.jackrabbit.oak")) {
                 continue;
             }
             BundleWiring wiring = bundle.adapt(BundleWiring.class);
-            Assert.assertNotNull(bundle.toString(), wiring);
+            Assert.assertNotNull("SLF4J imports cannot be checked because bundle wiring is unavailable: " + bundle,
+                    wiring);
             boolean elastic = "org.apache.jackrabbit.oak-search-elastic".equals(bundle.getSymbolicName());
+            boolean cloud = "org.apache.jackrabbit.oak-blob-cloud".equals(bundle.getSymbolicName());
             if (elastic) {
                 Class.forName("co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester",
                         true, wiring.getClassLoader());
@@ -219,13 +220,15 @@ public class OSGiIT {
                 String message = bundle + ": " + filter;
                 Assert.assertTrue(message, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
-                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("1.7.36"))));
-                Assert.assertEquals(message, elastic && packageName.equals("org.slf4j.spi"), filter.matches(Map.of(
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, slf4j17)));
+                boolean supportsSlf4j2 = elastic && packageName.equals("org.slf4j.spi")
+                        || cloud && packageName.equals("org.slf4j.event");
+                Assert.assertEquals(message, supportsSlf4j2, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
-                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("2.0.20"))));
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, slf4j20)));
                 Assert.assertFalse(message, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
-                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("3.0.0"))));
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, slf4j30)));
                 imports++;
             }
         }
@@ -236,43 +239,36 @@ public class OSGiIT {
      * Checks the embedded AWS SDK's logging requirements against SLF4J alone, without Pax Logging exports.
      */
     @Test
-    public void cloudSlf4jImports() throws BundleException, InvalidSyntaxException {
-        Bundle provider = Arrays.stream(context.getBundles())
-                .filter(bundle -> "slf4j.api".equals(bundle.getSymbolicName()))
-                .findFirst().orElseThrow(() -> new IllegalStateException("SLF4J API bundle is missing"));
+    public void cloudSlf4jImports() throws InvalidSyntaxException {
+        Bundle provider = getBundle("slf4j.api");
         List<BundleCapability> exports = provider.adapt(BundleRevision.class)
                 .getDeclaredCapabilities(PackageNamespace.PACKAGE_NAMESPACE);
-        Bundle cloud = context.installBundle(
-                new File("target/test-bundles/cloud/oak-blob-cloud.jar").toURI().toString());
-        try {
-            boolean eventChecked = false;
-            for (BundleRequirement requirement : cloud.adapt(BundleRevision.class)
-                    .getDeclaredRequirements(PackageNamespace.PACKAGE_NAMESPACE)) {
-                String filterText = requirement.getDirectives()
-                        .get(PackageNamespace.REQUIREMENT_FILTER_DIRECTIVE);
-                if (!filterText.contains("(osgi.wiring.package=org.slf4j)")
-                        && !filterText.contains("(osgi.wiring.package=org.slf4j.")) {
-                    continue;
-                }
-                boolean optional = PackageNamespace.RESOLUTION_OPTIONAL.equals(requirement.getDirectives()
-                        .get(PackageNamespace.REQUIREMENT_RESOLUTION_DIRECTIVE));
-                String message = cloud + ": " + filterText + " against " + provider;
-                if (filterText.contains("(osgi.wiring.package=org.slf4j.event)")) {
-                    Assert.assertFalse(message, optional);
-                    Filter filter = FrameworkUtil.createFilter(filterText);
-                    Assert.assertFalse(message, filter.matches(Map.of(
-                            PackageNamespace.PACKAGE_NAMESPACE, "org.slf4j.event",
-                            PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("3.0.0"))));
-                    eventChecked = true;
-                }
-                if (!optional) {
-                    Assert.assertTrue(message, exports.stream().anyMatch(requirement::matches));
-                }
+        Bundle cloud = getBundle("org.apache.jackrabbit.oak-blob-cloud");
+        boolean eventChecked = false;
+        for (BundleRequirement requirement : cloud.adapt(BundleRevision.class)
+                .getDeclaredRequirements(PackageNamespace.PACKAGE_NAMESPACE)) {
+            String filterText = requirement.getDirectives()
+                    .get(PackageNamespace.REQUIREMENT_FILTER_DIRECTIVE);
+            if (!filterText.contains("(osgi.wiring.package=org.slf4j)")
+                    && !filterText.contains("(osgi.wiring.package=org.slf4j.")) {
+                continue;
             }
-            Assert.assertTrue("No AWS SDK SLF4J event import was checked", eventChecked);
-        } finally {
-            cloud.uninstall();
+            boolean optional = PackageNamespace.RESOLUTION_OPTIONAL.equals(requirement.getDirectives()
+                    .get(PackageNamespace.REQUIREMENT_RESOLUTION_DIRECTIVE));
+            String message = cloud + ": " + filterText + " against " + provider;
+            if (filterText.contains("(osgi.wiring.package=org.slf4j.event)")) {
+                Assert.assertFalse(message, optional);
+                Filter filter = FrameworkUtil.createFilter(filterText);
+                Assert.assertFalse(message, filter.matches(Map.of(
+                        PackageNamespace.PACKAGE_NAMESPACE, "org.slf4j.event",
+                        PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, new Version("3.0.0"))));
+                eventChecked = true;
+            }
+            if (!optional) {
+                Assert.assertTrue(message, exports.stream().anyMatch(requirement::matches));
+            }
         }
+        Assert.assertTrue("No AWS SDK SLF4J event import was checked", eventChecked);
     }
 
     /**
@@ -280,17 +276,22 @@ public class OSGiIT {
      */
     @Test
     public void embeddedSlf4jLogging() throws Exception {
-        Bundle elastic = Arrays.stream(context.getBundles())
-                .filter(bundle -> "org.apache.jackrabbit.oak-search-elastic".equals(bundle.getSymbolicName()))
-                .findFirst().orElseThrow(() -> new IllegalStateException("Elastic bundle is missing"));
-        Bundle api = Arrays.stream(context.getBundles())
-                .filter(bundle -> "slf4j.api".equals(bundle.getSymbolicName()))
-                .findFirst().orElseThrow(() -> new IllegalStateException("SLF4J API bundle is missing"));
-        String loggerName = OSGiIT.class.getName() + ".embedded";
-        LoggerContext loggerContext = (LoggerContext) api.loadClass("org.slf4j.LoggerFactory")
-                .getMethod("getILoggerFactory").invoke(null);
-        Logger logger = loggerContext.getLogger(loggerName);
-        Path sdkJar = Files.createTempFile("oak-slf4j-sdk-", ".jar");
+        Bundle api = getBundle("slf4j.api");
+        Bundle elastic = getBundle("org.apache.jackrabbit.oak-search-elastic");
+        Bundle cloud = getBundle("org.apache.jackrabbit.oak-blob-cloud");
+        Class<?> loggerFactory = api.loadClass("org.slf4j.LoggerFactory");
+        Assert.assertSame(loggerFactory, elastic.loadClass("org.slf4j.LoggerFactory"));
+        Assert.assertSame(loggerFactory, cloud.loadClass("org.slf4j.LoggerFactory"));
+        LoggerContext loggerContext = (LoggerContext) loggerFactory.getMethod("getILoggerFactory").invoke(null);
+        Logger logger = loggerContext.getLogger(OSGiIT.class.getName() + ".embedded");
+        Object commonsLog = commonsLogger(elastic, logger.getName());
+        Object sdkLog = awsLogger(cloud, logger);
+        Class<?> logClass = elastic.loadClass("org.apache.commons.logging.Log");
+        Class<?> sdkClass = sdkLog.getClass();
+        Class<?> levelClass = api.loadClass("org.slf4j.event.Level");
+        Assert.assertSame(levelClass, cloud.loadClass("org.slf4j.event.Level"));
+        Method sdkEnabled = sdkClass.getMethod("isLoggingLevelEnabled", levelClass);
+        Method sdkLogging = sdkClass.getMethod("log", levelClass, Supplier.class);
         Level previousLevel = logger.getLevel();
         boolean previousAdditive = logger.isAdditive();
         ListAppender<ILoggingEvent> appender = new ListAppender<>() {
@@ -305,90 +306,87 @@ public class OSGiIT {
         logger.addAppender(appender);
         logger.setAdditive(false);
         logger.setLevel(Level.TRACE);
-        try (JarFile cloud = new JarFile("target/test-bundles/cloud/oak-blob-cloud.jar")) {
-            JarEntry utils = cloud.stream()
-                    .filter(entry -> entry.getName().startsWith("utils-")
-                            && !entry.getName().startsWith("utils-lite-") && entry.getName().endsWith(".jar"))
-                    .findFirst().orElseThrow(() -> new IllegalStateException("Embedded AWS SDK utils JAR is missing"));
-            try (InputStream input = cloud.getInputStream(utils)) {
-                Files.copy(input, sdkJar, StandardCopyOption.REPLACE_EXISTING);
-            }
-            Assert.assertSame(api.loadClass("org.slf4j.LoggerFactory"),
-                    elastic.loadClass("org.slf4j.LoggerFactory"));
-            Class<?> logFactoryClass = elastic.loadClass("org.apache.commons.logging.LogFactory");
-            Object commonsFactory = logFactoryClass.getMethod("getFactory").invoke(null);
-            Assert.assertEquals("org.apache.commons.logging.impl.Slf4jLogFactory",
-                    commonsFactory.getClass().getName());
-            Object commonsLog = logFactoryClass.getMethod("getLog", String.class).invoke(null, loggerName);
-            Class<?> logClass = elastic.loadClass("org.apache.commons.logging.Log");
-            Class<?> levelClass = api.loadClass("org.slf4j.event.Level");
-            ClassLoader loggingLoader = new ClassLoader(null) {
-                @Override
-                protected Class<?> findClass(String name) throws ClassNotFoundException {
-                    if (name.startsWith("org.slf4j.")) {
-                        return api.loadClass(name);
-                    }
-                    throw new ClassNotFoundException(name);
-                }
-            };
-            try (URLClassLoader sdkLoader = new URLClassLoader(new URL[] {sdkJar.toUri().toURL()}, loggingLoader)) {
-                Class<?> sdkClass = sdkLoader.loadClass("software.amazon.awssdk.utils.Logger");
-                Assert.assertSame(sdkLoader, sdkClass.getClassLoader());
-                Constructor<?> sdkConstructor = sdkClass.getDeclaredConstructor(api.loadClass("org.slf4j.Logger"));
-                sdkConstructor.setAccessible(true);
-                Object sdkLog = sdkConstructor.newInstance(logger);
-                Assert.assertSame(logger, sdkClass.getMethod("logger").invoke(sdkLog));
-                for (String level : List.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR")) {
-                    String method = level.toLowerCase(Locale.ROOT);
-                    String enabledMethod = "is" + level.charAt(0) + method.substring(1) + "Enabled";
-                    appender.list.clear();
-                    Assert.assertEquals(true, logClass.getMethod(enabledMethod).invoke(commonsLog));
-                    logClass.getMethod(method, Object.class)
-                            .invoke(commonsLog, "commons-" + level);
-                    Object sdkLevel = levelClass.getField(level).get(null);
-                    Assert.assertEquals(true, sdkClass.getMethod("isLoggingLevelEnabled", levelClass)
-                            .invoke(sdkLog, sdkLevel));
-                    Supplier<String> message = () -> "aws-" + level;
-                    sdkClass.getMethod("log", levelClass, Supplier.class).invoke(sdkLog, sdkLevel, message);
-                    Assert.assertEquals(2, appender.list.size());
-                    Assert.assertEquals("commons-" + level, appender.list.get(0).getFormattedMessage());
-                    Assert.assertEquals("aws-" + level, appender.list.get(1).getFormattedMessage());
-                    for (ILoggingEvent event : appender.list) {
-                        Assert.assertEquals(Level.toLevel(level), event.getLevel());
-                    }
-                    StackTraceElement caller = Arrays.stream(appender.list.get(0).getCallerData())
-                            .filter(frame -> !frame.getClassName().startsWith("java.lang.reflect.")
-                                    && !frame.getClassName().startsWith("jdk.internal.reflect."))
-                            .findFirst().orElseThrow(() -> new AssertionError("Missing bridge caller data"));
-                    Assert.assertEquals(OSGiIT.class.getName(), caller.getClassName());
-                    Assert.assertEquals("embeddedSlf4jLogging", caller.getMethodName());
+        try {
+            for (String level : List.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR")) {
+                String method = level.toLowerCase(Locale.ROOT);
+                String enabledMethod = "is" + level.charAt(0) + method.substring(1) + "Enabled";
+                Method commonsEnabled = logClass.getMethod(enabledMethod);
+                Method commonsLogging = logClass.getMethod(method, Object.class);
+                Method commonsFailure = logClass.getMethod(method, Object.class, Throwable.class);
+                Method sdkFailure = sdkClass.getMethod(method, Supplier.class, Throwable.class);
+                Object sdkLevel = levelClass.getField(level).get(null);
+                Level expectedLevel = Level.toLevel(level);
+                appender.list.clear();
+                Assert.assertEquals(true, commonsEnabled.invoke(commonsLog));
+                commonsLogging.invoke(commonsLog, "commons-" + level);
+                Assert.assertEquals(true, sdkEnabled.invoke(sdkLog, sdkLevel));
+                Supplier<String> message = () -> "aws-" + level;
+                sdkLogging.invoke(sdkLog, sdkLevel, message);
+                Assert.assertEquals(2, appender.list.size());
+                assertLogEvent(appender.list.get(0), "commons-" + level, expectedLevel);
+                assertLogEvent(appender.list.get(1), "aws-" + level, expectedLevel);
+                StackTraceElement caller = Arrays.stream(appender.list.get(0).getCallerData())
+                        .filter(frame -> !frame.getClassName().startsWith("java.lang.reflect.")
+                                && !frame.getClassName().startsWith("jdk.internal.reflect."))
+                        .findFirst().orElseThrow(() -> new AssertionError("Missing bridge caller data"));
+                Assert.assertEquals(OSGiIT.class.getName(), caller.getClassName());
+                Assert.assertEquals("embeddedSlf4jLogging", caller.getMethodName());
 
-                    Throwable failure = new IllegalStateException("commons-failure-" + level);
-                    logClass.getMethod(method, Object.class, Throwable.class)
-                            .invoke(commonsLog, "commons-failure-" + level, failure);
-                    Assert.assertEquals(3, appender.list.size());
-                    ILoggingEvent event = appender.list.get(2);
-                    Assert.assertEquals("commons-failure-" + level, event.getFormattedMessage());
-                    Assert.assertEquals(Level.toLevel(level), event.getLevel());
-                    Assert.assertSame(failure, ((ThrowableProxy) event.getThrowableProxy()).getThrowable());
+                Throwable failure = new IllegalStateException("logging-failure-" + level);
+                commonsFailure.invoke(commonsLog, "commons-failure-" + level, failure);
+                Supplier<String> failureMessage = () -> "aws-failure-" + level;
+                sdkFailure.invoke(sdkLog, failureMessage, failure);
+                Assert.assertEquals(4, appender.list.size());
+                assertLogEvent(appender.list.get(2), "commons-failure-" + level, expectedLevel);
+                assertLogEvent(appender.list.get(3), "aws-failure-" + level, expectedLevel);
+                Assert.assertSame(failure, ((ThrowableProxy) appender.list.get(2).getThrowableProxy()).getThrowable());
+                Assert.assertSame(failure, ((ThrowableProxy) appender.list.get(3).getThrowableProxy()).getThrowable());
 
-                    logger.setLevel(Level.OFF);
-                    appender.list.clear();
-                    Assert.assertEquals(false, logClass.getMethod(enabledMethod).invoke(commonsLog));
-                    logClass.getMethod(method, Object.class).invoke(commonsLog, "suppressed");
-                    logClass.getMethod(method, Object.class, Throwable.class)
-                            .invoke(commonsLog, "suppressed", failure);
-                    Assert.assertTrue(appender.list.isEmpty());
-                    logger.setLevel(Level.TRACE);
-                }
+                logger.setLevel(Level.OFF);
+                appender.list.clear();
+                Assert.assertEquals(false, commonsEnabled.invoke(commonsLog));
+                commonsLogging.invoke(commonsLog, "suppressed");
+                commonsFailure.invoke(commonsLog, "suppressed", failure);
+                Assert.assertEquals(false, sdkEnabled.invoke(sdkLog, sdkLevel));
+                Supplier<String> suppressed = () -> {
+                    throw new AssertionError("Disabled AWS logging evaluated its message supplier at " + level);
+                };
+                sdkLogging.invoke(sdkLog, sdkLevel, suppressed);
+                sdkFailure.invoke(sdkLog, suppressed, failure);
+                Assert.assertTrue(appender.list.isEmpty());
+                logger.setLevel(Level.TRACE);
             }
         } finally {
             logger.detachAppender(appender);
             logger.setLevel(previousLevel);
             logger.setAdditive(previousAdditive);
             appender.stop();
-            Files.delete(sdkJar);
         }
+    }
+
+    private Bundle getBundle(String symbolicName) {
+        return Arrays.stream(context.getBundles())
+                .filter(bundle -> symbolicName.equals(bundle.getSymbolicName()))
+                .findFirst().orElseThrow(() -> new IllegalStateException("Missing provisioned bundle: " + symbolicName));
+    }
+
+    private Object commonsLogger(Bundle elastic, String loggerName) throws ReflectiveOperationException {
+        Class<?> logFactory = elastic.loadClass("org.apache.commons.logging.LogFactory");
+        Object factory = logFactory.getMethod("getFactory").invoke(null);
+        Assert.assertEquals("org.apache.commons.logging.impl.Slf4jLogFactory", factory.getClass().getName());
+        return logFactory.getMethod("getLog", String.class).invoke(null, loggerName);
+    }
+
+    private Object awsLogger(Bundle cloud, Logger logger) throws ReflectiveOperationException {
+        Class<?> sdkClass = cloud.loadClass("software.amazon.awssdk.utils.Logger");
+        Object sdkLog = sdkClass.getMethod("loggerFor", String.class).invoke(null, logger.getName());
+        Assert.assertSame(logger, sdkClass.getMethod("logger").invoke(sdkLog));
+        return sdkLog;
+    }
+
+    private void assertLogEvent(ILoggingEvent event, String message, Level level) {
+        Assert.assertEquals(message, event.getFormattedMessage());
+        Assert.assertEquals(level, event.getLevel());
     }
 
     @Test
