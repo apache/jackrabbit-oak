@@ -256,7 +256,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         // File name
         byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
         System.arraycopy(
-                nameBytes, 0, header, 0, Math.min(nameBytes.length, 100));
+                nameBytes, 0, header, 0, Math.min(nameBytes.length, TarEntryHeader.NAME_LENGTH));
 
         // File mode
         System.arraycopy(
@@ -276,7 +276,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         // File size in bytes (octal basis)
         System.arraycopy(
                 String.format("%011o", size).getBytes(StandardCharsets.UTF_8), 0,
-                header, 124, 11);
+                header, TarEntryHeader.SIZE_OFFSET, 11);
 
         // Last modification time in numeric Unix time format (octal)
         long time = System.currentTimeMillis() / 1000;
