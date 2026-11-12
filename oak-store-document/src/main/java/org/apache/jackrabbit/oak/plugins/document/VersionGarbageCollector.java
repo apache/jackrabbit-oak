@@ -1963,6 +1963,15 @@ public class VersionGarbageCollector {
                 deletedRevsCount++;
             }
             // "_commitRoot"
+            // Keep the newest committed entry per cluster for child reads, even without property references.
+            Set<Integer> retainedClusters = new HashSet<>();
+            for (Revision revision : doc.getLocalCommitRoot().keySet()) {
+                if (!retainedClusters.contains(revision.getClusterId())
+                        && isCommitted(nodeStore.getCommitValue(revision, doc))) {
+                    allRequiredRevs.add(revision);
+                    retainedClusters.add(revision.getClusterId());
+                }
+            }
             deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(),
                     updateOp, allRequiredRevs, COMMIT_ROOT, NodeDocument::removeCommitRoot);
             // "_bc"
