@@ -276,6 +276,24 @@ public class OSGiIT {
     }
 
     /**
+     * Ensures Azure DNS and SOCKS codecs are embedded rather than supplied by the container.
+     */
+    @Test
+    public void azureNettyCodecs() throws ClassNotFoundException {
+        for (String name : List.of("org.apache.jackrabbit.oak-segment-azure",
+                "org.apache.jackrabbit.oak-blob-cloud-azure")) {
+            Bundle azure = Arrays.stream(context.getBundles())
+                    .filter(bundle -> name.equals(bundle.getSymbolicName()))
+                    .findFirst().orElseThrow(() -> new IllegalStateException(name + " is missing"));
+            for (String className : List.of("io.netty.handler.codec.dns.DatagramDnsResponseDecoder",
+                    "io.netty.handler.codec.socksx.v5.Socks5InitialResponseDecoder")) {
+                Class<?> codec = Class.forName(className, true, azure.adapt(BundleWiring.class).getClassLoader());
+                Assert.assertSame(name + ": " + className, azure, FrameworkUtil.getBundle(codec));
+            }
+        }
+    }
+
+    /**
      * Verifies the embedded Commons Logging bridge and AWS logging against the selected runtime.
      */
     @Test
