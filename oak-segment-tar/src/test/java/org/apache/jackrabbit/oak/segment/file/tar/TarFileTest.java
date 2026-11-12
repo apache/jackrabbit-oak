@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.new
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
@@ -51,6 +52,8 @@ public class TarFileTest {
     protected static GCGeneration generation(int full) {
         return newGCGeneration(full, 0, false);
     }
+
+    private static final TarRecovery UNEXPECTED_RECOVERY = (id, data, entryRecovery) -> fail("unexpected recovery of " + id);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -231,7 +234,7 @@ public class TarFileTest {
         Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<>(), UNEXPECTED_RECOVERY)) {
                 assertNotNull(swept);
 
                 Map<UUID, Set<String>> one = new HashMap<>();
@@ -295,7 +298,7 @@ public class TarFileTest {
         Set<UUID> sweep = newSet(new UUID(1, 2), new UUID(2, 3));
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<>(), UNEXPECTED_RECOVERY)) {
                 assertNotNull(swept);
                 SegmentGraph graph = new SegmentGraph();
                 graph.addEdge(new UUID(2, 1), new UUID(2, 2));
