@@ -29,7 +29,6 @@
       <scope>test</scope>
       <includes>
         <include>org.apache.jackrabbit:oak-blob-cloud</include>
-        <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.httpcomponents:httpclient-osgi</include>
         <include>org.apache.httpcomponents:httpcore-osgi</include>
       </includes>
