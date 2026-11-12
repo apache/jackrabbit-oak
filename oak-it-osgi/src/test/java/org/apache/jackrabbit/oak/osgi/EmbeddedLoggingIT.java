@@ -77,7 +77,7 @@ public class EmbeddedLoggingIT {
     }
 
     /**
-     * Checks library logging contracts and the embedded Elastic client's shared SLF4J SPI.
+     * Checks library logging contracts and the embedded clients' shared SLF4J packages.
      */
     @Test
     public void slf4jImportRanges() throws InvalidSyntaxException, ClassNotFoundException {
@@ -110,9 +110,9 @@ public class EmbeddedLoggingIT {
                 Assert.assertTrue(message, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
                         PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, slf4j17)));
-                boolean supportsSlf4j2 = elastic && packageName.equals("org.slf4j.spi")
-                        || cloud && packageName.equals("org.slf4j.event");
-                Assert.assertEquals(message, supportsSlf4j2, filter.matches(Map.of(
+                boolean acceptsSlf4j2 = (elastic && packageName.equals("org.slf4j.spi"))
+                        || (cloud && packageName.equals("org.slf4j.event"));
+                Assert.assertEquals(message, acceptsSlf4j2, filter.matches(Map.of(
                         PackageNamespace.PACKAGE_NAMESPACE, packageName,
                         PackageNamespace.CAPABILITY_VERSION_ATTRIBUTE, slf4j20)));
                 Assert.assertFalse(message, filter.matches(Map.of(
