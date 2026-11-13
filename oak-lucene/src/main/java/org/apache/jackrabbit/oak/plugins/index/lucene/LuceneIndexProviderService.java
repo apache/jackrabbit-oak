@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBui
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -414,6 +416,9 @@ public class LuceneIndexProviderService {
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle("FT_OAK-12173", FT_OAK_12173),
                 emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(LuceneFeatureToggles.FT_OAK_12469, LuceneFeatureToggles.FT_OAK_12469_ENABLE),
+                emptyMap()));
         if (FT_OAK_12173.get()) {
             // OAK-12173: update the tracker now, so indexes built before this
             // service started can be used right away. Without this, we'd have
@@ -457,6 +462,13 @@ public class LuceneIndexProviderService {
 
     @Deactivate
     private void deactivate() throws InterruptedException, IOException {
+        if (LuceneFeatureToggles.FT_OAK_12469_ENABLE.get()) {
+            // OAK-12469: the repository depends on the IndexEditorProvider (registered last),
+            // so unregistering it first stops the repository while queries can still use the
+            // QueryIndexProvider (registered first). In registration order, queries traverse.
+            Collections.reverse(regs);
+            Collections.reverse(oakRegs);
+        }
         for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
