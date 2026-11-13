@@ -144,6 +144,14 @@ import org.slf4j.LoggerFactory;
 @Ignore("OAK-11490")
 public class VersionGarbageCollectorIT {
 
+    /**
+     * System property to enable BETWEEN_CHECKPOINTS modes in tests.
+     * By default, these modes are disabled due to flakiness and slowness (OAK-10844).
+     * Set to "true" to enable: -Doak.test.enableBetweenCheckpointsModes=true
+     */
+    private static final String ENABLE_BETWEEN_CHECKPOINTS_MODES = 
+            "oak.test.enableBetweenCheckpointsModes";
+
     // OAK-10845 : temporary hacky exposure of test store to include its dump in error message
     static DocumentNodeStore staticStore;
 
@@ -220,13 +228,17 @@ public class VersionGarbageCollectorIT {
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
     public static java.util.Collection<Object[]> params() throws IOException {
+        boolean enableBetweenCheckpointsModes = Boolean.getBoolean(ENABLE_BETWEEN_CHECKPOINTS_MODES);
         java.util.Collection<Object[]> params = new LinkedList<>();
+        int skippedModes = 0;
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
             for (FullGCMode gcType : FullGCMode.values()) {
-                if (gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC
-                        || gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC) {
-                    // temporarily skip due to flakyness
+                // OAK-10844: Skip BETWEEN_CHECKPOINTS modes by default
+                if (!enableBetweenCheckpointsModes && 
+                        (gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC ||
+                         gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC)) {
+                    skippedModes++;
                     continue;
                 }
                 if (f.getName().equals("Memory") || f.getName().startsWith("RDB")) {
@@ -239,6 +251,11 @@ public class VersionGarbageCollectorIT {
                 }
                 params.add(new Object[] {f, gcType});
             }
+        }
+        if (skippedModes > 0 && !enableBetweenCheckpointsModes) {
+            System.out.println("VersionGarbageCollectorIT: Skipping " + skippedModes + 
+                    " BETWEEN_CHECKPOINTS mode test combinations. " +
+                    "To enable, set system property: -D" + ENABLE_BETWEEN_CHECKPOINTS_MODES + "=true");
         }
         return params;
     }
