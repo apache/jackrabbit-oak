@@ -37,7 +37,7 @@
   <properties>
     <slf4j.api.version>${slf4j.version}</slf4j.api.version>
     <logback.version>${logback.runtime.version}</logback.version>
-    <tomcat.version>9.0.118</tomcat.version>
+    <tomcat.version>9.0.121</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
