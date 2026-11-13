@@ -61,6 +61,7 @@
     <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback.runtime.version -->
     <logback.version>1.2.13</logback.version> <!-- library test backend -->
     <logback.runtime.version>1.6.4</logback.runtime.version>
+    <tomcat.version>9.0.123</tomcat.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
@@ -719,12 +720,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.123</version>
+        <version>${tomcat.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.123</version>
+        <version>${tomcat.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
