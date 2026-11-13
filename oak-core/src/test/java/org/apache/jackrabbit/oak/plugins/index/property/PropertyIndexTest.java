@@ -37,6 +37,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -81,6 +82,8 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.LoggerContext;
@@ -92,8 +95,34 @@ import org.slf4j.event.Level;
 
 /**
  * Test the Property2 index mechanism.
+ * <p>
+ * Parameterized on OAK-12348's {@code disableConfigurableCosts} toggle so
+ * that every test in this class -- unmodified -- runs once against the
+ * configurable cost formula (default) and once against the legacy formula,
+ * without duplicating any test code. Tests that specifically assert
+ * *different* behavior between the two modes (because they configure
+ * {@code costPerEntry}/{@code costPerExecution} overrides, which only the
+ * configurable formula honors) construct their own
+ * {@code PropertyIndex}/{@code PropertyIndexPlan}/{@code PropertyIndexLookup}
+ * instances directly instead of going through {@link #newPropertyIndex()} et
+ * al., and are documented as such.
  */
+@RunWith(Parameterized.class)
 public class PropertyIndexTest {
+
+    @Parameterized.Parameters(name = "disableConfigurableCosts={0}")
+    public static Collection<Object[]> parameters() {
+        return Arrays.asList(new Object[][] {
+                { Boolean.FALSE },
+                { Boolean.TRUE },
+        });
+    }
+
+    private final boolean disableConfigurableCosts;
+
+    public PropertyIndexTest(boolean disableConfigurableCosts) {
+        this.disableConfigurableCosts = disableConfigurableCosts;
+    }
 
     @Rule
     public final OsgiContext osgiContext = new OsgiContext();
@@ -102,6 +131,29 @@ public class PropertyIndexTest {
 
     private static final EditorHook HOOK = new EditorHook(
             new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+
+    /**
+     * Toggle-aware factory for tests that don't configure
+     * {@code costPerEntry}/{@code costPerExecution} overrides -- both modes
+     * must produce identical results for these, so routing construction
+     * through the {@link #disableConfigurableCosts} field is how the same
+     * test body ends up exercising (and passing under) both.
+     */
+    private PropertyIndex newPropertyIndex() {
+        return new PropertyIndex(Mounts.defaultMountInfoProvider(), disableConfigurableCosts);
+    }
+
+    private PropertyIndexLookup newPropertyIndexLookup(NodeState indexed) {
+        return new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), disableConfigurableCosts);
+    }
+
+    private PropertyIndexLookup newPropertyIndexLookup(NodeState indexed, MountInfoProvider mountInfoProvider) {
+        return new PropertyIndexLookup(indexed, mountInfoProvider, disableConfigurableCosts);
+    }
+
+    private PropertyIndexPlan newPropertyIndexPlan(String name, NodeState root, NodeState definition, Filter filter) {
+        return new PropertyIndexPlan(name, root, definition, filter, Mounts.defaultMountInfoProvider(), disableConfigurableCosts);
+    }
 
     @Test
     public void costEstimation() throws Exception {
@@ -126,7 +178,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         double cost;
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString("x1"));
@@ -183,7 +235,7 @@ public class PropertyIndexTest {
         f.restrictPath("/path1", Filter.PathRestriction.ALL_CHILDREN);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         double cost;
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString("x1"));
@@ -247,7 +299,7 @@ public class PropertyIndexTest {
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         double cost = lookup.getCost(f, "foo",
                 PropertyValues.newString("azerty"));
         double traversal = new TraversingIndex().getCost(f, indexed);
@@ -255,6 +307,378 @@ public class PropertyIndexTest {
         assertTrue("Estimated cost for " + nodes
                 + " nodes should not be higher than traversal (" + cost + " < " + traversal + ")",
                 cost < traversal);
+    }
+
+    /**
+     * Default cost (no costPerEntry/costPerExecution set) must stay exactly
+     * COST_OVERHEAD + entryCount regardless of the FT_OAK_12348 toggle
+     * position -- both via {@link PropertyIndexLookup#getCost} and via
+     * {@link PropertyIndex#getCost} (which goes through
+     * {@link PropertyIndexPlan}). Routed through the toggle-aware factories,
+     * so this single test body runs (and must pass) under both
+     * {@code disableConfigurableCosts} values from the class-level
+     * parameterization.
+     */
+    @Test
+    public void costPerEntryAndCostPerExecutionDefaultUnchanged() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        for (int i = 0; i < 5; i++) {
+            builder.child("n" + i).setProperty("foo", "x1");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
+        PropertyIndex pIndex = newPropertyIndex();
+        assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Setting costPerEntry/costPerExecution on the index definition changes
+     * the cost by the documented formula, {@code cost = costPerExecution +
+     * costPerEntry * entryCount}, under the configurable formula (enabled by
+     * default) -- but legacy mode (the escape hatch) ignores the override
+     * entirely and falls back to the old value. Since the two modes
+     * genuinely disagree here, the expected value is computed from the
+     * {@link #disableConfigurableCosts} field rather than routing through
+     * the toggle-agnostic factories.
+     */
+    @Test
+    public void costPerEntryAndCostPerExecutionOverride() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 2.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 10.0);
+        NodeState before = builder.getNodeState();
+
+        for (int i = 0; i < 5; i++) {
+            builder.child("n" + i).setProperty("foo", "x1");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
+        PropertyIndex pIndex = newPropertyIndex();
+
+        // configurable: 10.0 + 2.0 * 5 == 20.0; legacy: 2.0 + 5 == 7.0 (the override is ignored).
+        double expected = disableConfigurableCosts ? 7.0 : 20.0;
+        assertEquals(expected, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(expected, pIndex.getCost(f, indexed), 0.0);
+        // getCostLegacy() is callable directly regardless of the toggle, and always
+        // gives the old value -- proves the escape hatch's formula is intact.
+        assertEquals(7.0, lookup.getCostLegacy(f, "foo", PropertyValues.newString("x1")), 0.0);
+    }
+
+    /**
+     * costPerEntry == 0 on an index that doesn't apply to the query must not turn
+     * POSITIVE_INFINITY into NaN (0 * Infinity == NaN in IEEE754) — an inapplicable
+     * index must never look "free". The sentinel short-circuits before the
+     * multiplication in both modes, so the expected value is the same either way.
+     */
+    @Test
+    public void costPerEntryZeroDoesNotCorruptInfinityCost() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // filter has no restriction on "foo" (or any other indexed property) at all,
+        // so no candidate property matches and PropertyIndexPlan's bestCost stays
+        // POSITIVE_INFINITY internally.
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        PropertyIndex pIndex = newPropertyIndex();
+
+        double cost = pIndex.getCost(f, indexed);
+        assertFalse("cost must not be NaN", Double.isNaN(cost));
+        assertEquals(Double.POSITIVE_INFINITY, cost, 0.0);
+    }
+
+    /**
+     * The unique-index short circuit zeroes the raw per-property strategy count
+     * ({@code bestCost}) for a normal unique lookup — it never made the *final*
+     * cost 0 even before this change (default final cost was always
+     * {@code COST_OVERHEAD + 0 == COST_OVERHEAD}, i.e. 2.0, never 0.0). So the
+     * invariant an override must preserve is: the entry-count contribution stays
+     * zero (a huge costPerEntry must not blow up the cost of a unique lookup),
+     * while costPerExecution still applies as the flat cost of the lookup itself
+     * -- under the configurable formula only; legacy ignores the override and
+     * falls back to COST_OVERHEAD, so (like the override test above) the
+     * expected value depends on {@link #disableConfigurableCosts}.
+     */
+    @Test
+    public void uniqueIndexShortCircuitZeroesEntryCountContributionUnderOverride() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuidIndex",
+                true, true, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 1000.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 3.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = newPropertyIndex();
+
+        // configurable: 3.0 + 1000.0 * 0 == 3.0 -- the huge costPerEntry must not
+        // apply, since the short circuit means there is no per-entry contribution
+        // to multiply. legacy: ignores the override entirely, COST_OVERHEAD == 2.0.
+        double expected = disableConfigurableCosts ? PropertyIndexPlan.COST_OVERHEAD : 3.0;
+        assertEquals(expected, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Same scenario without any override: final cost for a unique
+     * short-circuited lookup is COST_OVERHEAD (2.0), not 0.0, in both modes --
+     * documents the baseline the override test above is relative to.
+     */
+    @Test
+    public void uniqueIndexShortCircuitDefaultCostIsOverheadNotZero() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuidIndex",
+                true, true, Set.of("foo"), null);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = newPropertyIndex();
+        assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Builds a {@link PropertyIndexPlan} whose constructor-computed
+     * {@code bestCount} is irrelevant -- these tests call
+     * {@link PropertyIndexPlan#getCostLegacy} / {@link PropertyIndexPlan#getCostConfigurable}
+     * directly with hand-picked {@code bestCount} values, to exercise the
+     * {@code Long.MAX_VALUE} "no candidate property matched" sentinel in
+     * isolation from the property-scanning logic that produces it in practice.
+     */
+    private PropertyIndexPlan createPlanForDirectCostCalls(NodeState indexed, NodeBuilder index) throws Exception {
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        return new PropertyIndexPlan("plan", indexed, index.getNodeState(), f);
+    }
+
+    /**
+     * {@code bestCount == Long.MAX_VALUE} is the sentinel for "no candidate
+     * property matched this filter" (an index that cannot be used at all).
+     * getCostLegacy() must map it to {@code Double.POSITIVE_INFINITY} exactly,
+     * regardless of {@code COST_OVERHEAD}.
+     */
+    @Test
+    public void getCostLegacySentinelIsPositiveInfinity() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null);
+        NodeState indexed = HOOK.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+
+        PropertyIndexPlan plan = createPlanForDirectCostCalls(indexed, index);
+        assertEquals(Double.POSITIVE_INFINITY, plan.getCostLegacy(Long.MAX_VALUE), 0.0);
+    }
+
+    /**
+     * Regression for the {@code double}/{@code long} rename: {@code bestCount}
+     * is a {@code long}, but a value of {@code Long.MAX_VALUE - 1} must NOT be
+     * treated as the sentinel. Doubles lose integer precision above 2^53, so
+     * if {@code getCostLegacy} took a {@code double} parameter instead of
+     * {@code long}, {@code (double) (Long.MAX_VALUE - 1)} would silently round
+     * to the exact same bit pattern as {@code (double) Long.MAX_VALUE} and
+     * this would incorrectly return infinity too. Asserts the result is both
+     * finite and equal to the real formula value.
+     */
+    @Test
+    public void getCostLegacyJustBelowSentinelIsFiniteNotInfinity() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null);
+        NodeState indexed = HOOK.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+
+        PropertyIndexPlan plan = createPlanForDirectCostCalls(indexed, index);
+        long justBelowSentinel = Long.MAX_VALUE - 1;
+        double cost = plan.getCostLegacy(justBelowSentinel);
+        assertFalse("must not be misidentified as the Long.MAX_VALUE sentinel", Double.isInfinite(cost));
+        assertEquals(PropertyIndexPlan.COST_OVERHEAD + justBelowSentinel, cost, 0.0);
+    }
+
+    /**
+     * Same sentinel behavior as {@link #getCostLegacySentinelIsPositiveInfinity},
+     * but for {@code getCostConfigurable()}: even with {@code costPerEntry} set
+     * to {@code 0.0} on the index definition, the sentinel must short-circuit
+     * to {@code Double.POSITIVE_INFINITY} rather than falling through to
+     * {@code costPerExecution + 0.0 * Long.MAX_VALUE}, which would produce
+     * {@code NaN} (IEEE754 {@code 0 * Infinity == NaN} once {@code bestCount}
+     * widens to a double) -- an inapplicable index must never look "free".
+     */
+    @Test
+    public void getCostConfigurableSentinelIsPositiveInfinityEvenWithCostPerEntryZero() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.0);
+        NodeState indexed = HOOK.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+
+        PropertyIndexPlan plan = createPlanForDirectCostCalls(indexed, index);
+        double cost = plan.getCostConfigurable(Long.MAX_VALUE);
+        assertFalse("cost must not be NaN", Double.isNaN(cost));
+        assertEquals(Double.POSITIVE_INFINITY, cost, 0.0);
+    }
+
+    /**
+     * Regression counterpart to {@link #getCostLegacyJustBelowSentinelIsFiniteNotInfinity}
+     * for getCostConfigurable(): {@code Long.MAX_VALUE - 1} must still apply
+     * the real {@code costPerExecution + costPerEntry * bestCount} formula
+     * (and stay finite), not be misidentified as the "no candidate matched"
+     * sentinel.
+     */
+    @Test
+    public void getCostConfigurableJustBelowSentinelAppliesFormula() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 2.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 10.0);
+        NodeState indexed = HOOK.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+
+        PropertyIndexPlan plan = createPlanForDirectCostCalls(indexed, index);
+        long justBelowSentinel = Long.MAX_VALUE - 1;
+        double cost = plan.getCostConfigurable(justBelowSentinel);
+        assertFalse("must not be misidentified as the Long.MAX_VALUE sentinel", Double.isInfinite(cost));
+        assertEquals(10.0 + 2.0 * justBelowSentinel, cost, 0.0);
+    }
+
+    /**
+     * End-to-end counterpart of {@link #getCostLegacySentinelIsPositiveInfinity}:
+     * goes through the real constructor scan (no property restriction matches
+     * any indexed property, so {@code bestCount} genuinely reaches the
+     * {@code Long.MAX_VALUE} sentinel internally) with
+     * {@code disableConfigurableCosts=true}, instead of calling
+     * {@code getCostLegacy()} directly with a hand-picked value. Also sets
+     * {@code costPerEntry=0.0}/{@code costPerExecution=0.0} to prove the
+     * legacy path ignores overrides entirely and still returns
+     * {@code Double.POSITIVE_INFINITY} (not {@code NaN} or a finite 0.0).
+     */
+    @Test
+    public void legacyModeConstructorReachesSentinelAndReturnsPositiveInfinity() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // filter has no restriction on "foo" (or any other indexed property), so
+        // no candidate property matches and bestCount stays Long.MAX_VALUE.
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
+
+        double cost = pIndexLegacy.getCost(f, indexed);
+        assertFalse("cost must not be NaN", Double.isNaN(cost));
+        assertEquals(Double.POSITIVE_INFINITY, cost, 0.0);
+    }
+
+    /**
+     * createPlan() stops scanning definitions once a plan costs at most
+     * {@code COST_OVERHEAD}. bIndex (unique, scanned first) reaches it, so
+     * aIndex must never be evaluated; its absence from the per-candidate
+     * debug log is the only observable evidence, since the winner is the
+     * same either way under the legacy formula.
+     */
+    @Test
+    public void createPlanBreaksImmediatelyOnCostOverheadUnderLegacyModeWithMultipleDefinitions() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "bIndex",
+                true, true, Set.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "aIndex",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.5);
+        NodeState before = builder.getNodeState();
+
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
+
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger(PropertyIndex.class.getName()).enable(Level.DEBUG).create();
+        try {
+            customLogs.starting();
+
+            // Baseline correctness: under legacy math, bIndex's unique
+            // short-circuit still wins even with a second definition present.
+            assertEquals("bIndex", pIndex.getIndexName(f, indexed));
+            assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
+
+            assertTrue("Expected bIndex's cost to be logged",
+                    customLogs.getLogs().stream().anyMatch(msg -> msg.contains("bIndex")));
+            assertFalse("aIndex must never be evaluated -- the break must fire "
+                    + "immediately after bIndex hits COST_OVERHEAD",
+                    customLogs.getLogs().stream().anyMatch(msg -> msg.contains("aIndex")));
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    /**
+     * getMinimumCost() stays a fixed floor regardless of the OAK-12348 toggle,
+     * matching how oak-search's FulltextIndex/LuceneIndex handle their own
+     * (pre-existing) costPerEntry/costPerExecution overrides -- they too keep
+     * getMinimumCost() a hardcoded constant rather than tracking overrides.
+     */
+    @Test
+    public void getMinimumCostIsAlwaysCostOverhead() {
+        assertEquals(PropertyIndexPlan.COST_OVERHEAD,
+                new PropertyIndex(Mounts.defaultMountInfoProvider()).getMinimumCost(), 0.0);
+        assertEquals(PropertyIndexPlan.COST_OVERHEAD,
+                new PropertyIndex(Mounts.defaultMountInfoProvider(), true).getMinimumCost(), 0.0);
     }
 
     @Test
@@ -283,7 +707,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
         assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
@@ -319,7 +743,7 @@ public class PropertyIndexTest {
         f.restrictPath("/a", Filter.PathRestriction.ALL_CHILDREN);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("a"), find(lookup, "foo", "abc", f));
     }
 
@@ -357,7 +781,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
         assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
@@ -405,7 +829,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_UNSTRUCTURED);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
         assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
@@ -420,7 +844,7 @@ public class PropertyIndexTest {
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
     }
@@ -460,7 +884,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
         assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
@@ -507,8 +931,8 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
+        PropertyIndex pIndex = newPropertyIndex();
         assertEquals(Set.of("a"), find(lookup, "foo", "a", f));
         assertEquals(Set.of("a1"), find(lookup, "foo", "a1", f));
         assertEquals(Set.of("b"), find(lookup, "foo", "b", f));
@@ -585,8 +1009,8 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
+        PropertyIndex pIndex = newPropertyIndex();
         assertEquals(Set.of("a"), find(lookup, "foo", "a", f));
         assertEquals(Set.of("a1"), find(lookup, "foo", "a1", f));
         assertEquals(Set.of("b"), find(lookup, "foo", "b", f));
@@ -763,7 +1187,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("test/a"), find(lookup, "foo", "abc", f));
     }
 
@@ -789,21 +1213,21 @@ public class PropertyIndexTest {
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("abc"));
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("test/b"), find(lookup, "foo", "abc", f));
 
         //no path restriction, opt out
-        PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        PropertyIndexPlan plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
 
         //path restriction is not an ancestor of excluded path, index may be used
         f.setPath("/test2");
-        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY != plan.getCost());
 
         //path restriction is an ancestor of excluded path, opt out
         f.setPath("/test");
-        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
     }
 
@@ -830,26 +1254,26 @@ public class PropertyIndexTest {
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("abc"));
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         assertEquals(Set.of("test/a"), find(lookup, "foo", "abc", f));
 
         //no path restriction, opt out
-        PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        PropertyIndexPlan plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
 
         //path restriction is not an ancestor of excluded path, index may be used
         f.setPath("/test/a/x");
-        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY != plan.getCost());
 
         //path restriction is an ancestor of excluded path but no included path, opt out
         f.setPath("/test/a/b");
-        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
 
         //path restriction is an ancestor of excluded path, opt out
         f.setPath("/test/a");
-        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
 }
 
@@ -907,7 +1331,7 @@ public class PropertyIndexTest {
 
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
-        PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        PropertyIndexPlan plan = newPropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
     }
 
@@ -947,7 +1371,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed,mip);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed, mip);
         assertEquals(Set.of("a", "b/x", "a/x", "m", "m/n", "m/n/o"), find(lookup, "foo", "abc", f));
         assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
 
@@ -1091,7 +1515,7 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
         Iterable<String> result = lookup.query(f, name, PropertyValues.newString(value));
         return IterableUtils.size(result);
     }
@@ -1245,6 +1669,11 @@ public class PropertyIndexTest {
      * must NOT throw. Instead the editor falls back to a sentinel, logs one WARN
      * naming the misconfigured index path, and lets the indexing cycle complete
      * so the valid sibling index still works.
+     * <p>
+     * Unrelated to the OAK-12348 {@code disableConfigurableCosts} toggle this
+     * class is parameterized on -- the index path is suffixed with that
+     * parameter purely so the two resulting runs (same JVM, same class-wide
+     * warn-dedup set keyed by index path) don't collide with each other.
      */
     @Test
     public void missingPropertyNames_toggleOn_logsWarnAndContinues() throws Exception {
@@ -1260,7 +1689,8 @@ public class PropertyIndexTest {
             createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                     true, false, Set.of("foo"), null);
 
-            NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child("invalidIndex_on");
+            String invalidIndexName = "invalidIndex_on_" + disableConfigurableCosts;
+            NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child(invalidIndexName);
             invalidIndex.setProperty(JCR_PRIMARYTYPE,
                     IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
             invalidIndex.setProperty(IndexConstants.TYPE_PROPERTY_NAME,
@@ -1274,10 +1704,10 @@ public class PropertyIndexTest {
 
             assertTrue("Expected a WARN message naming the invalid index path",
                     customLogs.getLogs().stream().anyMatch(
-                            msg -> msg.contains("invalidIndex_on") && msg.contains(IndexConstants.PROPERTY_NAMES)));
+                            msg -> msg.contains(invalidIndexName) && msg.contains(IndexConstants.PROPERTY_NAMES)));
 
             FilterImpl f = createFilter(indexed, NT_BASE);
-            PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+            PropertyIndexLookup lookup = newPropertyIndexLookup(indexed);
             assertEquals(Set.of("content"), find(lookup, "foo", "bar", f));
         } finally {
             customLogs.finished();
@@ -1289,8 +1719,10 @@ public class PropertyIndexTest {
      *
      * With the Feature enabled and the same invalid index hit twice, exactly one
      * WARN must be emitted for that index path. Uses a unique index node name
-     * ("invalidIndex_dedup") so the JVM-wide dedup set doesn't get poisoned by
-     * earlier tests in the suite.
+     * ("invalidIndex_dedup", further suffixed with the class-level
+     * {@code disableConfigurableCosts} parameter -- see the note on
+     * {@link #missingPropertyNames_toggleOn_logsWarnAndContinues}) so the
+     * JVM-wide dedup set doesn't get poisoned by earlier tests in the suite.
      */
     @Test
     public void missingPropertyNames_toggleOn_warnLoggedOncePerIndexPath() throws Exception {
@@ -1303,7 +1735,8 @@ public class PropertyIndexTest {
             NodeState root = INITIAL_CONTENT;
             NodeBuilder builder = root.builder();
 
-            NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child("invalidIndex_dedup");
+            String invalidIndexName = "invalidIndex_dedup_" + disableConfigurableCosts;
+            NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child(invalidIndexName);
             invalidIndex.setProperty(JCR_PRIMARYTYPE,
                     IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
             invalidIndex.setProperty(IndexConstants.TYPE_PROPERTY_NAME,
@@ -1319,9 +1752,9 @@ public class PropertyIndexTest {
             hook.processCommit(after1, after2, CommitInfo.EMPTY);
 
             long warnsForThisIndex = customLogs.getLogs().stream()
-                    .filter(msg -> msg.contains("invalidIndex_dedup"))
+                    .filter(msg -> msg.contains(invalidIndexName))
                     .count();
-            assertEquals("Expected exactly one WARN for invalidIndex_dedup across two cycles, got: "
+            assertEquals("Expected exactly one WARN for " + invalidIndexName + " across two cycles, got: "
                     + customLogs.getLogs(), 1, warnsForThisIndex);
         } finally {
             customLogs.finished();
