@@ -170,10 +170,7 @@ public class AzureRepositoryLockV8 implements RepositoryLock {
                             log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
                         }
                     } else {
-                        log.error("Can't renew the lease", e);
-                        shutdownHook.run();
-                        doUpdate = false;
-                        return;
+                        log.warn("Could not renew lease due to exception. Retry in progress ... ", e);
                     }
                 }
                 waitABit(100);
