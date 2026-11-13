@@ -41,6 +41,7 @@
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
+      + 94 MB (Tika 3.2.3, OAK-9752)
       + 4 MB (Groovy 3.0.25 -> 4.0.33, OAK-12355)
       + 88 MB (Ben-manes Caffeine, OAK-12148)
       + 87 MB (Aws Sdk 2.x, OAK-11935)
@@ -61,7 +62,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>96274688</max.jar.size>
+    <max.jar.size>200000000</max.jar.size>
   </properties>
 
   <build>
@@ -368,12 +369,17 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers</artifactId>
+      <artifactId>tika-bundle-standard</artifactId>
       <version>${tika.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
+      <version>${tika.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-serialization</artifactId>
       <version>${tika.version}</version>
     </dependency>
     <dependency>

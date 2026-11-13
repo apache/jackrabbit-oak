@@ -21,12 +21,15 @@ package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.tika.config.TikaConfig;
+import org.apache.tika.config.loader.TikaJsonConfig;
+import org.apache.tika.config.loader.TikaLoader;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -38,10 +41,9 @@ import org.apache.tika.parser.ParserDecorator;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 
 class TikaHelper {
-    private static final String DEFAULT_TIKA_CONFIG = "/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.xml";
+    private static final String DEFAULT_TIKA_CONFIG = "/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.json";
     private static final Logger log = LoggerFactory.getLogger(TikaHelper.class);
 
     private final AutoDetectParser parser;
@@ -50,12 +52,12 @@ class TikaHelper {
 
     public TikaHelper(@Nullable File tikaConfig) throws IOException {
         try {
-            parser =  new AutoDetectParser(getTikaConfig(tikaConfig));
+            TikaJsonConfig jsonConfig = getTikaConfig(tikaConfig);
+            TikaLoader loader = TikaLoader.load(jsonConfig, Thread.currentThread().getContextClassLoader());
+            parser = (AutoDetectParser) loader.loadAutoDetectParser();
             supportedMediaTypes = parser.getSupportedTypes(new ParseContext());
             logSupportedTypesOnce(supportedMediaTypes);
         } catch (TikaException e) {
-            throw new RuntimeException(e);
-        } catch (SAXException e) {
             throw new RuntimeException(e);
         }
     }
@@ -93,20 +95,24 @@ class TikaHelper {
         return true;
     }
 
-    private static TikaConfig getTikaConfig(File tikaConfig) throws TikaException, IOException, SAXException {
-        TikaConfig config;
+    private static TikaJsonConfig getTikaConfig(File tikaConfig) throws TikaException, IOException {
+        TikaJsonConfig config;
         if (tikaConfig == null) {
             URL configUrl = TextExtractor.class.getResource(DEFAULT_TIKA_CONFIG);
             if (configUrl != null) {
                 log.info("Loading default Tika config from {}", configUrl);
-                config = new TikaConfig(configUrl);
+                try {
+                    config = TikaJsonConfig.load(Path.of(configUrl.toURI()));
+                } catch (URISyntaxException e) {
+                    throw new IOException(e);
+                }
             } else {
                 log.info("Using default Tika config");
-                config = TikaConfig.getDefaultConfig();
+                config = TikaJsonConfig.loadDefault();
             }
         } else {
             log.info("Loading external Tika config from {}", tikaConfig);
-            config = new TikaConfig(tikaConfig);
+            config = TikaJsonConfig.load(tikaConfig.toPath());
         }
         return config;
     }

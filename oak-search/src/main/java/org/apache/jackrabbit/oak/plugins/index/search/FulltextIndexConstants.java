@@ -245,7 +245,7 @@ public interface FulltextIndexConstants {
     /**
      * nt:file node under 'tika' node which refers to the config xml file
      */
-    String TIKA_CONFIG = "config.xml";
+    String TIKA_CONFIG = "config.json";
 
     String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
 

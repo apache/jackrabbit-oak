@@ -38,7 +38,7 @@
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
     <project.build.outputTimestamp>1792007258</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
-    <test.opts.memory>-Xmx512m</test.opts.memory>
+    <test.opts.memory>-Xmx1024m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
@@ -62,7 +62,7 @@
     <logback.version>1.2.13</logback.version> <!-- library test backend -->
     <logback.runtime.version>1.6.4</logback.runtime.version>
     <h2.version>2.1.214</h2.version>
-    <tika.version>1.28.5</tika.version>
+    <tika.version>4.2.0</tika.version>
     <derby.version>10.16.1.1</derby.version>
     <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
     <jackson.version>2.21.8</jackson.version>
@@ -646,7 +646,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
-        <version>4.5.0</version>
+        <version>4.6.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>

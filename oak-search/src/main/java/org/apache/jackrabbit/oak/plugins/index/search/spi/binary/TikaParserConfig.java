@@ -22,22 +22,23 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
-import javax.xml.parsers.DocumentBuilder;
-
-import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.tika.config.loader.TikaJsonConfig;
+import org.apache.tika.config.loader.TikaLoader;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
-import org.apache.tika.utils.XMLReaderUtils;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.parser.ParserDecorator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-public class TikaParserConfig {
+class TikaParserConfig {
 
-    private static final String EMPTY_PARSER = "org.apache.tika.parser.EmptyParser";
+    private static final Logger log = LoggerFactory.getLogger(TikaParserConfig.class);
 
     /**
      * Determines the set of MediaType which have been configured with an EmptyParser.
@@ -45,53 +46,36 @@ public class TikaParserConfig {
      * @param configStream stream for tika config
      * @return set of MediaTypes which are not indexed
      */
-    public static Set<MediaType> getNonIndexedMediaTypes(InputStream configStream) throws
+    static Set<MediaType> getNonIndexedMediaTypes(InputStream configStream) throws
             TikaException, IOException, SAXException {
         Set<MediaType> result = new HashSet<>();
-        Element element = getBuilder().parse(configStream).getDocumentElement();
-        NodeList nodes = element.getElementsByTagName("parsers");
-        if (nodes.getLength() == 1) {
-            Node parentNode = nodes.item(0);
-            NodeList parsersNodes = parentNode.getChildNodes();
-            for (int i = 0; i < parsersNodes.getLength(); i++) {
-                Node node = parsersNodes.item(i);
-                if (node instanceof Element) {
-                    String className = ((Element) node).getAttribute("class");
-                    if (EMPTY_PARSER.equals(className)) {
-                        NodeList mimes = ((Element) node).getElementsByTagName("mime");
-                        parseMimeTypes(result, mimes);
-                    }
-                }
-            }
+        TikaJsonConfig jsonConfig = TikaJsonConfig.load(configStream);
+        TikaLoader loader = TikaLoader.load(jsonConfig, Thread.currentThread().getContextClassLoader());
+        Parser parser = loader.loadParsers();
+        ParseContext parseContext = loader.loadParseContext();
+        if (parser instanceof org.apache.tika.parser.CompositeParser composite) {
+            // pick the (decorated) empty parser
+            Optional<Parser> emptyParser = composite.getAllComponentParsers().stream()
+                    .filter(TikaParserConfig::isEmptyParser)
+                    .findFirst();
+            emptyParser.ifPresent(value -> result.addAll(value.getSupportedTypes(parseContext)));
+        } else {
+            log.debug("Tika CompositeParser not used, no parsers configured via custom tika config");
         }
         return result;
     }
 
-
-    private static void parseMimeTypes(Set<MediaType> result, NodeList mimes) {
-        /*
-        <parser class="org.apache.tika.parser.EmptyParser">
-            <mime>application/x-archive</mime>
-            <mime>application/x-bzip</mime>
-            <mime>application/x-bzip2</mime>
-        </parser>
-        */
-        for (int j = 0; j < mimes.getLength(); j++) {
-            Node mime = mimes.item(j);
-            if (mime instanceof Element) {
-                String mimeValue = mime.getTextContent();
-                mimeValue = StringUtils.emptyToNull(mimeValue);
-                if (mimeValue != null) {
-                    MediaType mediaType = MediaType.parse(mimeValue.trim());
-                    if (mediaType != null) {
-                        result.add(mediaType);
-                    }
-                }
-            }
+    /**
+     * Returns true if the given parser is an EmptyParser or decorates an EmptyParser.
+     * @param parser
+     * @return {@code true} if the given parser is an EmptyParser or decorates an EmptyParser
+     */
+    private static boolean isEmptyParser(Parser parser) {
+        if (parser instanceof org.apache.tika.parser.EmptyParser) {
+            return true;
+        } else if (parser instanceof org.apache.tika.parser.ParserDecorator) {
+            return isEmptyParser(((ParserDecorator) parser).getWrappedParser());
         }
-    }
-
-    private static DocumentBuilder getBuilder() throws TikaException {
-        return XMLReaderUtils.getDocumentBuilder();
+        return false;
     }
 }

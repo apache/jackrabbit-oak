@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
@@ -28,7 +29,6 @@ import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
-import org.ops4j.pax.exam.options.DefaultCompositeOption;
 import org.ops4j.pax.exam.options.SystemPropertyOption;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
@@ -41,24 +41,18 @@ import org.slf4j.LoggerFactory;
 
 import org.xml.sax.ContentHandler;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import static java.util.Arrays.stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
-import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
@@ -104,10 +98,23 @@ public class TikaExtractionOsgiIT {
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 mavenBundle("org.apache.logging.log4j", "log4j-api", "2.23.0"),
                 mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
+
+                // Jackson dependency for object serialisation.
+                // (these only need to be defined here when the versions are different from the ones
+                // defined in the project -- otherwise -> "bundle symbolic name and version are not unique")
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.22.0"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.22"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
+
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
 
                 // required for slf4j 2.0.x
                 OSGiIT.spyflyOptions(),
+
+                mavenBundle("org.slf4j", "slf4j-api", "2.0.20"),
+                mavenBundle("commons-io", "commons-io", "2.22.0"),
+                mavenBundle("commons-logging", "commons-logging", "1.4.0"),
+
                 setupTikaAndPoi(),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
@@ -122,7 +129,23 @@ public class TikaExtractionOsgiIT {
         Map<String, String> versions = setupVersions();
         return composite(
                 composite(
-                        mavenBundle("org.apache.tika", "tika-parsers", versions.get(TIKA_VERSION))
+                        mavenBundle("com.adobe.xmp", "xmpcore", "6.1.11")
+                        , mavenBundle("org.apache.commons", "commons-exec", "1.6.0")
+                        , mavenBundle("org.apache.pdfbox", "pdfbox", "3.0.8")
+                        , mavenBundle("org.apache.pdfbox", "pdfbox-io", "3.0.8")
+                        , mavenBundle("org.apache.pdfbox", "fontbox", "3.0.8")
+                        , mavenBundle("org.apache.logging.log4j", "log4j-api", "2.26.1")
+                        , mavenBundle("org.bouncycastle", "bcprov-jdk18on", "1.86")
+                        , mavenBundle("org.bouncycastle", "bcpkix-jdk18on", "1.86")
+                        , mavenBundle("org.bouncycastle", "bcutil-jdk18on", "1.86")
+                        , mavenBundle("org.bouncycastle", "bcjmail-jdk18on", "1.86")
+                        , mavenBundle("org.jsoup", "jsoup", "1.23.2")
+                        , mavenBundle("org.ow2.asm", "asm", "9.11.1")
+                        , mavenBundle("org.tukaani", "xz", "1.12")
+                        , mavenBundle("com.googlecode.plist", "dd-plist", "1.30")
+                        , mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
+                        , mavenBundle("org.apache.tika", "tika-bundle-standard", versions.get(TIKA_VERSION))
+                        , mavenBundle("org.apache.tika", "tika-serialization", versions.get(TIKA_VERSION))
                         // for csv parsing
                         , mavenBundle("org.apache.commons", "commons-csv", versions.get(COMMONS_CSV_VERSION))
                         // poi dependency start
@@ -212,8 +235,9 @@ public class TikaExtractionOsgiIT {
         InputStream stream = getClass().getResourceAsStream(resName);
         assertNotNull("Input stream must not be null", stream);
         try {
-            parser.parse(stream, handler, metadata);
-
+            try (TikaInputStream tis = TikaInputStream.get(stream)) {
+                parser.parse(tis, handler, metadata);
+            }
             String actual = handler.toString().trim();
             assertEquals(parsedContent, actual);
         } finally {
