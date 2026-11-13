@@ -582,6 +582,13 @@ public class DiffIndexMerger {
             }
         }
 
+        if (latestProductIndex != null
+                && "disabled".equals(JsonNodeUpdater.oakStringValue(latestProductIndex, "type"))) {
+            // A disabled base index must not disable its new customized version.
+            latestProductIndex = JsonObject.fromJson(latestProductIndex.toString(), true);
+            latestProductIndex.getProperties().put("type", "\"lucene\"");
+        }
+
         // merge
         JsonObject merged = null;
         if (indexDiff == null) {
@@ -593,11 +600,6 @@ public class DiffIndexMerger {
             merged = latestProductIndex;
         } else {
             merged = processMerge(indexName, latestProductIndex, indexDiff);
-        }
-        if ("disabled".equals(JsonNodeUpdater.oakStringValue(merged, "type"))) {
-            // A disabled base index must not disable its new customized version.
-            merged = JsonObject.fromJson(merged.toString(), true);
-            merged.getProperties().put("type", "\"lucene\"");
         }
         // compare to the latest version of the this index
         JsonObject latestIndexVersion = new JsonObject();
