@@ -394,6 +394,32 @@
     </pluginManagement>
     <plugins>
       <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>netty-version-alignment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>io.netty:*</exclude>
+                  </excludes>
+                  <includes>
+                    <include>io.netty:*:[${netty.version}]</include>
+                    <include>io.netty:netty-tcnative*</include>
+                    <include>io.netty:netty-incubator*</include>
+                  </includes>
+                  <message>Netty dependencies must use ${netty.version}; native TLS and incubator artifacts have separate version schemes.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
       </plugin>
       <plugin>
@@ -495,6 +521,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>osgi.core</artifactId>
