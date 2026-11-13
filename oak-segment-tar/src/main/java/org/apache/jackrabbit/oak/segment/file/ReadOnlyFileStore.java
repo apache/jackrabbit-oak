@@ -20,8 +20,10 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
+import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +38,9 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.tar.BinaryReferencesRecovery;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -173,5 +177,23 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     public void collectBlobReferences(Consumer<String> collector) throws IOException {
         tarFiles.collectBlobReferences(collector,
             newOldReclaimer(SegmentGCOptions.GCType.FULL, revisions.getHead().getSegmentId().getGcGeneration(), gcRetainedGenerations));
+    }
+
+    /**
+     * Recovers the binary references index of an archive of this store that has none, e.g.
+     * when the archive is copied to another persistence.
+     *
+     * @param segments the segments of the archive, by segment id
+     * @return the binary references index of the archive
+     */
+    public byte @NotNull [] recoverBinaryReferences(@NotNull Map<UUID, ByteBuffer> segments) throws IOException {
+        BinaryReferencesIndexWriter index = newBinaryReferencesIndexWriter();
+        BinaryReferencesRecovery binaryReferences = new BinaryReferencesRecovery(recovery,
+                (generation, segmentId, reference) -> index.addEntry(generation.getGeneration(),
+                        generation.getFullGeneration(), generation.isCompacted(), segmentId, reference));
+        for (Map.Entry<UUID, ByteBuffer> segment : segments.entrySet()) {
+            binaryReferences.recover(segment.getKey(), segment.getValue());
+        }
+        return index.write();
     }
 }
