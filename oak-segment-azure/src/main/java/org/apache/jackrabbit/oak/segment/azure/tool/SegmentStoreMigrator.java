@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import com.azure.storage.blob.BlobContainerClient;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
-import org.apache.jackrabbit.oak.segment.file.MigratedArchiveBinaryReferences;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
@@ -46,6 +49,7 @@ import java.nio.ByteBuffer;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -82,7 +86,9 @@ public class SegmentStoreMigrator implements Closeable  {
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
 
-    private final MigratedArchiveBinaryReferences migratedBinaryReferences;
+    private File sourceStoreDirectory;
+
+    private ReadOnlyFileStore sourceStore;
 
     private SegmentStoreMigrator(Builder builder) {
         this.source = builder.source;
@@ -91,7 +97,6 @@ public class SegmentStoreMigrator implements Closeable  {
         this.targetName = builder.targetName;
         this.appendMode = builder.appendMode;
         this.revisionCount = builder.revisionCount;
-        this.migratedBinaryReferences = new MigratedArchiveBinaryReferences(builder.source);
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
@@ -229,9 +234,25 @@ public class SegmentStoreMigrator implements Closeable  {
             array = fetchByteArray(binaryReferences);
         } else {
             log.warn("{}/{} has no binary references, recovering them from its segments", sourceName, archiveName);
-            array = migratedBinaryReferences.recover(segments);
+            array = sourceStore().recoverBinaryReferences(segments);
         }
         RETRIER.execute(() -> writer.writeBinaryReferences(array));
+    }
+
+    /**
+     * Opened only when an archive without binary references is migrated. It must be read-only:
+     * a writable store would recover the source archives and modify the source.
+     */
+    private ReadOnlyFileStore sourceStore() throws IOException {
+        if (sourceStore == null) {
+            sourceStoreDirectory = Files.createTempDirectory("segment-store-migrator").toFile();
+            try {
+                sourceStore = fileStoreBuilder(sourceStoreDirectory).withCustomPersistence(source).buildReadOnly();
+            } catch (InvalidFileStoreVersionException e) {
+                throw new IOException(e);
+            }
+        }
+        return sourceStore;
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
@@ -248,7 +269,10 @@ public class SegmentStoreMigrator implements Closeable  {
         } catch (InterruptedException e) {
             throw new IOException(e);
         } finally {
-            migratedBinaryReferences.close();
+            if (sourceStore != null) {
+                sourceStore.close();
+            }
+            FileUtils.deleteQuietly(sourceStoreDirectory);
         }
     }
 
