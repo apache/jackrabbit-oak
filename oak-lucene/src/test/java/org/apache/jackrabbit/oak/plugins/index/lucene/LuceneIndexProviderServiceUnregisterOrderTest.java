@@ -43,7 +43,7 @@ import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService.FT_OAK_12469;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles.FT_OAK_12469_ENABLE;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -74,7 +74,7 @@ public class LuceneIndexProviderServiceUnregisterOrderTest {
 
     @After
     public void tearDown() {
-        FT_OAK_12469.set(true);
+        FT_OAK_12469_ENABLE.set(true);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class LuceneIndexProviderServiceUnregisterOrderTest {
 
     @Test
     public void queryIndexProviderGoesFirstWhenToggleDisabled() throws Exception {
-        FT_OAK_12469.set(false);
+        FT_OAK_12469_ENABLE.set(false);
         activate();
         List<Boolean> queryProviderPresent = recordQueryProviderPresenceWhenEditorUnregisters();
 
