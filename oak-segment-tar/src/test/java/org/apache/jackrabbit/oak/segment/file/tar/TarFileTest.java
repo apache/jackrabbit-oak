@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
@@ -28,7 +29,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -171,6 +173,43 @@ public class TarFileTest {
             });
 
             assertEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void missingBinaryReferencesAreNull() throws Exception {
+        SegmentArchiveWriter writer = archiveManager.create("data00000a.tar");
+        writeSegments(writer);
+        writer.writeGraph(new SegmentGraph().write());
+        writer.close();
+
+        assertNull(readBinaryReferences("data00000a.tar"));
+    }
+
+    @Test
+    public void missingBinaryReferencesAndGraphAreNull() throws Exception {
+        SegmentArchiveWriter writer = archiveManager.create("data00000a.tar");
+        writeSegments(writer);
+        writer.close();
+
+        assertNull(readBinaryReferences("data00000a.tar"));
+    }
+
+    /**
+     * Writes segments of different sizes, so that the end of the last segment is not a multiple
+     * of a single segment size.
+     */
+    static void writeSegments(SegmentArchiveWriter writer) throws IOException {
+        for (int size : new int[] {100, 5000, 512}) {
+            UUID id = UUID.randomUUID();
+            writer.writeSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), new byte[size], 0, size, 1, 1, false);
+        }
+    }
+
+    private ByteBuffer readBinaryReferences(String archive) throws IOException {
+        try (SegmentArchiveReader reader = archiveManager.open(archive)) {
+            assertNotNull(archive + " should be readable", reader);
+            return reader.getBinaryReferences();
         }
     }
 
