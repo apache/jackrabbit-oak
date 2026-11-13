@@ -25,7 +25,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.file.MigratedArchiveBinaryReferences;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
@@ -76,6 +79,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
 
+    private final MigratedArchiveBinaryReferences migratedBinaryReferences;
+
     private AwsSegmentStoreMigrator(Builder builder) {
         this.source = builder.source;
         this.target = builder.target;
@@ -83,6 +88,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         this.targetName = builder.targetName;
         this.appendMode = builder.appendMode;
         this.revisionCount = builder.revisionCount;
+        this.migratedBinaryReferences = new MigratedArchiveBinaryReferences(builder.source);
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
@@ -175,8 +181,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             try (SegmentArchiveReader reader = sourceManager.forceOpen(archiveName)) {
                 SegmentArchiveWriter writer = targetManager.create(archiveName);
                 try {
-                    migrateSegments(reader, writer);
-                    migrateBinaryRef(reader, writer);
+                    Map<UUID, ByteBuffer> segments = migrateSegments(reader, writer);
+                    migrateBinaryRef(archiveName, segments, reader, writer);
                     migrateGraph(reader, writer);
                 } catch (Exception e) {
                     log.error("Can't write archive", e);
@@ -188,7 +194,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
+    private Map<UUID, ByteBuffer> migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
             futures.add(executor.submit(() -> runWithRetry(() -> {
@@ -198,18 +204,26 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             }, 16, 5)));
         }
 
+        Map<UUID, ByteBuffer> segments = new LinkedHashMap<>();
         for (Future<Segment> future : futures) {
             Segment segment = future.get();
             segment.write(writer);
+            segments.put(segment.id(), segment.data);
         }
+        return segments;
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
+    private void migrateBinaryRef(String archiveName, Map<UUID, ByteBuffer> segments, SegmentArchiveReader reader,
+                                  SegmentArchiveWriter writer) throws IOException {
         ByteBuffer binaryReferences = reader.getBinaryReferences();
+        byte[] array;
         if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
-            writer.writeBinaryReferences(array);
+            array = fetchByteArray(binaryReferences);
+        } else {
+            log.warn("{}/{} has no binary references, recovering them from its segments", sourceName, archiveName);
+            array = migratedBinaryReferences.recover(segments);
         }
+        writer.writeBinaryReferences(array);
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
@@ -252,6 +266,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS));
         } catch (InterruptedException e) {
             throw new IOException(e);
+        } finally {
+            migratedBinaryReferences.close();
         }
     }
 
@@ -281,9 +297,13 @@ public class AwsSegmentStoreMigrator implements Closeable  {
                     entry.getFullGeneration(), entry.isCompacted());
         }
 
+        private UUID id() {
+            return new UUID(entry.getMsb(), entry.getLsb());
+        }
+
         @Override
         public String toString() {
-            return new UUID(entry.getMsb(), entry.getLsb()).toString();
+            return id().toString();
         }
     }
 
