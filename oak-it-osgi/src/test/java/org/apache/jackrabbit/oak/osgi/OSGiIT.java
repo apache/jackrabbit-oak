@@ -108,15 +108,21 @@ public class OSGiIT {
                 // Jackson dependency for object serialisation.
                 // (these only need to be defined here when the versions are different from the ones
                 // defined in the project -- otherwise -> "bundle symbolic name and version are not unique")
-                // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.22.0"),
-                // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.22"),
-                // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.22.0"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.22"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
 
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
                 mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
 
                 // required for slf4j 2.0.x
                 spyflyOptions(),
+
+                mavenBundle("org.slf4j", "slf4j-api", "2.0.20"),
+                mavenBundle("commons-io", "commons-io", "2.22.0"),
+                mavenBundle("org.apache.tika", "tika-core", "4.2.0"),
+                mavenBundle("org.apache.tika", "tika-serialization", "4.2.0"),
+
                 // Keep provider discovery inside OSGi rather than Maven's test classpath.
                 frameworkProperty("felix.bootdelegation.implicit").value("false"),
                 frameworkProperty("repository.home").value("target"),
