@@ -98,10 +98,23 @@ public class TikaExtractionOsgiIT {
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 mavenBundle("org.apache.logging.log4j", "log4j-api", "2.23.0"),
                 mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
+
+                // Jackson dependency for object serialisation.
+                // (these only need to be defined here when the versions are different from the ones
+                // defined in the project -- otherwise -> "bundle symbolic name and version are not unique")
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.22.0"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.22"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
+
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
 
                 // required for slf4j 2.0.x
                 OSGiIT.spyflyOptions(),
+
+                mavenBundle("org.slf4j", "slf4j-api", "2.0.20"),
+                mavenBundle("commons-io", "commons-io", "2.22.0"),
+                mavenBundle("commons-logging", "commons-logging", "1.4.0"),
+
                 setupTikaAndPoi(),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
@@ -116,9 +129,23 @@ public class TikaExtractionOsgiIT {
         Map<String, String> versions = setupVersions();
         return composite(
                 composite(
-                        mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
-                        , mavenBundle("org.apache.tika", "tika-serialization", versions.get(TIKA_VERSION))
+                        mavenBundle("com.adobe.xmp", "xmpcore", "6.1.11")
+                        , mavenBundle("org.apache.commons", "commons-exec", "1.6.0")
+                        , mavenBundle("org.apache.pdfbox", "pdfbox", "3.0.8")
+                        , mavenBundle("org.apache.pdfbox", "pdfbox-io", "3.0.8")
+                        , mavenBundle("org.apache.pdfbox", "fontbox", "3.0.8")
+                        , mavenBundle("org.apache.logging.log4j", "log4j-api", "2.26.1")
+                        , mavenBundle("org.bouncycastle", "bcprov-jdk18on", "1.86")
+                        , mavenBundle("org.bouncycastle", "bcpkix-jdk18on", "1.86")
+                        , mavenBundle("org.bouncycastle", "bcutil-jdk18on", "1.86")
+                        , mavenBundle("org.bouncycastle", "bcjmail-jdk18on", "1.86")
+                        , mavenBundle("org.jsoup", "jsoup", "1.23.2")
+                        , mavenBundle("org.ow2.asm", "asm", "9.11.1")
+                        , mavenBundle("org.tukaani", "xz", "1.12")
+                        , mavenBundle("com.googlecode.plist", "dd-plist", "1.30")
+                        , mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
                         , mavenBundle("org.apache.tika", "tika-bundle-standard", versions.get(TIKA_VERSION))
+                        , mavenBundle("org.apache.tika", "tika-serialization", versions.get(TIKA_VERSION))
                         // for csv parsing
                         , mavenBundle("org.apache.commons", "commons-csv", versions.get(COMMONS_CSV_VERSION))
                         // poi dependency start

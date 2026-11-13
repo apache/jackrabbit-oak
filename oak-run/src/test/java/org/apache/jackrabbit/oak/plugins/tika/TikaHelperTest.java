@@ -41,18 +41,23 @@ public class TikaHelperTest {
     @Test
     public void indexedTypes() throws Exception {
         File config = temporaryFolder.newFile();
-        String configText = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<properties>\n" +
-                "  <detectors>\n" +
-                "    <detector class=\"org.apache.tika.detect.DefaultDetector\"/>\n" +
-                "  </detectors>\n" +
-                "  <parsers>\n" +
-                "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
-                "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
-                "      <mime>application/xml</mime>\n" +
-                "    </parser>\n" +
-                "  </parsers>\n" +
-                "</properties>";
+        String configText = """
+        {
+          "detectors": [
+            "default-detector"
+          ],
+          "parsers": [
+            "default-parser",
+            {
+              "empty-parser": {
+                "_mime-include": [
+                  "application/xml"
+                ]
+              }
+            }
+          ]
+        }
+        """;
         Files.writeString(config.toPath(), configText);
         TikaHelper tika = new TikaHelper(config);
         assertFalse(tika.isIndexed("application/xml"));
