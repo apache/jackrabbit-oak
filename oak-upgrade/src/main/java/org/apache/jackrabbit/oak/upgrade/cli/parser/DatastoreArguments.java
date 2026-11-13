@@ -33,8 +33,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
-
 /**
  * This class parses the input provided by the user and analyses the given node stores
  * in order to find out which datastore combination should be used for the migration.
@@ -123,7 +121,7 @@ public class DatastoreArguments {
         BlobStoreFactory result;
         if (options.isDstBlobStoreDefined()) {
             result = definedDstBlob;
-        } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML)) {
+        } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (options.isSrcBlobStoreDefined())) {
             result = new ConstantBlobStoreFactory(srcBlobStore);
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES) {
             result = new LoopbackBlobStoreFactory();
@@ -183,11 +181,7 @@ public class DatastoreArguments {
             map.put("srcnode", datastoreArguments.storeArguments.getSrcDescriptor());
             map.put("dstnode", datastoreArguments.storeArguments.getDstDescriptor());
 
-            if (datastoreArguments.storeArguments.getSrcType() == JCR2_DIR_XML) {
-                map.put("srcblob", "CRX2 datastore");
-            } else {
-                map.put("srcblob", datastoreArguments.definedSrcBlob == null ? "?" : datastoreArguments.definedSrcBlob.toString());
-            }
+            map.put("srcblob", datastoreArguments.definedSrcBlob == null ? "?" : datastoreArguments.definedSrcBlob.toString());
             map.put("dstblob", datastoreArguments.definedDstBlob == null ? "?" : datastoreArguments.definedDstBlob.toString());
 
             StrSubstitutor subst = new StrSubstitutor(map);
@@ -201,7 +195,7 @@ public class DatastoreArguments {
     }
 
     private BlobMigrationCase discoverBlobMigrationCase() throws IOException {
-        boolean srcDefined = options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML;
+        boolean srcDefined = options.isSrcBlobStoreDefined();
         boolean dstDefined = options.isDstBlobStoreDefined();
         boolean copyBinaries = options.isCopyBinaries();
 

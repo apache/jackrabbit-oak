@@ -18,34 +18,16 @@ package org.apache.jackrabbit.oak.upgrade.cli.node;
 
 import java.io.IOException;
 
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.commons.pio.Closer;
-import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class StoreFactory {
 
-    private final Jackrabbit2Factory jcr2Factory;
-
     private final NodeStoreFactory nodeStoreFactory;
 
-    public StoreFactory(Jackrabbit2Factory crx2Factory) {
-        this.jcr2Factory = crx2Factory;
-        this.nodeStoreFactory = null;
-    }
-
     public StoreFactory(NodeStoreFactory nodeStoreFactory) {
-        this.jcr2Factory = null;
         this.nodeStoreFactory = nodeStoreFactory;
-    }
-
-    public RepositoryContext create(Closer closer) throws IOException, RepositoryException {
-        if (jcr2Factory == null) {
-            throw new UnsupportedOperationException();
-        }
-        return jcr2Factory.create(closer);
     }
 
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
@@ -55,15 +37,7 @@ public class StoreFactory {
         return nodeStoreFactory.create(blobStore, closer);
     }
 
-    public boolean isJcr2() {
-        return jcr2Factory != null;
-    }
-
     public boolean hasExternalBlobReferences() throws IOException {
-        if (isJcr2()) {
-            return true;
-        } else {
-            return nodeStoreFactory.hasExternalBlobReferences();
-        }
+        return nodeStoreFactory.hasExternalBlobReferences();
     }
 }
