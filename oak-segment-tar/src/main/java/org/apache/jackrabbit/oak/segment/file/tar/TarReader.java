@@ -382,10 +382,8 @@ public class TarReader implements Closeable {
             }
         });
         for (SegmentArchiveEntry entry : archive.listSegments()) {
-            ByteBuffer buffer = archive.readSegment(entry.getMsb(), entry.getLsb());
-            byte[] data = new byte[buffer.remaining()];
-            buffer.get(data);
-            binaryReferences.recover(new UUID(entry.getMsb(), entry.getLsb()), data);
+            binaryReferences.recover(new UUID(entry.getMsb(), entry.getLsb()),
+                    archive.readSegment(entry.getMsb(), entry.getLsb()));
         }
     }
 
