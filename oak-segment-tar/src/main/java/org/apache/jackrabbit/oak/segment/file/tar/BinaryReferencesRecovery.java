@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -49,6 +50,13 @@ public final class BinaryReferencesRecovery {
 
     public void recover(@NotNull UUID segmentId, byte @NotNull [] data) throws IOException {
         recovery.recoverEntry(segmentId, data, entryRecovery);
+    }
+
+    public void recover(@NotNull UUID segmentId, @NotNull ByteBuffer data) throws IOException {
+        ByteBuffer buffer = data.duplicate();
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        recover(segmentId, bytes);
     }
 
     private static class BinaryReferencesEntryRecovery implements EntryRecovery {
