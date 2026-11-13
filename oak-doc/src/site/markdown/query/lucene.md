@@ -1245,6 +1245,8 @@ This allows to search for, and order by, the lower case version of the property 
 * exists([alias])
 * jcr:if(@alias, jcr:path(), jcr:null())
 * jcr:exists(@alias)
+* rep:normalize(@title)
+* normalize([title])
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
