@@ -152,8 +152,8 @@ public class DiffIndexMerger {
         // because they are not regular index definitions,
         // and so they are not in the repositoryDefinitions
         if (repositoryNodeStore != null) {
-            Map<String, JsonObject> diffInRepo = readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER);
-            combined.getChildren().putAll(diffInRepo);
+            combined.getChildren().putAll(readDiffIndex(repositoryNodeStore, DIFF_INDEX));
+            combined.getChildren().putAll(readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER));
         }
 
         // overwrite with the provided definitions (if any)
@@ -593,6 +593,11 @@ public class DiffIndexMerger {
             merged = latestProductIndex;
         } else {
             merged = processMerge(indexName, latestProductIndex, indexDiff);
+        }
+        if ("disabled".equals(JsonNodeUpdater.oakStringValue(merged, "type"))) {
+            // A disabled base index must not disable its new customized version.
+            merged = JsonObject.fromJson(merged.toString(), true);
+            merged.getProperties().put("type", "\"lucene\"");
         }
         // compare to the latest version of the this index
         JsonObject latestIndexVersion = new JsonObject();
