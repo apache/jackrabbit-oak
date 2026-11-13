@@ -41,12 +41,9 @@
       <includes>
         <include>javax.jcr:jcr</include>
         <include>javax.servlet:javax.servlet-api</include>
-        <include>org.slf4j:slf4j-api</include>
         <include>ch.qos.logback:logback-core</include>
         <include>ch.qos.logback:logback-classic</include>
         <include>commons-codec:commons-codec</include>
-        <include>commons-io:commons-io</include>
-        <include>commons-logging:commons-logging</include>
         <include>com.fasterxml.jackson.core:jackson-annotations</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>com.fasterxml.jackson.core:jackson-databind</include>
@@ -54,7 +51,11 @@
         <include>org.apache.commons:commons-lang3</include>
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-text</include>
+        <include>org.apache.commons:commons-secure-xml</include>
         <include>org.apache.commons:commons-collections4</include>
+        <include>org.commonmark:commonmark</include>
+        <include>org.commonmark:commonmark-ext-gfm-tables</include>
+        <include>org.commonmark:commonmark-ext-gfm-strikethrough</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:oak-api</include>
         <include>org.apache.jackrabbit:oak-jackrabbit-api</include>
@@ -69,7 +70,6 @@
         <include>org.apache.jackrabbit:oak-jcr</include>
         <include>org.apache.jackrabbit:oak-lucene</include>
         <include>org.apache.jackrabbit:oak-search-elastic:jar</include>
-        <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
         <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>
         <include>org.apache.jackrabbit:oak-core-spi</include>
