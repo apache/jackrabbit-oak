@@ -37,7 +37,8 @@
   <properties>
     <slf4j.api.version>${slf4j.version}</slf4j.api.version>
     <logback.version>${logback.runtime.version}</logback.version>
-    <tomcat.version>9.0.118</tomcat.version>
+    <!--dependency for webserver and it could be different from connection pool dependency present in oak-parent/pom.xml-->
+    <tomcat.version>9.0.123</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
