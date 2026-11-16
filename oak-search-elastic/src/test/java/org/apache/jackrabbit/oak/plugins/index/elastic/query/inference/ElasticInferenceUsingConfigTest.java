@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -319,6 +320,13 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?{}?python')";
         assertEventually(() -> assertEquals(List.of("/content/programming"), executeQuery(query, SQL2, true, true)));
         wireMock.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/v1/embeddings")));
+
+        ElasticFeatureToggles.FT_OAK_12539_DISABLE.set(true);
+        try {
+            assertEquals(List.of(), executeQuery(query, SQL2, true, true));
+        } finally {
+            ElasticFeatureToggles.FT_OAK_12539_DISABLE.set(false);
+        }
     }
 
     private void enableExperimentalInferenceCompatibility() {
