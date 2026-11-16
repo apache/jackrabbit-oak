@@ -728,6 +728,8 @@ public class ElasticRequestHandler {
 
                         NestedQuery.Builder nestedQueryBuilder = new NestedQuery.Builder()
                                 .path(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName)
+                                // the vector space is missing from the mapping if the model was enabled after the index was created
+                                .ignoreUnmapped(true)
                                 .query(Query.of(q2 -> q2.knn(knnQuery)));
 
                         b.should(s -> s.nested(nestedQueryBuilder.build()));
