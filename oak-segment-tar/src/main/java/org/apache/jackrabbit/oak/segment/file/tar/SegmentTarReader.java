@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter.getPaddingSize;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarEntryHeader.readName;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarEntryHeader.readSize;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
 
 import java.io.File;
@@ -132,7 +132,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
 
     @Override
     public @NotNull SegmentGraph getGraph() throws IOException {
-        int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
+        int end = startOfIndexEntry();
         SegmentGraph graph = SegmentGraph.load((whence, amount) -> access.read(end - whence, amount));
         if (graph == null) {
             log.warn("Recomputing missing graph for {}.", name);
@@ -157,12 +157,20 @@ public class SegmentTarReader implements SegmentArchiveReader {
         if (!entryName.equals(name + ".brf")) {
             throw new IOException("Unexpected entry " + entryName + " after the last segment of " + name);
         }
-        int end = position + BLOCK_SIZE + readSize(header);
+        int size = readSize(header);
+        if (size < 0 || size > startOfIndexEntry() - position - BLOCK_SIZE) {
+            throw new IOException("Invalid size " + size + " of the binary references entry of " + name);
+        }
+        int end = position + BLOCK_SIZE + size;
         try {
             return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
         } catch (InvalidBinaryReferencesIndexException e) {
             throw new IOException(e);
         }
+    }
+
+    private int startOfIndexEntry() throws IOException {
+        return access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
     }
 
     private int endOfLastSegment() {

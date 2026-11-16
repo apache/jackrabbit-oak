@@ -86,6 +86,22 @@ public class SegmentTarReaderTest {
     }
 
     @Test
+    public void binaryReferencesWithSizeBeyondTheIndexFail() throws IOException {
+        writeArchive();
+        writeBinaryReferencesSize("00777777777");
+
+        assertInvalidSize(assertThrows(IOException.class, this::readBinaryReferences));
+    }
+
+    @Test
+    public void binaryReferencesWithNegativeSizeFail() throws IOException {
+        writeArchive();
+        writeBinaryReferencesSize("77777777777");
+
+        assertInvalidSize(assertThrows(IOException.class, this::readBinaryReferences));
+    }
+
+    @Test
     public void unexpectedEntryAfterLastSegmentFails() throws IOException {
         writeArchive();
         replace(ARCHIVE + ".brf", ARCHIVE + ".xyz");
@@ -131,11 +147,22 @@ public class SegmentTarReaderTest {
         }
     }
 
+    private static void assertInvalidSize(IOException e) {
+        assertTrue(e.getMessage(), e.getMessage().startsWith("Invalid size"));
+    }
+
+    private void writeBinaryReferencesSize(String octalSize) throws IOException {
+        writeAt(indexOf(ARCHIVE + ".brf") + TarEntryHeader.SIZE_OFFSET, octalSize);
+    }
+
     private void replace(String entryName, String replacement) throws IOException {
-        int position = indexOf(entryName);
+        writeAt(indexOf(entryName), replacement);
+    }
+
+    private void writeAt(long position, String value) throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(archiveFile, "rw")) {
             file.seek(position);
-            file.write(replacement.getBytes(StandardCharsets.UTF_8));
+            file.write(value.getBytes(StandardCharsets.UTF_8));
         }
     }
 }
