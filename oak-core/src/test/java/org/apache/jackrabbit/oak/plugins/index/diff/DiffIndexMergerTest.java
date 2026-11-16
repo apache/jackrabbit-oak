@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -260,6 +262,79 @@ public class DiffIndexMergerTest {
                     }
                   }
                 }""", newImageLuceneDefinitions.toString());
+    }
+
+    @Test
+    public void disabledProductIndexDuringMigration() {
+        disabledProductIndexCustomization(true);
+    }
+
+    @Test
+    public void disabledProductIndexAfterMigration() {
+        disabledProductIndexCustomization(false);
+    }
+
+    private void disabledProductIndexCustomization(boolean migration) {
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/damCollectionLucene-4": {
+                        "type": "disabled",
+                        "async": ["async", "nrt"],
+                        "includedPaths": "/content/dam",
+                        "indexRules": {
+                            "nt:unstructured": {
+                                "properties": {
+                                    "title": {
+                                        "name": "jcr:title",
+                                        "propertyIndex": true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/oak:index/damCollectionLucene-4-custom-1": {
+                        "type": "lucene"
+                    },
+                    "/oak:index/diff.index": {
+                        "diff": {
+                            "damCollectionLucene": {
+                                "indexRules": {
+                                    "nt:unstructured": {
+                                        "properties": {
+                                            "custom": {
+                                                "name": "custom",
+                                                "propertyIndex": true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """, true);
+        if (!migration) {
+            repositoryDefinitions.getChildren().get("/oak:index/damCollectionLucene-4-custom-1")
+                    .getProperties().put("mergeChecksum", "\"old\"");
+        }
+        String originalDefinitions = repositoryDefinitions.toString();
+        JsonObject newDefinitions = new JsonObject(true);
+        DiffIndexMerger merger = getMerger();
+        merger.merge(newDefinitions, repositoryDefinitions, null);
+
+        JsonObject merged = newDefinitions.getChildren().get("/oak:index/damCollectionLucene-4-custom-2");
+        assertNotNull(merged);
+        assertEquals("\"lucene\"", merged.getProperties().get("type"));
+        JsonObject properties = merged.getChildren().get("indexRules").getChildren().get("nt:unstructured")
+                .getChildren().get("properties");
+        assertNotNull(properties.getChildren().get("title"));
+        assertNotNull(properties.getChildren().get("custom"));
+        assertEquals(originalDefinitions, repositoryDefinitions.toString());
+
+        repositoryDefinitions.getChildren().putAll(newDefinitions.getChildren());
+        JsonObject nextDefinitions = new JsonObject(true);
+        merger.merge(nextDefinitions, repositoryDefinitions, null);
+        assertEquals("{}", nextDefinitions.toString());
     }
 
     private static String jsonFileNode(String json) {
@@ -1203,6 +1278,66 @@ public class DiffIndexMergerTest {
         JsonNodeUpdater.addOrReplace(builder, ns, path, "nt:unstructured", json);
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return ns;
+    }
+
+    @Test
+    public void storedDiffIndexesAreUsedUnlessExplicitlyReplaced() throws Exception {
+        String customerDiff = """
+                {
+                    "jcr:primaryType": "nt:unstructured",
+                    "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                    "diff": {
+                        "damAssetLucene": {
+                            "indexRules": {
+                                "dam:Asset": {
+                                    "properties": {
+                                        "customer": {"name": "customer", "propertyIndex": true}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """;
+        String optimizerDiff = customerDiff.replace("customer", "optimizer");
+        NodeStore repositoryNodeStore = storeInRepository("/oak:index/diff.index", customerDiff);
+        NodeBuilder builder = repositoryNodeStore.getRoot().builder();
+        JsonNodeUpdater.addOrReplace(builder, repositoryNodeStore,
+                "/oak:index/diff.index.optimizer", "nt:unstructured", optimizerDiff);
+        repositoryNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/damAssetLucene-12": {
+                        "jcr:primaryType": "oak:QueryIndexDefinition",
+                        "type": "lucene",
+                        "includedPaths": "/content/dam"
+                    }
+                }
+                """, true);
+        for (boolean supplyCustomer : new boolean[] {false, true}) {
+            for (boolean supplyOptimizer : new boolean[] {false, true}) {
+                JsonObject newDefinitions = new JsonObject(true);
+                if (supplyCustomer) {
+                    newDefinitions.getChildren().put("/oak:index/diff.index",
+                            JsonObject.fromJson(customerDiff.replace("customer", "replacement"), true));
+                }
+                if (supplyOptimizer) {
+                    newDefinitions.getChildren().put("/oak:index/diff.index.optimizer",
+                            JsonObject.fromJson(optimizerDiff.replace("optimizer", "updatedOptimizer"), true));
+                }
+
+                getMerger().merge(newDefinitions, repositoryDefinitions, repositoryNodeStore);
+
+                JsonObject merged = newDefinitions.getChildren().get("/oak:index/damAssetLucene-12-custom-1");
+                assertNotNull(merged);
+                assertEquals(Set.of(
+                                supplyCustomer ? "replacement" : "customer",
+                                supplyOptimizer ? "updatedOptimizer" : "optimizer"),
+                        merged.getChildren().get("indexRules").getChildren().get("dam:Asset")
+                                .getChildren().get("properties").getChildren().keySet());
+            }
+        }
     }
 
     @Test
