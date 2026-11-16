@@ -69,7 +69,6 @@
               !com.ibm.*, <!-- see OAK-11076 -->
               !org.apache.derby.*, <!-- see OAK-11076 -->
               !io.opentelemetry.sdk.autoconfigure.*,
-              !jdk.net.*,
               !org.apache.log.*,
               !org.apache.logging.*,
               !sun.misc.*,
@@ -85,10 +84,14 @@
                    (httpasyncclient based), which is not on the classpath -->
               !org.apache.http.*,
               !org.elasticsearch.client.*,
-              <!-- optional TLS/compression providers pulled in transitively by httpclient5 that are
-                   only used reflectively when present on the classpath; not needed for Oak's usage -->
+              <!-- optional TLS/compression and Unix-socket providers referenced by httpclient5;
+                   not needed for Oak's usage -->
+              !com.aayushatharva.brotli4j.*,
+              !com.github.luben.zstd.*,
+              !org.apache.commons.compress.compressors.*,
               !org.brotli.dec.*,
               !org.conscrypt.*,
+              !org.newsclub.net.unix.*,
               !org.glassfish.hk2.osgiresourcelocator.*,
               *
             </Import-Package>
@@ -341,8 +344,14 @@
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock</artifactId>
-      <version>3.9.2</version>
+      <version>3.13.2</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.httpcomponents.client5</groupId>
+          <artifactId>httpclient5</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>
