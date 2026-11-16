@@ -22,13 +22,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Holder for {@code oak-lucene} feature toggle flags. The {@code .internal} package is deliberately left
  * out of {@code Export-Package} (see oak-lucene/pom.xml), so the public fields here are bundle-internal
  * and can be removed once a toggle is retired without an OSGi baseline / API compatibility break -- unlike a
- * toggle declared directly on a class in an exported package (such as {@code LuceneIndexProviderService.FT_OAK_12173}, which
- * predates this convention and already shipped in a release, so it can no longer be moved).
+ * toggle declared directly on a class in an exported package.
  */
 public final class LuceneFeatureToggles {
 
     private LuceneFeatureToggles() {
     }
+
+    /**
+     * Feature toggle for OAK-12173: update the index tracker synchronously at activation so indexes
+     * built before this service started can be used right away.
+     * Enabled by default (bug fix). When set to {@code false}, waits for the observer to update the tracker.
+     */
+    public static final String FT_OAK_12173 = "FT_OAK-12173";
+    public static final AtomicBoolean FT_OAK_12173_ENABLE = new AtomicBoolean(true);
 
     /**
      * Feature toggle for OAK-12469: unregister services in reverse order in

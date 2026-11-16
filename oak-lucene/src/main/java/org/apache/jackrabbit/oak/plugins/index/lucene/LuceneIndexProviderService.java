@@ -132,10 +132,6 @@ public class LuceneIndexProviderService {
     private static final boolean PROP_ENABLE_SINGLE_BLOB_INDEX_FILES_DEFAULT = true;
     private static final long PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT = 300;
 
-    // OAK-12173: bug fix, enabled by default - turn off only if synchronous
-    // tracker seeding at startup causes a problem in some deployment.
-    public static final AtomicBoolean FT_OAK_12173 = new AtomicBoolean(true);
-
     @ObjectClassDefinition(
             id = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
             name = "Apache Jackrabbit Oak LuceneIndexProvider"
@@ -414,12 +410,12 @@ public class LuceneIndexProviderService {
         tracker = createTracker(bundleContext, config);
 
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle("FT_OAK-12173", FT_OAK_12173),
+                new FeatureToggle(LuceneFeatureToggles.FT_OAK_12173, LuceneFeatureToggles.FT_OAK_12173_ENABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(LuceneFeatureToggles.FT_OAK_12469, LuceneFeatureToggles.FT_OAK_12469_ENABLE),
                 emptyMap()));
-        if (FT_OAK_12173.get()) {
+        if (LuceneFeatureToggles.FT_OAK_12173_ENABLE.get()) {
             // OAK-12173: update the tracker now, so indexes built before this
             // service started can be used right away. Without this, we'd have
             // to wait for the Observer below, which can be slow to start.
