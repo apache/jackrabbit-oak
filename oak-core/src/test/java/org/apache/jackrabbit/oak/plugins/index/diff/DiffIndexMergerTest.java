@@ -31,6 +31,7 @@ import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -480,6 +481,58 @@ public class DiffIndexMergerTest {
         JsonObject jcrContent = target.get("damAssetLucene").
                 getChildren().get("test.txt").getChildren().get("jcr:content");
         assertEquals("Hello World", JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data"));
+    }
+
+    @Test
+    public void plainStringDataIsMergedAsBinary() {
+        for (String data : new String[] {"<properties>\n\"tika\" \\ \u00e4</properties>", ""}) {
+            JsonObject definitions = JsonObject.fromJson("""
+                    {
+                      "/oak:index/diff.index": {
+                        "diff": {
+                          "acme.test": {
+                            "type": "lucene",
+                            "includedPaths": ["/content"],
+                            "tika": {
+                              "config.xml": {
+                                "jcr:content": {
+                                  "jcr:primaryType": "nt:resource"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """, true);
+            JsonObject content = definitions.getChildren().get("/oak:index/diff.index")
+                    .getChildren().get("diff").getChildren().get("acme.test")
+                    .getChildren().get("tika").getChildren().get("config.xml")
+                    .getChildren().get("jcr:content");
+            content.getProperties().put("jcr:data", JsopBuilder.encode(data));
+            content.getProperties().put("description", JsopBuilder.encode(data));
+
+            getMerger().merge(definitions, new JsonObject(true), null);
+
+            JsonObject mergedContent = definitions.getChildren().get("/oak:index/acme.test-1-custom-1")
+                    .getChildren().get("tika").getChildren().get("config.xml")
+                    .getChildren().get("jcr:content");
+            assertEquals(JsopBuilder.encode(":blobId:" + Base64.getEncoder()
+                    .encodeToString(data.getBytes(StandardCharsets.UTF_8))),
+                    mergedContent.getProperties().get("jcr:data"));
+            assertEquals(JsopBuilder.encode(data), mergedContent.getProperties().get("description"));
+            assertEquals(JsopBuilder.encode(data), content.getProperties().get("jcr:data"));
+        }
+    }
+
+    @Test
+    public void colonPrefixedDataIsNotConverted() {
+        for (String data : new String[] {":blobId:dGVzdA==", ":file:test.txt", ":other:value"}) {
+            JsonObject definition = new JsonObject(true);
+            definition.getProperties().put("jcr:data", JsopBuilder.encode(data));
+            JsonObject normalized = DiffIndexMerger.cleanedAndNormalized(definition);
+            assertEquals(JsopBuilder.encode(data), normalized.getProperties().get("jcr:data"));
+        }
     }
 
     // a file reference within the nested "diff" JSON object is resolved as well
