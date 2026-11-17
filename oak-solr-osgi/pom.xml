@@ -42,7 +42,6 @@
                         <Import-Package>
                             com.sun.*;resolution:=optional,
                             io.netty.*;resolution:=optional,
-                            jline.*;resolution:=optional,
                             javax.annotation;resolution:=optional,
                             org.apache.jute.*;resolution:=optional,
                             org.apache.log4j.*;resolution:=optional,
@@ -51,6 +50,7 @@
                             org.apache.zookeeper.proto.*;resolution:=optional,
                             org.apache.zookeeper.txn.*;resolution:=optional,
                             org.eclipse.*;resolution:=optional,
+                            org.jline.*;resolution:=optional,
                             org.xerial.snappy.*;resolution:=optional,
                             com.fasterxml.jackson.annotation.*;resolution:=optional,
                             com.fasterxml.jackson.databind.*;resolution:=optional,
