@@ -32,6 +32,10 @@
     <description>Oak Solr OSGi support</description>
     <packaging>bundle</packaging>
 
+    <properties>
+        <zookeeper.version>3.9.7</zookeeper.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -43,12 +47,8 @@
                             com.sun.*;resolution:=optional,
                             io.netty.*;resolution:=optional,
                             javax.annotation;resolution:=optional,
-                            org.apache.jute.*;resolution:=optional,
                             org.apache.log4j.*;resolution:=optional,
                             org.apache.yetus.audience.*;resolution:=optional,
-                            org.apache.zookeeper.data.*;resolution:=optional,
-                            org.apache.zookeeper.proto.*;resolution:=optional,
-                            org.apache.zookeeper.txn.*;resolution:=optional,
                             org.eclipse.*;resolution:=optional,
                             org.jline.*;resolution:=optional,
                             org.xerial.snappy.*;resolution:=optional,
@@ -144,7 +144,13 @@
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.9.7</version>
+            <version>${zookeeper.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper-jute</artifactId>
+            <version>${zookeeper.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
