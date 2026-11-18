@@ -57,7 +57,7 @@ import org.osgi.framework.wiring.BundleWire;
 import org.osgi.framework.wiring.BundleWiring;
 
 /**
- * Tests for the logging bridges embedded in the cloud and Elastic bundles.
+ * Tests for the logging bridges and client wiring embedded in the cloud and Elastic bundles.
  */
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -74,6 +74,16 @@ public class EmbeddedLoggingIT {
         return CoreOptions.options(
                 CoreOptions.composite(new OSGiIT().configuration()),
                 OSGiIT.jarBundles(new File("target/test-bundles/cloud")));
+    }
+
+    /**
+     * Initializes HttpCore because resolving the Elastic bundle alone does not verify its jdk.net access.
+     */
+    @Test
+    public void elasticHttpCoreCanInitialize() throws ClassNotFoundException {
+        Bundle elastic = getBundle("org.apache.jackrabbit.oak-search-elastic");
+        Class.forName("org.apache.hc.core5.util.ReflectionUtils", true,
+                elastic.adapt(BundleWiring.class).getClassLoader());
     }
 
     /**
