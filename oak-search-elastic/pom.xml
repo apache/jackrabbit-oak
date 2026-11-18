@@ -93,6 +93,8 @@
               !org.conscrypt.*,
               !org.newsclub.net.unix.*,
               !org.glassfish.hk2.osgiresourcelocator.*,
+              <!-- HttpClient 5.6.3 / HttpCore 5.4.3 require jdk.net during socket setup;
+                   let bnd generate its import to avoid NoClassDefFoundError (OAK-12540). -->
               *
             </Import-Package>
             <Embed-Dependency>
