@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
  * Only local segment stores are supported. The head is compared by generation
  * numbers only, so a partially compacted head, which keeps the generation of
  * the last complete compaction, is not reported.
+ * <p>
+ * The content of the repository is not verified, use {@code oak-run check} for that.
  */
 public class GcJournalCheck {
 
