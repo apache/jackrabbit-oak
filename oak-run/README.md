@@ -21,6 +21,7 @@ The following runmodes are currently available:
     * frozennoderefsbyscanning : Scan for nt:frozenNode references via query
     * frozennoderefsusingindex : Scan for nt:frozenNode references via /oak:index
     * garbage         : Identifies blob garbage on a DocumentMK repository
+    * gc-journal      : Check the segment store GC journal (gc.log)
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
     * iotrace         : Collect a trace of segment store read accesses 

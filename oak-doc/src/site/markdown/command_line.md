@@ -61,6 +61,17 @@ The oak-run compact operation may be used to perform an offline compaction:
 It makes sense to find and remove the old checkpoints, using the `checkpoints`
 command described above.
 
+#### GC Journal
+
+The oak-run `gc-journal` command inspects the segment store GC journal
+(`gc.log`), which records the head of the latest compaction:
+
+    java -jar oak-run-*.jar gc-journal check <repository>
+
+`check` is read-only. It reports whether the latest `gc.log` entry is
+well-formed, points at a readable root, and matches the current head (exit code
+`0` when consistent, `1` otherwise). Only local segment stores are supported.
+
 #### Index Management
 
 The oak-run index operation is used to [manage indexes](./query/index-management.html).
