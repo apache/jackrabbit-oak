@@ -346,12 +346,6 @@ public class CacheBuilderMaintenanceTest {
     }
 
 
-    /** Reject null rather than silently choosing a mode. */
-    @Test(expected = NullPointerException.class)
-    public void nullMaintenanceModeIsRejected() {
-        CacheBuilder.newBuilder().maintenanceMode(null);
-    }
-
     /** An explicit ASYNC request wins over the disabled legacy toggle. */
     @Test
     public void explicitAsyncModeOverridesLegacyToggle() throws InterruptedException {
@@ -362,8 +356,7 @@ public class CacheBuilderMaintenanceTest {
             CountDownLatch removed = new CountDownLatch(1);
             Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumSize(1)
-                    .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
-                    .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                    .asyncMaintenance(true)
                     .evictionListener((key, value, cause) -> {
                         callbackThread.set(Thread.currentThread());
                         removed.countDown();
@@ -379,6 +372,49 @@ public class CacheBuilderMaintenanceTest {
         }
     }
 
+    /** Reconfiguring a builder must replace an earlier synchronous selection. */
+    @Test
+    public void lastAsyncMaintenanceSelectionWins() throws InterruptedException {
+        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
+        AtomicReference<Thread> callbackThread = new AtomicReference<>();
+        CountDownLatch removed = new CountDownLatch(1);
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(1)
+                .asyncMaintenance(false)
+                .asyncMaintenance(true)
+                .evictionListener((key, value, cause) -> {
+                    callbackThread.set(Thread.currentThread());
+                    removed.countDown();
+                }).build();
+
+        cache.put("key", "value");
+        cache.invalidate("key");
+
+        Assert.assertTrue("removal was never notified", removed.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertNotSame("the last setting must select asynchronous callbacks",
+                Thread.currentThread(), callbackThread.get());
+        Assert.assertTrue("the last setting must select Oak's maintenance pool",
+                callbackThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
+    }
+
+    /** Reconfiguring a builder must replace an earlier asynchronous selection. */
+    @Test
+    public void lastSyncMaintenanceSelectionWins() {
+        AtomicReference<Thread> callbackThread = new AtomicReference<>();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(1)
+                .asyncMaintenance(true)
+                .asyncMaintenance(false)
+                .evictionListener((key, value, cause) -> callbackThread.set(Thread.currentThread()))
+                .build();
+
+        cache.put("key", "value");
+        cache.invalidate("key");
+
+        Assert.assertSame("the last setting must select synchronous callbacks",
+                Thread.currentThread(), callbackThread.get());
+    }
+
     /** Explicit SYNC keeps eviction callbacks on the caller. */
     @Test
     public void synchronousMaintenanceRunsInline() {
@@ -387,8 +423,7 @@ public class CacheBuilderMaintenanceTest {
 
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(1)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .asyncMaintenance(false)
                 .evictionListener((k, v, cause) -> {
                     if (cause == EvictionCause.SIZE) {
                         evictionThread.set(Thread.currentThread());
@@ -412,7 +447,7 @@ public class CacheBuilderMaintenanceTest {
 
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .asyncMaintenance(false)
                 .refreshAfterWrite(Duration.ofMillis(1))
                 .build(key -> {
                     if (firstLoadDone.getCount() == 0) {
@@ -442,7 +477,7 @@ public class CacheBuilderMaintenanceTest {
     public void zeroMaximumSizeEvictsSynchronouslyWithAsyncMode() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(0)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .asyncMaintenance(true)
                 .build();
 
         cache.put("k1", "v1");
@@ -458,7 +493,7 @@ public class CacheBuilderMaintenanceTest {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(1)
                 .weigher((key, value) -> 1)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .asyncMaintenance(false)
                 .evictionListener((key, value, cause) -> {
                     if (cause == EvictionCause.SIZE) {
                         evictionThread.set(Thread.currentThread());
@@ -482,7 +517,7 @@ public class CacheBuilderMaintenanceTest {
         CountDownLatch reloaded = new CountDownLatch(1);
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .asyncMaintenance(true)
                 .refreshAfterWrite(Duration.ofMinutes(1))
                 .ticker(ticker::get)
                 .build(key -> {
@@ -509,7 +544,7 @@ public class CacheBuilderMaintenanceTest {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(0)
                 .weigher((key, value) -> 1)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .asyncMaintenance(true)
                 .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
                 .build();
 
@@ -527,7 +562,7 @@ public class CacheBuilderMaintenanceTest {
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(0)
                 .refreshAfterWrite(Duration.ofHours(1))
-                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .asyncMaintenance(false)
                 .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
                 .build(key -> "v");
 
@@ -545,7 +580,7 @@ public class CacheBuilderMaintenanceTest {
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(0)
                 .refreshAfterWrite(Duration.ofHours(1))
-                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .asyncMaintenance(true)
                 .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
                 .build(key -> "v");
 
@@ -564,7 +599,7 @@ public class CacheBuilderMaintenanceTest {
                 .maximumWeight(0)
                 .weigher((key, value) -> 1)
                 .refreshAfterWrite(Duration.ofHours(1))
-                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .asyncMaintenance(true)
                 .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
                 .build(key -> "v");
 
@@ -583,7 +618,7 @@ public class CacheBuilderMaintenanceTest {
                 .maximumWeight(0)
                 .weigher((key, value) -> 1)
                 .refreshAfterWrite(Duration.ofHours(1))
-                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .asyncMaintenance(false)
                 .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
                 .build(key -> "v");
 
@@ -601,7 +636,7 @@ public class CacheBuilderMaintenanceTest {
         CountDownLatch evicted = new CountDownLatch(1);
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(1)
-                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .asyncMaintenance(false)
                 .refreshAfterWrite(Duration.ofHours(1))
                 .evictionListener((key, value, cause) -> {
                     if (cause == EvictionCause.SIZE) {
