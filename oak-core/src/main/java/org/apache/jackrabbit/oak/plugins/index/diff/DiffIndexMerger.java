@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -819,7 +820,7 @@ public class DiffIndexMerger {
             } else {
                 // remove "str:", "nam:", etc if needed
                 String v = obj.getProperties().get(p);
-                String v2 = normalizeOakString(v);
+                String v2 = normalizeOakString(p, v);
                 if (!v2.equals(v)) {
                     obj.getProperties().put(p, v2);
                 }
@@ -842,12 +843,14 @@ public class DiffIndexMerger {
     /**
      * "Normalize" a JSON string value. Remove any "nam:" and "dat:" and "str:"
      * prefix in the value, because customers won't use them normally. (We want the
-     * diff to be as simple as possible).
+     * diff to be as simple as possible). Plain strings for "jcr:data" are encoded
+     * as binary values.
      *
+     * @param propertyName the property name
      * @param value the value (including double quotes; eg. "str:value")
      * @return the normalized value (including double quotes)
      */
-    private static String normalizeOakString(String value) {
+    private static String normalizeOakString(String propertyName, String value) {
         if (value == null || !value.startsWith("\"")) {
             // ignore numbers
             return value;
@@ -855,6 +858,9 @@ public class DiffIndexMerger {
         value = JsopTokenizer.decodeQuoted(value);
         if (value.startsWith("str:") || value.startsWith("nam:") || value.startsWith("dat:")) {
             value = value.substring("str:".length());
+        }
+        if ("jcr:data".equals(propertyName) && !value.startsWith(":")) {
+            value = ":blobId:" + Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
         }
         return JsopBuilder.encode(value);
     }
@@ -983,7 +989,11 @@ public class DiffIndexMerger {
                     logAndCollectWarn("{}: Ignoring existing property \"{}\" at {}", indexName, p, pathForLogging);
                 }
             } else {
-                target.getProperties().put(p, diff.getProperties().get(p));
+                String value = diff.getProperties().get(p);
+                if ("jcr:data".equals(p)) {
+                    value = normalizeOakString(p, value);
+                }
+                target.getProperties().put(p, value);
             }
         }
         for (String c : diff.getChildren().keySet()) {
