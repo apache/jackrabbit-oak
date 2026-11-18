@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -189,7 +188,7 @@ public abstract class SegmentStoreMigratorTestBase {
                 .filter(archive -> containsReference(archive.getValue(), blobId))
                 .map(Map.Entry::getKey)
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
         assertEquals("archives referencing " + blobId, 2, archives.size());
         return archives.get(1);
     }

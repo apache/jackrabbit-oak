@@ -535,25 +535,7 @@ public class TarReader implements Closeable {
         log.debug("Writing new generation {}", newFile);
         TarWriter writer = new TarWriter(archiveManager, newFile);
         BinaryReferencesIndex references = getBinaryReferences();
-        BinaryReferencesRecovery binaryReferencesRecovery = null;
-        if (references == null) {
-            log.warn("Recovering binary references of {} from its segments", name);
-            binaryReferencesRecovery = new BinaryReferencesRecovery(recovery, writer::addBinaryReference);
-        }
-        for (SegmentArchiveEntry entry : entries) {
-            if (entry != null) {
-                long msb = entry.getMsb();
-                long lsb = entry.getLsb();
-                int size = entry.getLength();
-                GCGeneration gen = GCGeneration.newGCGeneration(entry);
-                byte[] data = new byte[size];
-                archive.readSegment(msb, lsb).get(data);
-                writer.writeEntry(msb, lsb, data, 0, size, gen);
-                if (binaryReferencesRecovery != null) {
-                    binaryReferencesRecovery.recover(new UUID(msb, lsb), data);
-                }
-            }
-        }
+        writeRemainingSegments(entries, writer, references == null, recovery);
 
         // Reconstruct the graph index for non-cleaned segments.
         SegmentGraph graph = getGraph();
@@ -587,6 +569,29 @@ public class TarReader implements Closeable {
         } else {
             log.warn("Failed to open cleaned up tar file {}", getFileName());
             return this;
+        }
+    }
+
+    private void writeRemainingSegments(SegmentArchiveEntry[] entries, TarWriter writer, boolean recoverBinaryReferences,
+                                        TarRecovery recovery) throws IOException {
+        BinaryReferencesRecovery binaryReferencesRecovery = null;
+        if (recoverBinaryReferences) {
+            log.warn("Recovering binary references of {} from its segments", archive.getName());
+            binaryReferencesRecovery = new BinaryReferencesRecovery(recovery, writer::addBinaryReference);
+        }
+        for (SegmentArchiveEntry entry : entries) {
+            if (entry != null) {
+                long msb = entry.getMsb();
+                long lsb = entry.getLsb();
+                int size = entry.getLength();
+                GCGeneration gen = GCGeneration.newGCGeneration(entry);
+                byte[] data = new byte[size];
+                archive.readSegment(msb, lsb).get(data);
+                writer.writeEntry(msb, lsb, data, 0, size, gen);
+                if (binaryReferencesRecovery != null) {
+                    binaryReferencesRecovery.recover(new UUID(msb, lsb), data);
+                }
+            }
         }
     }
 

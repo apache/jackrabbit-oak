@@ -243,7 +243,7 @@ public class ReadOnlyStoreBlobReferencesTest {
         List<String> rewritten = Arrays.stream(fileStoreDir.list())
                 .filter(name -> name.endsWith("b.tar") && !archivesBeforeCleanup.contains(name))
                 .filter(name -> archivesBeforeCleanup.contains(name.substring(0, name.length() - "b.tar".length()) + "a.tar"))
-                .collect(Collectors.toList());
+                .toList();
         assertEquals("archives rewritten by cleanup", 1, rewritten.size());
         return rewritten.get(0);
     }
@@ -355,7 +355,7 @@ public class ReadOnlyStoreBlobReferencesTest {
         return copy;
     }
 
-    private static SegmentArchiveManager archiveManager(File directory) throws IOException {
+    private static SegmentArchiveManager archiveManager(File directory) {
         return new TarPersistence(directory).createArchiveManager(false, false, new IOMonitorAdapter(),
                 new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
     }

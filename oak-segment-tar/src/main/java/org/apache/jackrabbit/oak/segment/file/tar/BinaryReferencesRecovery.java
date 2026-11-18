@@ -69,10 +69,12 @@ public final class BinaryReferencesRecovery {
 
         @Override
         public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) {
+            // only binary references are recovered, segments are not written
         }
 
         @Override
         public void recoverGraphEdge(UUID from, UUID to) {
+            // only binary references are recovered
         }
 
         @Override
@@ -87,9 +89,9 @@ public final class BinaryReferencesRecovery {
 
         @Override
         public void addSegment(Segment segment) {
+            // segments are readable through the store, so they don't need to be kept here
         }
 
-        // Segments are readable through the store, so they don't need to be kept here.
         @Override
         public Map<SegmentId, Segment> getRecoveredSegments() {
             return Collections.emptyMap();
