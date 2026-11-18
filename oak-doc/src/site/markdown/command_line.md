@@ -69,8 +69,8 @@ The oak-run `gc-journal` command inspects the segment store GC journal
     java -jar oak-run-*.jar gc-journal check <repository>
 
 `check` is read-only. It reports whether the latest `gc.log` entry is
-well-formed, points at a readable root, and matches the current head (exit code
-`0` when consistent, `1` otherwise). Only local segment stores are supported.
+well-formed, points at a readable root, and matches the latest `journal.log`
+revision (exit code `0` when consistent, `1` otherwise). Only local segment stores are supported.
 It does not verify the repository content, use `oak-run check` for that.
 
 #### Index Management

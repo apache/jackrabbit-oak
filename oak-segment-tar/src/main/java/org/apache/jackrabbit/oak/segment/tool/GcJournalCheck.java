@@ -23,24 +23,30 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.util.Date;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.GCJournal;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
+import org.apache.jackrabbit.oak.segment.file.JournalEntry;
+import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 /**
  * Read-only sanity check for {@code gc.log}. Verifies that its latest entry is
- * well-formed, points at a readable root, and matches the current head, so that
- * garbage collection relies on a valid and up-to-date GC journal.
+ * well-formed, points at a readable root, and matches the latest revision in
+ * {@code journal.log}, so that garbage collection relies on a valid and
+ * up-to-date GC journal.
  * <p>
- * Only local segment stores are supported. The head is compared by generation
- * numbers only, so a partially compacted head, which keeps the generation of
+ * Only local segment stores are supported. The revision is compared by generation
+ * numbers only, so a partially compacted revision, which keeps the generation of
  * the last complete compaction, is not reported.
  * <p>
  * The content of the repository is not verified, use {@code oak-run check} for that.
@@ -104,56 +110,85 @@ public class GcJournalCheck {
         print("Checking gc.log at {0}", path);
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
+            // 1. The latest journal.log revision is the reference, so it must be accessible.
+            print("\nChecking journal.log");
+            JournalEntry revision = latestRevision();
+            GCGeneration head;
+            try {
+                head = RecordId.fromString(store.getSegmentIdProvider(), revision.getRevision())
+                    .getSegmentId().getGcGeneration();
+            } catch (IllegalArgumentException e) {
+                printError("Latest journal.log revision {0} is not accessible: invalid record id",
+                    revision.getRevision());
+                return INCONSISTENT;
+            } catch (SegmentNotFoundException e) {
+                printError("Latest journal.log revision {0} is not accessible: missing segment {1}",
+                    revision.getRevision(), e.getSegmentId());
+                return INCONSISTENT;
+            }
+            print("Latest revision is {0} from {1}", revision.getRevision(), timestampToString(revision.getTimestamp()));
+            print("Latest revision is at generation {0}, full generation {1}",
+                head.getGeneration(), head.getFullGeneration());
+
+            print("\nChecking gc.log");
             GCJournal gcJournal = new GCJournal(new TarPersistence(path).getGCJournalFile());
-            GCGeneration head = store.getRevisions().getHead().getSegmentId().getGcGeneration();
 
             if (gcJournal.readAll().isEmpty()) {
                 // Any generation above zero was produced by a compaction, which should have been journaled.
                 if (head.getGeneration() == 0 && head.getFullGeneration() == 0) {
-                    print("No gc.log entries found and the store was never compacted, nothing to check");
+                    print("No entries found and the store was never compacted, nothing to check");
                     return CONSISTENT;
                 }
-                printError("gc.log has no entries but the store head is at generation {0}, full generation {1}",
+                printError("gc.log has no entries but the latest revision is at generation {0}, full generation {1}",
                     head.getGeneration(), head.getFullGeneration());
                 return INCONSISTENT;
             }
 
             GCJournalEntry latest = gcJournal.read();
             GCGeneration journal = latest.getGcGeneration();
-            print("Latest gc.log entry: generation {0}, full generation {1}, root {2}",
-                journal.getGeneration(), journal.getFullGeneration(), latest.getRoot());
+            print("Latest entry is at generation {0}, full generation {1}, root {2} from {3}",
+                journal.getGeneration(), journal.getFullGeneration(), latest.getRoot(), timestampToString(latest.getTs()));
 
-            // 1. The latest entry must be parseable.
+            // 2. The latest entry must be parseable.
             if (journal.getGeneration() < 0 || journal.getFullGeneration() < 0) {
                 printError("Latest gc.log entry is malformed");
                 return INCONSISTENT;
             }
 
-            // 2. The recorded root must still be readable.
+            // 3. The recorded root must still be readable.
             String unreadable = rootReadError(store, latest.getRoot());
             if (unreadable != null) {
                 printError("gc.log root {0} is not accessible: {1}", latest.getRoot(), unreadable);
                 return INCONSISTENT;
             }
-            print("gc.log root is accessible");
+            print("Root is accessible");
 
-            // 3. The latest entry must match the current head, else it is stale.
-            print("Store head: generation {0}, full generation {1}",
-                head.getGeneration(), head.getFullGeneration());
-
+            // 4. The latest entry must match the latest revision, else it is stale.
             if (journal.getGeneration() != head.getGeneration()
                 || journal.getFullGeneration() != head.getFullGeneration()) {
-                printError("gc.log is stale: latest entry does not match the store head");
+                printError("gc.log is stale: latest entry does not match the latest journal.log revision");
                 return INCONSISTENT;
             }
 
-            print("gc.log is consistent with the store head");
+            print("\nOverall");
+            print("gc.log is consistent with the latest journal.log revision");
             return CONSISTENT;
         } catch (Exception e) {
             printError("Unable to check gc.log: {0}", e.getMessage());
             e.printStackTrace(err);
             return INCONSISTENT;
         }
+    }
+
+    private JournalEntry latestRevision() throws IOException {
+        try (JournalReader reader = new JournalReader(new TarPersistence(path).getJournalFile())) {
+            // The store only opens if journal.log has an accessible revision, so there is at least one entry.
+            return reader.next();
+        }
+    }
+
+    private static String timestampToString(long timestamp) {
+        return timestamp < 0 ? "unknown time" : DateFormat.getDateTimeInstance().format(new Date(timestamp));
     }
 
     private static String rootReadError(ReadOnlyFileStore store, String root) {

@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,7 +69,11 @@ public class GcJournalCheckTest {
         writeAndCompact(true, true);
 
         assertEquals(GcJournalCheck.CONSISTENT, check(storeDir));
-        assertTrue(out.toString().contains("gc.log is consistent with the store head"));
+        String output = out.toString();
+        assertTrue(output.contains("Checking journal.log"));
+        assertTrue(output.contains("Checking gc.log"));
+        assertTrue(output.contains("gc.log is consistent with the latest journal.log revision"));
+        assertEquals("", err.toString());
     }
 
     @Test
@@ -121,6 +126,24 @@ public class GcJournalCheckTest {
         assertTrue(err.toString().contains("Unable to check gc.log"));
     }
 
+    @Test
+    public void missingLatestJournalRevisionIsInconsistent() throws Exception {
+        writeAndCompact(true, true);
+        appendToJournalLog("11111111-2222-3333-a444-555555555555:0 root " + System.currentTimeMillis());
+
+        assertEquals(GcJournalCheck.INCONSISTENT, check(storeDir));
+        assertTrue(err.toString().contains("Latest journal.log revision 11111111-2222-3333-a444-555555555555:0 is not accessible: missing segment"));
+    }
+
+    @Test
+    public void invalidLatestJournalRevisionIsInconsistent() throws Exception {
+        writeAndCompact(true, true);
+        appendToJournalLog("not-a-record-id root " + System.currentTimeMillis());
+
+        assertEquals(GcJournalCheck.INCONSISTENT, check(storeDir));
+        assertTrue(err.toString().contains("Latest journal.log revision not-a-record-id is not accessible: invalid record id"));
+    }
+
     private int check(File path) {
         return GcJournalCheck.builder()
             .withPath(path)
@@ -151,6 +174,12 @@ public class GcJournalCheckTest {
 
     private void appendToJournal(String line) throws IOException {
         new TarPersistence(storeDir).getGCJournalFile().writeLine(line);
+    }
+
+    private void appendToJournalLog(String line) throws IOException {
+        try (JournalFileWriter writer = new TarPersistence(storeDir).getJournalFile().openJournalWriter()) {
+            writer.writeLine(line);
+        }
     }
 
 }
