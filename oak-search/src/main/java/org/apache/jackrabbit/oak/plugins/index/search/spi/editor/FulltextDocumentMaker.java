@@ -685,7 +685,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
 
-            if (Type.BINARY == property.getType()) {
+            if (Type.BINARY.tag() == property.getType().tag()) {
                 String aggregatedNodePath = PathUtils.concat(path, result.nodePath);
                 //Here the fulltext is being created for aggregate root hence nodePath passed
                 //should be null
