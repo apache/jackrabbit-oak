@@ -93,7 +93,6 @@
               !org.conscrypt.*,
               !org.newsclub.net.unix.*,
               !org.glassfish.hk2.osgiresourcelocator.*,
-              !jdk.net,
               *
             </Import-Package>
             <Embed-Dependency>
