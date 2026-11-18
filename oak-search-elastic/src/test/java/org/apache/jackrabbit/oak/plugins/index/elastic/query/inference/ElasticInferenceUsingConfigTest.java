@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -286,6 +287,46 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
             List<String> results = executeQuery(queryPath, SQL2, true, true);
             assertEquals(5, results.size());
         });
+    }
+
+    @Test
+    public void knnOnMissingVectorSpaceFallsBackToFullText() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "enabled-after-index-creation";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // the model is disabled when the index is created, so its vector space is not part of the mapping
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+                inferenceModelName, inferenceServiceUrl, 0.0, 1L, true, false);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+        Tree index = setIndex(jcrIndexName, createIndexDefinition("title", "description"));
+        root.commit();
+        assertFalse(getMapping(index).mappings().properties().get(VECTOR_SPACES)
+                .object().properties().containsKey(inferenceModelConfigName));
+
+        addTestContent();
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+                inferenceModelName, inferenceServiceUrl, 0.0, 1L, true, true);
+        InferenceConfig.reInitialize();
+
+        String embeddings = IOUtils.toString(this.getClass().getResource(
+                "/inferenceUsingConfig/queries/a_beginner_guide_to_data_manipulation_in_python.json"), StandardCharsets.UTF_8);
+        wireMock.stubFor(WireMock.post("/v1/embeddings")
+                .willReturn(WireMock.okJson(embeddings)));
+
+        String query = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?{}?python')";
+        assertEventually(() -> assertEquals(List.of("/content/programming"), executeQuery(query, SQL2, true, true)));
+        wireMock.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/v1/embeddings")));
+
+        ElasticFeatureToggles.FT_OAK_12539_DISABLE.set(true);
+        try {
+            assertEquals(List.of(), executeQuery(query, SQL2, true, true));
+        } finally {
+            ElasticFeatureToggles.FT_OAK_12539_DISABLE.set(false);
+        }
     }
 
     private void enableExperimentalInferenceCompatibility() {

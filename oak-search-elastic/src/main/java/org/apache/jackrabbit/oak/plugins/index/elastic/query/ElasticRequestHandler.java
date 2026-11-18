@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticSemVer;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
@@ -728,6 +729,8 @@ public class ElasticRequestHandler {
 
                         NestedQuery.Builder nestedQueryBuilder = new NestedQuery.Builder()
                                 .path(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName)
+                                // the vector space is missing from the mapping if the model was enabled after the index was created
+                                .ignoreUnmapped(!ElasticFeatureToggles.FT_OAK_12539_DISABLE.get())
                                 .query(Query.of(q2 -> q2.knn(knnQuery)));
 
                         b.should(s -> s.nested(nestedQueryBuilder.build()));

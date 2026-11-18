@@ -37,6 +37,7 @@
                     {
                       "nested": {
                         "path": ":vectorSpaces.inferenceConfig1",
+                        "ignore_unmapped": true,
                         "query": {
                           "knn": {
                             "field": ":vectorSpaces.inferenceConfig1.vector",
