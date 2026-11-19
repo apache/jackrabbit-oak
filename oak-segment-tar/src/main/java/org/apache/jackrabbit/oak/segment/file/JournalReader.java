@@ -46,8 +46,7 @@ public final class JournalReader extends AbstractIterator<JournalEntry> implemen
     }
 
     /**
-     * @throws IllegalStateException  if an {@code IOException} occurs while reading from
-     *                                the journal file.
+     * @throws JournalReadFailure if an {@link IOException} occurs while reading from the journal file.
      */
     @Override
     protected JournalEntry computeNext() {
@@ -76,6 +75,7 @@ public final class JournalReader extends AbstractIterator<JournalEntry> implemen
             }
         } catch (IOException e) {
             LOG.error("Error reading journal file", e);
+            throw new JournalReadFailure(e);
         }
         return endOfData();
     }
