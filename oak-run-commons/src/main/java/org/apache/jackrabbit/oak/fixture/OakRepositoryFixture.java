@@ -31,6 +31,17 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return getMemory(OakFixture.OAK_MEMORY_NS, cacheSize);
     }
 
+    /**
+     * Audit-enabled sibling of {@link #getMemoryNS(long)}: an in-memory
+     * fixture that wires the audit pipeline with {@code FT_OAK-12331}
+     * enabled and a noop listener for the {@code security} domain.
+     * Use to measure audit-ON overhead against the audit-OFF baseline
+     * produced by {@link #getMemoryNS(long)}.
+     */
+    public static RepositoryFixture getMemoryNSWithAudit(long cacheSize) {
+        return new OakRepositoryFixture(OakFixture.getMemoryNSWithAudit(cacheSize));
+    }
+
     private static RepositoryFixture getMemory(String name, long cacheSize) {
         return new OakRepositoryFixture(OakFixture.getMemory(name, cacheSize));
     }
