@@ -63,6 +63,11 @@ public class FunctionIndexProcessorTest {
                 FunctionIndexProcessor.tryCalculateValue("x",
                 EMPTY_NODE.builder().setProperty("data", "Hello World").getNodeState(),
                 new String[]{"function", "lower", "@data"}).toString());
+        // normalize
+        assertEquals("value = [ete, oeuf]",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data", Arrays.asList("Été", "ŒUF"), Type.STRINGS).getNodeState(),
+                new String[]{"function", "normalize", "@data"}).toString());
         // coalesce
         assertEquals("value = Hello",
                 FunctionIndexProcessor.tryCalculateValue("x",
@@ -140,6 +145,9 @@ public class FunctionIndexProcessorTest {
         checkConvert(
                 "fn:lower-case(fn:upper-case(test/@data))",
                 "function*lower*upper*@test/data");
+        checkConvert(
+                "rep:normalize(fn:upper-case(test/@data))",
+                "function*normalize*upper*@test/data");
         checkConvert("fn:coalesce(jcr:content/@foo2, jcr:content/@foo)",
                 "function*coalesce*@jcr:content/foo2*@jcr:content/foo");
         checkConvert("fn:coalesce(jcr:content/@foo2,fn:lower-case(jcr:content/@foo))",
@@ -174,6 +182,9 @@ public class FunctionIndexProcessorTest {
         checkConvert(
                 "lower(localname())",
                 "function*lower*@:localname");
+        checkConvert(
+                "normalize([data])",
+                "function*normalize*@data");
         checkConvert(
                 "length([test/data])",
                 "function*length*@test/data");
