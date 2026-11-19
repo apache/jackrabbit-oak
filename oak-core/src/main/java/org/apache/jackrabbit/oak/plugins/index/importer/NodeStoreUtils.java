@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -50,10 +51,15 @@ final class NodeStoreUtils {
     }
 
     static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
-                                         IndexEditorProvider indexEditorProvider) throws CommitFailedException {
+                                         IndexEditorProvider indexEditorProvider,
+                                         boolean indexDefinitionAudit) throws CommitFailedException {
+        IndexUpdateProvider indexUpdate = new IndexUpdateProvider(indexEditorProvider, null, true);
+        if (indexDefinitionAudit) {
+            indexUpdate.setIndexDefinitionAuditEnabled(true);
+        }
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
-                new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
+                new EditorHook(indexUpdate),
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider())
         );
@@ -69,6 +75,6 @@ final class NodeStoreUtils {
 
     private static CommitInfo createCommitInfo() {
         Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
-        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
+        return new CommitInfo(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, CommitInfo.OAK_UNKNOWN, info);
     }
 }

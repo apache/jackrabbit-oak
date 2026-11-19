@@ -34,9 +34,11 @@ import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -70,6 +72,8 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     private Tracker<IndexImporterProvider> providerTracker;
     private Feature legacyImportFeature;
 
+    private Whiteboard whiteboard;
+
     public IndexerMBeanImpl() {
         super(IndexerMBean.class);
     }
@@ -86,12 +90,22 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
             boolean useLegacyImportFlow = legacyImportFeature != null && legacyImportFeature.isEnabled();
             IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock), useLegacyImportFlow);
             providerTracker.getServices().forEach(importer::addImporterProvider);
+            importer.setIndexDefinitionAuditEnabled(isIndexDefinitionAuditEnabled());
             importer.importIndex();
         } catch (IOException | CommitFailedException | RuntimeException e) {
             log.warn("Error occurred while importing index from path [{}]", indexDirPath, e);
             throw e;
         }
         return true;
+    }
+
+    /**
+     * Whether the feature toggle of the index definition audit (registered by the repository)
+     * is enabled; the importer does not run with the repository's commit hooks.
+     */
+    private boolean isIndexDefinitionAuditEnabled() {
+        return whiteboard != null && WhiteboardUtils.getServices(whiteboard, FeatureToggle.class).stream()
+                .anyMatch(t -> IndexUpdateProvider.FT_OAK_12458.equals(t.getName()) && t.isEnabled());
     }
 
     private AsyncIndexerLock createLock(boolean ignoreLocalLock) {
@@ -110,6 +124,7 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     @Activate
     private void activate(BundleContext context) {
         Whiteboard wb = new OsgiWhiteboard(context);
+        whiteboard = wb;
         editorProvider.start(wb);
         mbeanReg = registerMBean(wb,
                 IndexerMBean.class,

@@ -217,6 +217,11 @@ public abstract class PurgeOldIndexVersion implements Closeable {
         return indexNameObjectList;
     }
 
+    // the session id identifies the purge in the index definition audit (OAK-12458)
+    private static CommitInfo newCommitInfo() {
+        return new CommitInfo(PurgeOldIndexVersion.class.getSimpleName(), null);
+    }
+
     private void purgeOldIndexVersion(NodeStore store, List<IndexVersionOperation> toDeleteIndexNameObjectList) throws
             CommitFailedException {
         for (IndexVersionOperation toDeleteIndexNameObject : toDeleteIndexNameObjectList) {
@@ -235,13 +240,13 @@ public abstract class PurgeOldIndexVersion implements Closeable {
                     // Set this property :originalType so that when the purge job marks this index for deletion in later runs -
                     // the proper post deletion hook can be called based on the original index type.
                     nodeBuilder.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, type, Type.STRING);
-                    store.merge(rootBuilder, hook, CommitInfo.EMPTY);
+                    store.merge(rootBuilder, hook, newCommitInfo());
                     PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, nodeName);
                 } else if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE) {
                     preserveDetailsFromIndexDefForPostOp(nodeBuilder);
                     LOG.info("Deleting {}", nodeName);
                     nodeBuilder.remove();
-                    store.merge(rootBuilder, hook, CommitInfo.EMPTY);
+                    store.merge(rootBuilder, hook, newCommitInfo());
                     postDeleteOp(toDeleteIndexNameObject.getIndexName().getNodeName());
                 }
             } else {

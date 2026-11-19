@@ -23,10 +23,18 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class IndexUpdateProvider implements EditorProvider {
+
+    /**
+     * Feature toggle to record index definition changes in the repository.
+     * Alternatively, the system property {@link IndexDefinitionAudit#ENABLED_PROPERTY} enables
+     * it for all index updates in the JVM.
+     */
+    public static final String FT_OAK_12458 = "FT_OAK-12458";
 
     private static final IndexUpdateCallback NOOP_CALLBACK = () -> {};
 
@@ -39,6 +47,10 @@ public class IndexUpdateProvider implements EditorProvider {
     private CorruptIndexHandler corruptIndexHandler = CorruptIndexHandler.NOOP;
 
     private boolean ignoreReindexFlags = IndexUpdate.IGNORE_REINDEX_FLAGS;
+
+    private Feature indexDefinitionAuditFeature;
+
+    private boolean indexDefinitionAuditEnabled = Boolean.getBoolean(IndexDefinitionAudit.ENABLED_PROPERTY);
 
     public IndexUpdateProvider(IndexEditorProvider provider, boolean failOnMissingIndexProvider) {
         this(provider, null, failOnMissingIndexProvider);
@@ -64,6 +76,7 @@ public class IndexUpdateProvider implements EditorProvider {
         IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, NodeTraversalCallback.NOOP, info, corruptIndexHandler)
                 .withMissingProviderStrategy(missingStrategy);
         editor.setIgnoreReindexFlags(ignoreReindexFlags);
+        editor.setIndexDefinitionAuditEnabled(isIndexDefinitionAuditEnabled());
         return VisibleEditor.wrap(editor);
     }
 
@@ -73,5 +86,25 @@ public class IndexUpdateProvider implements EditorProvider {
 
     public void setIgnoreReindexFlags(boolean ignoreReindexFlags) {
         this.ignoreReindexFlags = ignoreReindexFlags;
+    }
+
+    /**
+     * Whether index definition changes are recorded (system property, set explicitly, or feature toggle).
+     */
+    boolean isIndexDefinitionAuditEnabled() {
+        return indexDefinitionAuditEnabled || (indexDefinitionAuditFeature != null && indexDefinitionAuditFeature.isEnabled());
+    }
+
+    public void setIndexDefinitionAuditFeature(@Nullable Feature indexDefinitionAuditFeature) {
+        this.indexDefinitionAuditFeature = indexDefinitionAuditFeature;
+    }
+
+    /**
+     * Enables or disables recording of index definition changes, independent of the feature
+     * toggle (by default, it is enabled with the system property
+     * {@link IndexDefinitionAudit#ENABLED_PROPERTY}).
+     */
+    public void setIndexDefinitionAuditEnabled(boolean enabled) {
+        this.indexDefinitionAuditEnabled = enabled;
     }
 }

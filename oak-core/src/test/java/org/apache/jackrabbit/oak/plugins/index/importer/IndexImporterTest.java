@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -399,6 +400,117 @@ public class IndexImporterTest {
 
         NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
         assertEquals(2, idx.getLong("reindexCount"));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
+     */
+    @Test
+    public void importIsAudited() throws Exception {
+        assertImportIsAudited(false);
+    }
+
+    /**
+     * The importer records the change also without the system property, if enabled
+     * (for example by the feature toggle).
+     */
+    @Test
+    public void importIsAuditedWhenEnabled() throws Exception {
+        assertImportIsAudited(true);
+    }
+
+    private void assertImportIsAudited(boolean enabledByToggle) throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("a").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        new AsyncIndexUpdate("async", store, provider).run();
+        createIndexDirs("/oak:index/fooIndex");
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+        importer.addImporterProvider(new IndexImporterProvider() {
+            @Override
+            public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+            }
+
+            @Override
+            public String getType() {
+                return "property";
+            }
+        });
+        if (enabledByToggle) {
+            importer.setIndexDefinitionAuditEnabled(true);
+            importer.importIndex();
+        } else {
+            System.setProperty(IndexDefinitionAudit.ENABLED_PROPERTY, "true");
+            try {
+                importer.importIndex();
+            } finally {
+                System.clearProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
+            }
+        }
+
+        NodeState log = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(":audit")
+                .getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+        assertEquals(1, log.getChildNodeCount(10));
+        NodeState entry = log.getChildNodeEntries().iterator().next().getNodeState();
+        // importing an existing index rebuilds it
+        assertEquals("REINDEX", entry.getString("operation"));
+        assertEquals(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, entry.getString("origin"));
+        // the temporary lane, the import state and the reindex count are not part of the definition
+        assertEquals("", entry.getString("diff"));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
+     */
+    @Test
+    public void importOfNewIndexIsAudited() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("oak:index");
+        builder.child("a").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        String json = "{\"/oak:index/fooIndex\": {\"reindexCount\": 1, \"reindex\": false, \"type\": \"property\", "
+                + "\"async\": \"async\", \"propertyNames\": [\"foo\"], "
+                + "\"jcr:primaryType\": \"oak:QueryIndexDefinition\"}}";
+        File indexFolder = temporaryFolder.getRoot();
+        new IndexerInfo(indexFolder, store.checkpoint(1000000)).save();
+        Files.writeString(indexFolder.toPath().resolve(INDEX_DEFINITIONS_JSON), json);
+        createIndexFolder(indexFolder, "/oak:index/fooIndex");
+
+        IndexImporter importer = new IndexImporter(store, indexFolder, provider, NOOP_LOCK);
+        importer.addImporterProvider(new IndexImporterProvider() {
+            @Override
+            public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+            }
+
+            @Override
+            public String getType() {
+                return "property";
+            }
+        });
+        // the import brings the new index up to date with the async lane, which must exist
+        new AsyncIndexUpdate("async", store, provider).run();
+        System.setProperty(IndexDefinitionAudit.ENABLED_PROPERTY, "true");
+        try {
+            importer.importIndex();
+        } finally {
+            System.clearProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
+        }
+
+        NodeState history = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(":audit")
+                .getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+        assertEquals(1, history.getChildNodeCount(10));
+        NodeState entry = history.getChildNodeEntries().iterator().next().getNodeState();
+        assertEquals("CREATED", entry.getString("operation"));
+        assertEquals(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, entry.getString("origin"));
+        String diff = entry.getString("diff");
+        assertTrue(diff, diff.contains("^\"/async\":\"async\""));
+        assertFalse(diff, diff.contains("temp-"));
+        assertFalse(diff, diff.contains(ASYNC_PREVIOUS));
+        assertFalse(diff, diff.contains(IndexImporter.INDEX_IMPORT_STATE_KEY));
     }
 
     @Test

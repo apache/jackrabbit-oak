@@ -26,7 +26,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
@@ -39,6 +41,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.index.LuceneAbstractIndexCommandTest;
 import org.apache.jackrabbit.oak.index.LuceneRepositoryFixture;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -48,6 +51,7 @@ import org.apache.jackrabbit.oak.run.LucenePurgeOldIndexVersionCommand;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -107,6 +111,38 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         runIndexPurgeCommand(true, 1, "");
         indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
         Assert.assertFalse("Index:" + "fooIndex-4" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
+     */
+    @Test
+    public void purgeIsAudited() throws Exception {
+        createTestData(false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1"));
+
+        System.setProperty(IndexDefinitionAudit.ENABLED_PROPERTY, "true");
+        try {
+            runIndexPurgeCommand(true, 1, "");
+        } finally {
+            System.clearProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
+        }
+
+        NodeState audit = fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode(":audit");
+        Map<String, String> operations = new HashMap<>();
+        for (NodeState history : List.of(
+                audit.getChildNode(":deleted").getChildNode("oak:index").getChildNode("fooIndex"),
+                audit.getChildNode("oak:index").getChildNode("fooIndex-4"))) {
+            for (ChildNodeEntry entry : history.getChildNodeEntries()) {
+                NodeState state = entry.getNodeState();
+                if ("PurgeOldIndexVersion".equals(state.getString("origin"))) {
+                    operations.put(state.getString("path"), state.getString("operation"));
+                }
+            }
+        }
+        Assert.assertEquals(Map.of("/oak:index/fooIndex", "DELETED", "/oak:index/fooIndex-4", "DISABLED"), operations);
     }
 
     @Test
