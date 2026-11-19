@@ -18,11 +18,15 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import com.azure.storage.blob.BlobContainerClient;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
@@ -45,9 +49,12 @@ import java.nio.ByteBuffer;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -78,6 +85,10 @@ public class SegmentStoreMigrator implements Closeable  {
     private final Integer revisionCount;
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
+
+    private File sourceStoreDirectory;
+
+    private ReadOnlyFileStore sourceStore;
 
     private SegmentStoreMigrator(Builder builder) {
         this.source = builder.source;
@@ -182,8 +193,8 @@ public class SegmentStoreMigrator implements Closeable  {
             try (SegmentArchiveReader reader = sourceManager.forceOpen(archiveName)) {
                 SegmentArchiveWriter writer = targetManager.create(archiveName);
                 try {
-                    migrateSegments(reader, writer);
-                    migrateBinaryRef(reader, writer);
+                    Map<UUID, ByteBuffer> segments = migrateSegments(reader, writer);
+                    migrateBinaryRef(archiveName, segments, reader, writer);
                     migrateGraph(reader, writer);
                 } catch (Exception e) {
                     log.error("Can't write archive", e);
@@ -195,7 +206,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
+    private Map<UUID, ByteBuffer> migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
             futures.add(executor.submit(() -> RETRIER.execute(() -> {
@@ -205,19 +216,43 @@ public class SegmentStoreMigrator implements Closeable  {
             })));
         }
 
+        Map<UUID, ByteBuffer> segments = new LinkedHashMap<>();
         for (Future<Segment> future : futures) {
             Segment segment = future.get();
             RETRIER.execute(() -> segment.write(writer));
+            segments.put(segment.id(), segment.data);
         }
+        return segments;
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
+    private void migrateBinaryRef(String archiveName, Map<UUID, ByteBuffer> segments, SegmentArchiveReader reader,
+                                  SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
         Future<ByteBuffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         ByteBuffer binaryReferences = future.get();
+        byte[] array;
         if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
-            RETRIER.execute(() -> writer.writeBinaryReferences(array));
+            array = fetchByteArray(binaryReferences);
+        } else {
+            log.warn("{}/{} has no binary references, recovering them from its segments", sourceName, archiveName);
+            array = sourceStore().recoverBinaryReferences(segments);
         }
+        RETRIER.execute(() -> writer.writeBinaryReferences(array));
+    }
+
+    /**
+     * Opened only when an archive without binary references is migrated. It must be read-only:
+     * a writable store would recover the source archives and modify the source.
+     */
+    private ReadOnlyFileStore sourceStore() throws IOException {
+        if (sourceStore == null) {
+            sourceStoreDirectory = Files.createTempDirectory("segment-store-migrator").toFile();
+            try {
+                sourceStore = fileStoreBuilder(sourceStoreDirectory).withCustomPersistence(source).buildReadOnly();
+            } catch (InvalidFileStoreVersionException e) {
+                throw new IOException(e);
+            }
+        }
+        return sourceStore;
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
@@ -233,6 +268,11 @@ public class SegmentStoreMigrator implements Closeable  {
             while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS));
         } catch (InterruptedException e) {
             throw new IOException(e);
+        } finally {
+            if (sourceStore != null) {
+                sourceStore.close();
+            }
+            FileUtils.deleteQuietly(sourceStoreDirectory);
         }
     }
 
@@ -257,9 +297,13 @@ public class SegmentStoreMigrator implements Closeable  {
                     entry.getFullGeneration(), entry.isCompacted());
         }
 
+        UUID id() {
+            return new UUID(entry.getMsb(), entry.getLsb());
+        }
+
         @Override
         public String toString() {
-            return new UUID(entry.getMsb(), entry.getLsb()).toString();
+            return id().toString();
         }
     }
 

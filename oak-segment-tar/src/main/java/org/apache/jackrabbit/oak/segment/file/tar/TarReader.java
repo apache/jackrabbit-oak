@@ -354,10 +354,14 @@ public class TarReader implements Closeable {
      *
      * @param collector      An instance of {@link Consumer}.
      * @param skipGeneration An instance of {@link Predicate}.
+     * @param recovery       Recovers the references from the segments if the binary references
+     *                       index of this TAR file is missing or can't be read.
      */
-    void collectBlobReferences(@NotNull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
+    void collectBlobReferences(@NotNull Consumer<String> collector, Predicate<GCGeneration> skipGeneration,
+                               @NotNull TarRecovery recovery) throws IOException {
         BinaryReferencesIndex references = getBinaryReferences();
         if (references == null) {
+            recoverBlobReferences(collector, skipGeneration, recovery);
             return;
         }
 
@@ -367,6 +371,20 @@ public class TarReader implements Closeable {
             }
             collector.accept(reference);
         });
+    }
+
+    private void recoverBlobReferences(Consumer<String> collector, Predicate<GCGeneration> skipGeneration,
+                                       TarRecovery recovery) throws IOException {
+        log.warn("Recovering binary references of {} from its segments", archive.getName());
+        BinaryReferencesRecovery binaryReferences = new BinaryReferencesRecovery(recovery, (generation, segmentId, reference) -> {
+            if (!skipGeneration.test(generation)) {
+                collector.accept(reference);
+            }
+        });
+        for (SegmentArchiveEntry entry : archive.listSegments()) {
+            binaryReferences.recover(new UUID(entry.getMsb(), entry.getLsb()),
+                    archive.readSegment(entry.getMsb(), entry.getLsb()));
+        }
     }
 
     /**
@@ -462,10 +480,12 @@ public class TarReader implements Closeable {
      * @param reclaim   Set of segment sto reclaim.
      * @param reclaimed Set of reclaimed segments. It will be update if this TAR
      *                  file is rewritten.
+     * @param recovery  Recovers the binary references of the remaining segments if the
+     *                  binary references index of this TAR file is missing or can't be read.
      * @return Either this {@link TarReader}, or a new instance of {@link
      * TarReader}, or {@code null}.
      */
-    TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed) throws IOException {
+    TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed, @NotNull TarRecovery recovery) throws IOException {
         if (archiveManager.isReadOnly(this.getFileName())) {
             return this;
         }
@@ -514,17 +534,8 @@ public class TarReader implements Closeable {
 
         log.debug("Writing new generation {}", newFile);
         TarWriter writer = new TarWriter(archiveManager, newFile);
-        for (SegmentArchiveEntry entry : entries) {
-            if (entry != null) {
-                long msb = entry.getMsb();
-                long lsb = entry.getLsb();
-                int size = entry.getLength();
-                GCGeneration gen = GCGeneration.newGCGeneration(entry);
-                byte[] data = new byte[size];
-                archive.readSegment(msb, lsb).get(data);
-                writer.writeEntry(msb, lsb, data, 0, size, gen);
-            }
-        }
+        BinaryReferencesIndex references = getBinaryReferences();
+        writeRemainingSegments(entries, writer, references == null, recovery);
 
         // Reconstruct the graph index for non-cleaned segments.
         SegmentGraph graph = getGraph();
@@ -540,7 +551,6 @@ public class TarReader implements Closeable {
         }
 
         // Reconstruct the binary reference index for non-cleaned segments.
-        BinaryReferencesIndex references = getBinaryReferences();
         if (references != null) {
             references.forEach((gen, full, compacted, id, reference) -> {
                 if (cleaned.contains(id)) {
@@ -559,6 +569,29 @@ public class TarReader implements Closeable {
         } else {
             log.warn("Failed to open cleaned up tar file {}", getFileName());
             return this;
+        }
+    }
+
+    private void writeRemainingSegments(SegmentArchiveEntry[] entries, TarWriter writer, boolean recoverBinaryReferences,
+                                        TarRecovery recovery) throws IOException {
+        BinaryReferencesRecovery binaryReferencesRecovery = null;
+        if (recoverBinaryReferences) {
+            log.warn("Recovering binary references of {} from its segments", archive.getName());
+            binaryReferencesRecovery = new BinaryReferencesRecovery(recovery, writer::addBinaryReference);
+        }
+        for (SegmentArchiveEntry entry : entries) {
+            if (entry != null) {
+                long msb = entry.getMsb();
+                long lsb = entry.getLsb();
+                int size = entry.getLength();
+                GCGeneration gen = GCGeneration.newGCGeneration(entry);
+                byte[] data = new byte[size];
+                archive.readSegment(msb, lsb).get(data);
+                writer.writeEntry(msb, lsb, data, 0, size, gen);
+                if (binaryReferencesRecovery != null) {
+                    binaryReferencesRecovery.recover(new UUID(msb, lsb), data);
+                }
+            }
         }
     }
 
