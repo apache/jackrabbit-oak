@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
+
 /**
  * AccessManager
  */
@@ -62,13 +64,13 @@ public class AccessManager {
 
     public void checkPermissions(@NotNull String oakPath, @NotNull String actions) throws RepositoryException {
         if (!hasPermissions(oakPath, actions)) {
-            throw new AccessDeniedException("Access denied.");
+            throw new AccessDeniedException(String.format(Locale.ROOT, "Access denied at path '%s'", oakPath));
         }
     }
 
     public void checkPermissions(@NotNull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
         if (!hasPermissions(tree, property, permissions)) {
-            throw new AccessDeniedException("Access denied.");
+            throw new AccessDeniedException(String.format(Locale.ROOT, "Access denied at path '%s'", tree.getPath()));
         }
     }
 }
