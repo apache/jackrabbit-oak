@@ -49,10 +49,18 @@ public class PropertyDelegate extends ItemDelegate {
     private PropertyState state;
 
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
+        this(sessionDelegate, parent, name, parent.getProperty(name));
+    }
+
+    PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, PropertyState state) {
+        this(sessionDelegate, parent, state.getName(), state);
+    }
+
+    private PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name, PropertyState state) {
         super(sessionDelegate);
         this.parent = requireNonNull(parent);
         this.name = requireNonNull(name);
-        this.state = parent.getProperty(name);
+        this.state = state;
     }
 
     /**

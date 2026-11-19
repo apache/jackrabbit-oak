@@ -294,8 +294,11 @@ public class NodeDelegate extends ItemDelegate {
      */
     @NotNull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
+        long updateCount = sessionDelegate.getUpdateCount();
         return IteratorUtils.transform(getTree().getProperties().iterator(),
-                propertyState -> new PropertyDelegate(sessionDelegate, tree, propertyState.getName()));
+                propertyState -> sessionDelegate.getUpdateCount() == updateCount
+                        ? new PropertyDelegate(sessionDelegate, tree, propertyState)
+                        : new PropertyDelegate(sessionDelegate, tree, propertyState.getName()));
     }
 
     /**
