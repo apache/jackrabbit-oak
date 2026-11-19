@@ -47,14 +47,14 @@ public class LogCustomizerTest {
                 .enable(Level.DEBUG).create();
 
         try {
-            custom.starting();
+            start(custom);
             LOG.debug("test message");
             List<String> logs = custom.getLogs();
             assertTrue(logs.size() == 1);
             assertThat("logs were recorded by custom logger", logs.toString(),
                     containsString("test message"));
         } finally {
-            custom.finished();
+            stop(custom);
         }
     }
 
@@ -66,14 +66,14 @@ public class LogCustomizerTest {
                 .enable(Level.DEBUG).filter(Level.INFO).create();
 
         try {
-            custom.starting();
+            start(custom);
             LOG.debug("test message");
 
             List<String> logs = custom.getLogs();
             assertTrue(logs.isEmpty());
 
         } finally {
-            custom.finished();
+            stop(custom);
         }
     }
 
@@ -85,7 +85,7 @@ public class LogCustomizerTest {
                 .create();
 
         try {
-            custom.starting();
+            start(custom);
             LOG.info("test message");
             LOG.info("test message 1");
             LOG.info("1 test message");
@@ -97,7 +97,7 @@ public class LogCustomizerTest {
             assertEquals(1, logs.size());
 
         } finally {
-            custom.finished();
+            stop(custom);
         }
     }
 
@@ -110,7 +110,7 @@ public class LogCustomizerTest {
                 .create();
 
         try {
-            custom.starting();
+            start(custom);
             LOG.info("test message");
             LOG.info("test message 1");
             LOG.info("1 test message");
@@ -127,7 +127,7 @@ public class LogCustomizerTest {
             assertEquals(4, logs.size());
 
         } finally {
-            custom.finished();
+            stop(custom);
         }
     }
 
@@ -140,7 +140,7 @@ public class LogCustomizerTest {
                 .create();
 
         try {
-            custom.starting();
+            start(custom);
             LOG.info("test message");
             LOG.info("test message 1");
             LOG.info("1 test message");
@@ -157,8 +157,18 @@ public class LogCustomizerTest {
             assertEquals(3, logs.size());
 
         } finally {
-            custom.finished();
+            stop(custom);
         }
     }
 
+    private void start(LogCustomizer custom) {
+        assertEquals(custom.originalLevel, custom.logger.getLevel());
+        custom.starting();
+        assertEquals(custom.enableLevel, custom.logger.getLevel());
+    }
+
+    private void stop(LogCustomizer custom) {
+        custom.finished();
+        assertEquals(custom.originalLevel, custom.logger.getLevel());
+    }
 }

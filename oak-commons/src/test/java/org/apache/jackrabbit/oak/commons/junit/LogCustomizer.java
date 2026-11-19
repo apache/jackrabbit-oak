@@ -138,25 +138,20 @@ public class LogCustomizer {
         }
     }
 
-    private final Logger logger;
-    private final List<String> logs = new ArrayList<>();
+    final Logger logger;
+    final List<String> logs = new ArrayList<>();
 
-    private final Level enableLevel;
-    private final Level originalLevel;
+    final Level enableLevel;
+    final Level originalLevel;
 
-    private final Appender<ILoggingEvent> customLogger;
+    final Appender<ILoggingEvent> customLogger;
 
     private LogCustomizer(String name, Level enableLevel,
                           final Level filterLevel,
                           final String matchExactMessage, final String matchContainsMessage, final String matchRegexMessage) {
         this.logger = getLogger(name);
-        if (enableLevel != null) {
-            this.enableLevel = enableLevel;
-            this.originalLevel = logger.getLevel();
-        } else {
-            this.enableLevel = null;
-            this.originalLevel = null;
-        }
+        this.enableLevel = enableLevel;
+        this.originalLevel = logger.getLevel();
 
         customLogger = new AppenderBase<ILoggingEvent>() {
             @Override
@@ -210,7 +205,7 @@ public class LogCustomizer {
     }
 
     public void finished() {
-        if (originalLevel != null) {
+        if (enableLevel != null) {
             logger.setLevel(originalLevel);
         }
         logger.detachAppender(customLogger);
