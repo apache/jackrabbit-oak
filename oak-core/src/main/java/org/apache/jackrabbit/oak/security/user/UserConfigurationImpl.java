@@ -204,7 +204,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
 
-    private UserMonitor monitor = UserMonitor.NOOP;
+    private volatile UserMonitor monitor = UserMonitor.NOOP;
 
     private BlobAccessProvider blobAccessProvider;
 
@@ -273,7 +273,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return List.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
+        return List.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider(), getMonitor()), new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
     @NotNull
@@ -298,6 +298,11 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     public @NotNull Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
         monitor = new UserMonitorImpl(statisticsProvider);
         return Collections.singleton(monitor);
+    }
+
+    @NotNull
+    UserMonitor getMonitor() {
+        return monitor;
     }
 
     //--------------------------------------------------< UserConfiguration >---

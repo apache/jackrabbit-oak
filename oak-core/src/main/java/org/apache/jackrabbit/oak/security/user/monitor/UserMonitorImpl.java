@@ -40,6 +40,15 @@ public class UserMonitorImpl implements UserMonitor {
     private static final String  MEMBEROF_TIMER = "security.user.memberof.timer";
     private static final String  DECLARED_MEMBEROF_TIMER = "security.user.declared_memberof.timer";
 
+    private static final String ADMIN_LOGIN_SUCCEEDED = "security.user.admin.login.succeeded";
+    private static final String ADMIN_LOGIN_FAILED = "security.user.admin.login.failed";
+    private static final String ADMIN_IMPERSONATION_SUCCEEDED = "security.user.admin.impersonation.succeeded";
+    private static final String ADMIN_IMPERSONATION_FAILED = "security.user.admin.impersonation.failed";
+    private static final String ADMIN_PASSWORD_ADDED = "security.user.admin.password.added";
+    private static final String ADMIN_PASSWORD_CHANGED = "security.user.admin.password.changed";
+    private static final String ADMIN_IMPERSONATORS_GRANTED = "security.user.admin.impersonators.granted";
+    private static final String ADMIN_IMPERSONATORS_REVOKED = "security.user.admin.impersonators.revoked";
+
     private final MeterStats addMembersFailed;
     private final MeterStats addMembersSucceeded;
     private final TimerStats addMembersTimer;
@@ -53,6 +62,15 @@ public class UserMonitorImpl implements UserMonitor {
 
     private final TimerStats memberOfTimer;
     private final TimerStats declaredMemberOfTimer;
+
+    private final MeterStats adminLoginSucceeded;
+    private final MeterStats adminLoginFailed;
+    private final MeterStats adminImpersonationSucceeded;
+    private final MeterStats adminImpersonationFailed;
+    private final MeterStats adminPasswordAdded;
+    private final MeterStats adminPasswordChanged;
+    private final MeterStats adminImpersonatorsGranted;
+    private final MeterStats adminImpersonatorsRevoked;
 
     public UserMonitorImpl(@NotNull StatisticsProvider statisticsProvider) {
         addMembersFailed = statisticsProvider.getMeter(ADD_MEMBERS_FAILED, StatsOptions.DEFAULT);
@@ -68,6 +86,15 @@ public class UserMonitorImpl implements UserMonitor {
 
         memberOfTimer = statisticsProvider.getTimer(MEMBEROF_TIMER, StatsOptions.METRICS_ONLY);
         declaredMemberOfTimer = statisticsProvider.getTimer(DECLARED_MEMBEROF_TIMER, StatsOptions.METRICS_ONLY);
+
+        adminLoginSucceeded = statisticsProvider.getMeter(ADMIN_LOGIN_SUCCEEDED, StatsOptions.DEFAULT);
+        adminLoginFailed = statisticsProvider.getMeter(ADMIN_LOGIN_FAILED, StatsOptions.DEFAULT);
+        adminImpersonationSucceeded = statisticsProvider.getMeter(ADMIN_IMPERSONATION_SUCCEEDED, StatsOptions.DEFAULT);
+        adminImpersonationFailed = statisticsProvider.getMeter(ADMIN_IMPERSONATION_FAILED, StatsOptions.DEFAULT);
+        adminPasswordAdded = statisticsProvider.getMeter(ADMIN_PASSWORD_ADDED, StatsOptions.DEFAULT);
+        adminPasswordChanged = statisticsProvider.getMeter(ADMIN_PASSWORD_CHANGED, StatsOptions.DEFAULT);
+        adminImpersonatorsGranted = statisticsProvider.getMeter(ADMIN_IMPERSONATORS_GRANTED, StatsOptions.DEFAULT);
+        adminImpersonatorsRevoked = statisticsProvider.getMeter(ADMIN_IMPERSONATORS_REVOKED, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -100,5 +127,26 @@ public class UserMonitorImpl implements UserMonitor {
             addMembersSucceeded.mark(successCnt);
             addMembersTimer.update(timeTakenNanos, NANOSECONDS);
         }
+    }
+
+    @Override
+    public void adminLogin(boolean success) {
+        (success ? adminLoginSucceeded : adminLoginFailed).mark();
+    }
+
+    @Override
+    public void adminImpersonated(boolean success) {
+        (success ? adminImpersonationSucceeded : adminImpersonationFailed).mark();
+    }
+
+    @Override
+    public void adminPasswordChanged(boolean added) {
+        (added ? adminPasswordAdded : adminPasswordChanged).mark();
+    }
+
+    @Override
+    public void adminImpersonatorsChanged(long granted, long revoked) {
+        adminImpersonatorsGranted.mark(granted);
+        adminImpersonatorsRevoked.mark(revoked);
     }
 }

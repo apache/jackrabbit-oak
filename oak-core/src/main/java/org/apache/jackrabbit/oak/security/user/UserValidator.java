@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
@@ -76,6 +80,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             throw constraintViolation(21, msg);
         }
+
+        monitorAdminChange(name, null, after);
     }
 
     @Override
@@ -105,6 +111,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Password may not be plain text.";
             throw constraintViolation(24, msg);
         }
+
+        monitorAdminChange(name, before, after);
     }
 
 
@@ -119,6 +127,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Authorizable property " + name + " may not be removed.";
             throw constraintViolation(25, msg);
         }
+
+        monitorAdminChange(name, before, null);
     }
 
     @Override
@@ -168,6 +178,38 @@ class UserValidator extends DefaultValidator implements UserConstants {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Records changes to password and impersonators of an existing admin user. Properties of a newly added
+     * authorizable node (i.e. {@code parentBefore} is {@code null}) are not monitored. Recording is best-effort:
+     * subsequent validation or merge failures do not revert it, and retried commits may record changes again.
+     */
+    private void monitorAdminChange(@NotNull String name, @Nullable PropertyState before, @Nullable PropertyState after) {
+        boolean isPassword = REP_PASSWORD.equals(name);
+        if ((!isPassword && !REP_IMPERSONATORS.equals(name)) || parentBefore == null || !isAdminUser(parentAfter)) {
+            return;
+        }
+        UserMonitor monitor = provider.getMonitor();
+        if (isPassword) {
+            monitor.adminPasswordChanged(before == null);
+        } else {
+            // monitor changes to the list of impersonators of the admin user
+            Set<String> namesBefore = getValues(before);
+            Set<String> namesAfter = getValues(after);
+            long granted = namesAfter.stream().filter(n -> !namesBefore.contains(n)).count();
+            long revoked = namesBefore.stream().filter(n -> !namesAfter.contains(n)).count();
+            monitor.adminImpersonatorsChanged(granted, revoked);
+        }
+    }
+
+    @NotNull
+    private static Set<String> getValues(@Nullable PropertyState property) {
+        Set<String> values = new HashSet<>();
+        if (property != null) {
+            property.getValue(Type.STRINGS).forEach(values::add);
+        }
+        return values;
     }
 
     private void validateAuthorizable(@NotNull Tree tree, @Nullable AuthorizableType type) throws CommitFailedException {

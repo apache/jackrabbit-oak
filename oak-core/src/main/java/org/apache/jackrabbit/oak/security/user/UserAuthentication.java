@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -84,6 +85,7 @@ class UserAuthentication implements Authentication, UserConstants {
     private final UserConfiguration config;
     private final Root root;
     private final String loginId;
+    private final UserMonitor monitor;
 
     private String userId;
     private Principal principal;
@@ -92,6 +94,7 @@ class UserAuthentication implements Authentication, UserConstants {
         this.config = config;
         this.root = root;
         this.loginId = loginId;
+        this.monitor = (config instanceof UserConfigurationImpl) ? ((UserConfigurationImpl) config).getMonitor() : UserMonitor.NOOP;
     }
 
     //-----------------------------------------------------< Authentication >---
@@ -113,16 +116,22 @@ class UserAuthentication implements Authentication, UserConstants {
                 if (loginId.equals(creds.getUserID()) && userCreds instanceof CredentialsImpl) {
                     success = PasswordUtil.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
                 }
-                checkSuccess(success, "UserId/Password mismatch.");
-
                 // change the password if the credentials object has the UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD attribute set
-                if (isPasswordExpired(user) && !changePassword(user, creds)) {
+                boolean expired = success && isPasswordExpired(user) && !changePassword(user, creds);
+                if (user.isAdmin()) {
+                    monitor.adminLogin(success && !expired);
+                }
+                checkSuccess(success, "UserId/Password mismatch.");
+                if (expired) {
                     throw new CredentialExpiredException("User password has expired");
                 }
             } else if (credentials instanceof ImpersonationCredentials) {
                 ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
                 AuthInfo info = ipCreds.getImpersonatorInfo();
                 success = equalUserId(ipCreds, loginId) && impersonate(info, user);
+                if (user.isAdmin()) {
+                    monitor.adminImpersonated(success);
+                }
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
