@@ -76,6 +76,8 @@ To use these values exclusively for influencing relevance without affecting matc
   For Lucene indexes, the suggestor is updated every 10 minutes by default and the frequency
   can be changed by `suggestUpdateFrequencyMinutes` property in suggestion node under the index definition node.
   In Elastic indexes, there is no such delay and thus no need for the above config property. This is an improvement in ES over lucene.
+* `semantic` (Elastic only) controls whether full-text conditions use semantic (hybrid) search; see
+  [Semantic search mode](#semantic-search-mode). Lucene indexes ignore it.
 
 ### Inference
 
@@ -136,7 +138,8 @@ ORDER BY [jcr:score] DESC
 
 For this form, configure an enabled model with `isDefault=true`. Without an inference prefix,
 for example `CONTAINS(*, 'a beginner guide to data manipulation in python')`, Oak performs
-ordinary full-text matching without calling the embedding service.
+ordinary full-text matching without calling the embedding service, unless the index sets
+`semantic` to `always` (see below).
 
 The JSON prefix selects the model configuration; query behavior such as `minTerms`,
 `timeout`, `numCandidates`, and `similarityThreshold` comes from that stored configuration,
@@ -144,6 +147,51 @@ not from per-query overrides. If inference is disabled, the model configuration 
 or disabled, or the text has fewer than `minTerms` terms (default: `2`), Oak uses the
 full-text query alone. If the embedding request fails or times out, Oak logs a warning and
 falls back to full-text matching. The inference prefix is not included in the full-text query.
+
+#### <a name="semantic-search-mode"></a>Semantic search mode
+
+The optional `semantic` property (`String`) of an Elasticsearch index definition controls
+query-time inference for that index. The value is case-insensitive and surrounding whitespace is
+ignored; a missing, invalid or non-string value is treated as `default` (invalid values are logged
+as warnings).
+
+| Value     | Behavior |
+|-----------|----------|
+| `default` | Inference is used only for queries with an inference prefix, as described above. |
+| `always`  | Positive full-text conditions without an inference prefix behave as if they had the `?{}?` prefix, so they use the index's default enabled model. Queries with an explicit prefix keep using the model they select. Switching on the feature toggle `FT_OAK-12549` restores the previous behavior, where `always` behaves like `default`. |
+| `off`     | Inference is never used, even for queries with an inference prefix: a recognized prefix is removed and only full-text matching is done, and the embedding service is not called. Use it to quickly disable semantic search for an index. It is not affected by the feature toggle. |
+
+Changing `semantic` does not require a reindex: it applies as soon as the index definition
+is refreshed by the query engine.
+
+`always` only adds the inference prefix; all other prerequisites and fallbacks described above
+still apply (inference enabled, enabled default model, `minTerms`, timeouts and errors).
+Notes:
+
+* `always` can trigger an embedding request for each eligible full-text condition, including the
+  result size estimation, `EXPLAIN` and DEBUG logging of query plans (cached embeddings are not
+  requested again). The text of queries that so far only used full-text matching is then sent to
+  the configured embedding service. Consider the additional latency and load on the embedding
+  service; if it stalls, each uncached eligible condition can wait up to the configured `timeout`,
+  so consider switching to `off`.
+* `always` does not apply to negated conditions, for example `NOT CONTAINS(...)` or
+  `CONTAINS(*, '-a -b')`: texts that consist only of `-` negated words and/or `or` (split on whitespace)
+  are not made semantic, also when used in a positive condition. Use an explicit prefix there.
+  SQL `NOT CONTAINS` negates each space-separated word, so with several words the index sees a
+  negated prefix (`-?{}?a -b`): inference is not used and a complete prefix is removed from the
+  full-text query (also for a positive condition with the same text). A JSON prefix that contains
+  spaces can be changed by this rewrite. With a single word, `default` and `always` keep the
+  behavior described above.
+* The vector search uses the whole text and the whole document: it ignores excluded words (`-word`),
+  exact phrases and property restrictions such as `CONTAINS([title], ...)`. So semantically similar
+  documents can match even if they contain an excluded word, do not contain the phrase, or match
+  outside the property. This also applies to queries with an explicit inference prefix.
+* Conditions on relative nodes that are not transformed by the query planner
+  (`CONTAINS([child/*], ...)`) never use inference; a recognized inference prefix is removed.
+* With the experimental compatibility mode disabled, a text starting with `?` that is not an
+  inference prefix (for example `?foo`) is regular text; with `always` the whole text, including `?`,
+  is sent to the embedding service. A text starting with `?{` without a valid JSON prefix is treated
+  like the `?{}?` prefix followed by the rest of the text after `?`.
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
 [options]: https://www.elastic.co/guide/en/elasticsearch/reference/current/configure-text-analysis.html
