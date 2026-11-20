@@ -33,6 +33,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class PathFilterTest {
@@ -189,6 +191,34 @@ public class PathFilterTest {
         NodeBuilder root = EMPTY_NODE.builder();
         @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", 1L, Type.LONG));
         assertEquals(Set.of("default"), toSet(PathFilter.getStrings(root.getProperty("propMultiple"), Set.of("default"))));
+    }
+
+    @Test
+    public void areAllDescendantsIncludedStrict() {
+        PathFilter p = new PathFilter(Set.of("/content"), Set.of("/content/a/excluded"));
+        // fully inside an included subtree with no excluded descendants
+        assertTrue(p.areAllDescendantsIncluded("/content/b", false));
+        // the no-arg convenience overload is strict
+        assertTrue(p.areAllDescendantsIncluded("/content/b"));
+        // path outside any included subtree
+        assertFalse(p.areAllDescendantsIncluded("/var", false));
+        // path equal to / within an excluded subtree
+        assertFalse(p.areAllDescendantsIncluded("/content/a/excluded", false));
+        assertFalse(p.areAllDescendantsIncluded("/content/a/excluded/x", false));
+        // path is an ancestor of an excluded path: only partially included -> strict fails
+        assertFalse(p.areAllDescendantsIncluded("/content/a", false));
+        assertFalse(p.areAllDescendantsIncluded("/content/a"));
+    }
+
+    @Test
+    public void areAllDescendantsIncludedLenient() {
+        PathFilter p = new PathFilter(Set.of("/content"), Set.of("/content/a/excluded"));
+        // excluded paths are ignored entirely in lenient mode; only inclusion matters
+        assertTrue(p.areAllDescendantsIncluded("/content/a", true));
+        assertTrue(p.areAllDescendantsIncluded("/content/a/excluded", true));
+        assertTrue(p.areAllDescendantsIncluded("/content/a/excluded/x", true));
+        // a path outside the included subtree is still not included in lenient mode
+        assertFalse(p.areAllDescendantsIncluded("/var", true));
     }
 
     static private <T> Set<T> toSet(Iterable<T> iterable) {

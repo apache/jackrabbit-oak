@@ -43,6 +43,7 @@ import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATH
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQueryTest {
 
@@ -90,7 +91,9 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
         root.commit();
 
         assertEventually(() -> {
-            assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
+            // OAK-11628: excludedPaths are ignored by the (lenient) path filter check, so the index
+            // is selected even for a query at the root despite the excluded subtree.
+            assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
             assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')"), containsString(indexOptions.getIndexType() + ":test1"));
 
             assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", singletonList("/test/c/d"));
