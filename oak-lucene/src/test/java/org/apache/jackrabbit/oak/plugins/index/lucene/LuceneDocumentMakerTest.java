@@ -23,14 +23,17 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.index.FieldInfo;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -190,6 +193,35 @@ public class LuceneDocumentMakerTest {
             assertThrows(IllegalArgumentException.class, () -> docMaker.makeDocument(test.getNodeState()));
         } finally {
             LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(originalFtValue);
+        }
+    }
+
+    @Test
+    public void aggregatedBinaryPropertiesAreNotReadAsString() throws Exception {
+        LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
+        builder.indexRule("nt:base");
+        builder.aggregateRule("nt:base", "*");
+
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
+        LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
+                defn.getApplicableIndexingRule("nt:base"), "/x");
+
+        NodeBuilder test = EMPTY_NODE.builder();
+        test.child("single").setProperty("test", new UnreadableBlob());
+        test.child("multi").setProperty("test", List.of(new UnreadableBlob(), new UnreadableBlob()), Type.BINARIES);
+
+        assertNotNull(docMaker.makeDocument(test.getNodeState()));
+    }
+
+    // Mimics SegmentPropertyState for an externally stored binary: reading it as a string must not happen
+    private static class UnreadableBlob extends ArrayBasedBlob {
+        UnreadableBlob() {
+            super(new byte[0]);
+        }
+
+        @Override
+        public @NotNull InputStream getNewStream() {
+            throw new IllegalStateException("Attempting to read binary property as STRING");
         }
     }
 
