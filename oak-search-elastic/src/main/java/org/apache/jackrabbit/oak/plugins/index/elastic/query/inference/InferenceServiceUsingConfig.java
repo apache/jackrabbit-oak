@@ -82,10 +82,15 @@ public class InferenceServiceUsingConfig implements InferenceService {
         TimerStats.Context timerContext = metrics.requestStarted();
         long startTime = System.currentTimeMillis();
 
-        if (cache.containsKey(text)) {
+        List<Float> cached;
+        // the cache is shared by concurrent queries, and get() also changes the access order
+        synchronized (cache) {
+            cached = cache.get(text);
+        }
+        if (cached != null) {
             metrics.cacheHit();
             metrics.requestCompleted(System.currentTimeMillis() - startTime, timerContext);
-            return cache.get(text);
+            return cached;
         }
 
         metrics.cacheMiss();
@@ -109,7 +114,9 @@ public class InferenceServiceUsingConfig implements InferenceService {
                     embeddingList.add(n.floatValue());
                 });
                 result = embeddingList;
-                cache.put(text, result);
+                synchronized (cache) {
+                    cache.put(text, result);
+                }
                 metrics.requestCompleted(System.currentTimeMillis() - startTime, timerContext);
                 return result;
             } else {
