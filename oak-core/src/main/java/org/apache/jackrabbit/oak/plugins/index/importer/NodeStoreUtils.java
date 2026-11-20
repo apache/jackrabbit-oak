@@ -63,7 +63,8 @@ final class NodeStoreUtils {
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider())
         );
-        nodeStore.merge(builder, hooks, createCommitInfo());
+        // the session id tells the index definition audit that the change is an import
+        nodeStore.merge(builder, hooks, createCommitInfo(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER));
     }
 
     static NodeBuilder childBuilder(NodeBuilder nb, String path) {
@@ -74,7 +75,11 @@ final class NodeStoreUtils {
     }
 
     private static CommitInfo createCommitInfo() {
+        return createCommitInfo(CommitInfo.OAK_UNKNOWN);
+    }
+
+    private static CommitInfo createCommitInfo(String sessionId) {
         Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
-        return new CommitInfo(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, CommitInfo.OAK_UNKNOWN, info);
+        return new CommitInfo(sessionId, CommitInfo.OAK_UNKNOWN, info);
     }
 }
