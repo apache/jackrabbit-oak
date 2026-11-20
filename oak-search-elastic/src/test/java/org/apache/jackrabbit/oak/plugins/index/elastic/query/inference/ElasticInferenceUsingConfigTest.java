@@ -21,6 +21,7 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
+import co.elastic.clients.json.JsonpUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,10 +36,12 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
@@ -67,14 +70,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -327,6 +334,313 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         } finally {
             ElasticFeatureToggles.FT_OAK_12539_DISABLE.set(false);
         }
+    }
+
+    @Test
+    public void semanticDefaultUnchanged() throws Exception {
+        createSemanticIndex(uniqueModelName(), 2, null);
+        assertHybrid("?{}?technological advancements in electric vehicles");
+
+        String query = "what are the key algorithms used in machine learning";
+        wireMock.resetRequests();
+        assertEquals(List.of(), executeQuery(containsQuery(query), SQL2, true, true));
+        assertFalse(hasKnn(searchRequest(containsQuery(query))));
+        withSemanticToggleSwitchedOn(() -> assertFalse(hasKnn(searchRequest(containsQuery(query)))));
+        verifyEmbeddingRequests(0);
+    }
+
+    @Test
+    public void semanticAlwaysWithoutPrefix() throws Exception {
+        String model = uniqueModelName();
+        Tree index = createSemanticIndex(model, 3, "always");
+        String jcrIndexName = index.getName();
+        assertHybrid("?{}?how to improve mental health through exercises");
+
+        String query = "a beginner guide to data manipulation in python";
+        withSemanticToggleSwitchedOn(() -> {
+            // previous behavior: "always" behaves like "default", explicit prefixes still work
+            assertHybrid("?{}?how to improve mental health through exercises");
+            wireMock.resetRequests();
+            assertEquals(List.of(), executeQuery(containsQuery(query), SQL2, true, true));
+            assertFalse(hasKnn(searchRequest(containsQuery(query))));
+            verifyEmbeddingRequests(0);
+        });
+
+        wireMock.resetRequests();
+        assertHybrid(query);
+        assertEquals(List.of(knnField(model)), knnFields(searchRequest(containsQuery(query))));
+        wireMock.verify(WireMock.moreThanOrExactly(1), WireMock.postRequestedFor(WireMock.urlEqualTo("/v1/embeddings")));
+
+        // fewer terms than minTerms (3)
+        stubEmbeddings(jcrIndexName, model, "machine learning");
+        wireMock.resetRequests();
+        assertEquals(Set.of("/content/ml", "/content/programming"),
+                new HashSet<>(executeQuery(containsQuery("machine learning"), SQL2, true, true)));
+        assertFalse(hasKnn(searchRequest(containsQuery("machine learning"))));
+        verifyEmbeddingRequests(0);
+    }
+
+    @Test
+    public void semanticAlwaysSkipsNegatedConditions() throws Exception {
+        String model = uniqueModelName();
+        Tree index = createSemanticIndex(model, 1, "always");
+        String jcrIndexName = index.getName();
+        assertHybrid("?{}?nutritional advice for a healthier lifestyle");
+
+        // SQL NOT CONTAINS: the keyword "or" is passed as is, other terms are negated with "-"
+        assertNoInferenceForNotContains(jcrIndexName, model, "or", "or");
+        assertNoInferenceForNotContains(jcrIndexName, model, "electric battery charging", "-electric -battery -charging");
+        assertNoInferenceForNotContains(jcrIndexName, model, "\"electric battery charging\"", "\"electric -battery -charging\"");
+
+        // mixed text is still a positive condition
+        String mixed = "-farming sustainable crop rotation";
+        stubEmbeddings(jcrIndexName, model, mixed);
+        assertEquals(List.of(knnField(model)), knnFields(searchRequest(containsQuery(mixed))));
+    }
+
+    @Test
+    public void semanticAlwaysExplicitModelWins() throws Exception {
+        String defaultModel = uniqueModelName();
+        String otherModel = uniqueModelName();
+        String jcrIndexName = UUID.randomUUID().toString();
+        String url = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, defaultModel, INFERENCE_MODEL, url, 0.0, 1L, true, true);
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, otherModel, INFERENCE_MODEL, url, 0.0, 1L, false, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+        InferenceConfig.reInitialize();
+        IndexDefinitionBuilder builder = createIndexDefinition("title", "description");
+        builder.getBuilderTree().setProperty(ElasticIndexDefinition.SEMANTIC, "always");
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+        addTestContent();
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+        wireMock.stubFor(WireMock.post("/v1/embeddings").willReturn(WireMock.okJson(embeddingsResponse())));
+
+        assertEquals(List.of(knnField(otherModel)), knnFields(searchRequest(
+                containsQuery("?{\"inferenceModelConfig\":\"" + otherModel + "\"}?machine learning algorithms"))));
+        assertEquals(List.of(knnField(defaultModel)), knnFields(searchRequest(containsQuery("machine learning algorithms"))));
+    }
+
+    @Test
+    public void semanticOffIgnoresPrefix() throws Exception {
+        String model = uniqueModelName();
+        Tree index = createSemanticIndex(model, 2, null, builder ->
+                builder.aggregateRule("nt:base").include("child").relativeNode());
+        String jcrIndexName = index.getName();
+        root.getTree("/content/farm").addChild("child").setProperty("title", "orchard");
+        root.commit();
+        assertHybrid("?{}?a beginner guide to data manipulation in python");
+
+        setSemantic(index, "off");
+        assertEventually(() -> assertFalse(hasKnn(searchRequest(containsQuery("?{}?a beginner guide to data manipulation in python")))));
+
+        Set<String> lexical = Set.of("/content/ml", "/content/programming");
+        stubEmbeddings(jcrIndexName, model, "machine learning");
+        wireMock.resetRequests();
+        ThrowingRunnable assertLexical = () -> {
+            for (String prefix : List.of("?{}?", "?{\"inferenceModelConfig\":\"" + model + "\"}?")) {
+                String query = containsQuery(prefix + "machine learning");
+                assertEquals(lexical, new HashSet<>(executeQuery(query, SQL2, true, true)));
+                JsonNode request = searchRequest(query);
+                assertFalse(hasKnn(request));
+                assertEquals(List.of("machine learning"), queryStrings(request));
+            }
+        };
+        // independent of the feature toggle
+        withSemanticToggleSwitchedOn(assertLexical);
+        assertLexical.run();
+        verifyEmbeddingRequests(0);
+
+        // texts without a prefix are passed as with semantic search enabled
+        assertEquals(List.of("machine learning"), queryStrings(searchRequest(containsQuery("  machine learning  "))));
+        assertEquals(List.of("?machine\\ "), queryStrings(searchRequest(containsQuery("?machine\\ "))));
+
+        // only the delimiter remains
+        JsonNode delimiterOnly = searchRequest(containsQuery("?{}??"));
+        assertFalse(hasKnn(delimiterOnly));
+        assertEquals(List.of("?"), queryStrings(delimiterOnly));
+
+        // a valid JSON prefix without inferenceModelConfig fails with semantic search enabled
+        assertEquals(lexical, new HashSet<>(executeQuery(containsQuery("?{\"foo\":\"bar\"}?machine learning"), SQL2, true, true)));
+
+        // SQL NOT CONTAINS passes "-?{}?electric -cars"
+        String notContains = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and not contains(*, '?{}?electric cars')";
+        assertEquals(List.of("-electric -cars"), queryStrings(searchRequest(notContains)));
+
+        // relative node (not transformed) full-text conditions
+        String relative = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains([child/*], '?{}?orchard')";
+        JsonNode relativeRequest = searchRequest(relative);
+        assertTrue(relativeRequest.toString().contains(ElasticIndexDefinition.DYNAMIC_PROPERTIES));
+        assertEquals(List.of("orchard"), queryStrings(relativeRequest));
+        assertEventually(() -> assertEquals(List.of("/content/farm"), executeQuery(relative, SQL2, true, true)));
+    }
+
+    @Test
+    public void semanticChangeAppliesWithoutReindex() throws Exception {
+        String model = uniqueModelName();
+        Tree index = createSemanticIndex(model, 2, null);
+        stubEmbeddings(index.getName(), model, "machine learning");
+        PropertyState reindexCount = root.getTree(index.getPath()).getProperty(IndexConstants.REINDEX_COUNT);
+        assertNotNull(reindexCount);
+        String unprefixed = "how to improve mental health through exercises";
+        String prefixed = "?{}?machine learning";
+        Set<String> lexical = Set.of("/content/ml", "/content/programming");
+        assertHybrid(prefixed);
+        assertEquals(List.of(), executeQuery(containsQuery(unprefixed), SQL2, true, true));
+
+        setSemantic(index, "always");
+        assertHybrid(unprefixed);
+        assertHybrid(prefixed);
+
+        setSemantic(index, "off");
+        assertEventually(() -> {
+            assertFalse(hasKnn(searchRequest(containsQuery(prefixed))));
+            assertEquals(lexical, new HashSet<>(executeQuery(containsQuery(prefixed), SQL2, true, true)));
+        });
+        root.refresh();
+        assertEquals(reindexCount, root.getTree(index.getPath()).getProperty(IndexConstants.REINDEX_COUNT));
+    }
+
+    private static final String INFERENCE_MODEL = "text-embedding-ada-002";
+    private static final Set<String> ENRICHED_CONTENT = Set.of(
+            "/content/health", "/content/cars", "/content/programming", "/content/ml", "/content/yoga");
+
+    private static String uniqueModelName() {
+        return "semantic-" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private Tree createSemanticIndex(String model, long minTerms, String semantic) throws Exception {
+        return createSemanticIndex(model, minTerms, semantic, builder -> {});
+    }
+
+    /**
+     * Creates an index with an enabled default model ({@code similarityThreshold=0}, so the kNN query matches all
+     * enriched documents) and enriched test content.
+     */
+    private Tree createSemanticIndex(String model, long minTerms, String semantic,
+                                     Consumer<IndexDefinitionBuilder> customizer) throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, model, INFERENCE_MODEL,
+                "http://localhost:" + wireMock.port() + "/v1/embeddings", 0.0, minTerms, true, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+        InferenceConfig.reInitialize();
+        IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
+        if (semantic != null) {
+            builder.getBuilderTree().setProperty(ElasticIndexDefinition.SEMANTIC, semantic);
+        }
+        customizer.accept(builder);
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+        addTestContent();
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+        setupEmbeddingsForContent(index, model, INFERENCE_MODEL);
+        setupMockInferenceService(model, jcrIndexName);
+        return index;
+    }
+
+    private void setSemantic(Tree index, String semantic) throws CommitFailedException {
+        root.getTree(index.getPath()).setProperty(ElasticIndexDefinition.SEMANTIC, semantic);
+        root.commit();
+    }
+
+    private interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    /**
+     * Runs with the feature toggle FT_OAK-12549 switched on, which restores the previous behavior.
+     */
+    private static void withSemanticToggleSwitchedOn(ThrowingRunnable runnable) throws Exception {
+        boolean previous = ElasticFeatureToggles.FT_OAK_12549_DISABLE.getAndSet(true);
+        try {
+            runnable.run();
+        } finally {
+            ElasticFeatureToggles.FT_OAK_12549_DISABLE.set(previous);
+        }
+    }
+
+    /**
+     * Asserts that the query is answered with hybrid search: the request contains a kNN and a full-text query, and
+     * the results contain all enriched documents.
+     */
+    private void assertHybrid(String text) {
+        assertEventually(() -> {
+            JsonNode request = searchRequest(containsQuery(text));
+            assertTrue(hasKnn(request));
+            assertFalse(queryStrings(request).isEmpty());
+            assertTrue(new HashSet<>(executeQuery(containsQuery(text), SQL2, true, true)).containsAll(ENRICHED_CONTENT));
+        });
+    }
+
+    private void assertNoInferenceForNotContains(String jcrIndexName, String model, String text, String embeddingInput)
+            throws Exception {
+        stubEmbeddings(jcrIndexName, model, embeddingInput);
+        wireMock.resetRequests();
+        String query = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and not contains(*, '" + text + "')";
+        List<String> expected = new ArrayList<>();
+        withSemanticToggleSwitchedOn(() -> expected.addAll(executeQuery(query, SQL2, true)));
+        JsonNode request = searchRequest(query);
+        assertEquals(List.of(embeddingInput), queryStrings(request));
+        assertFalse(hasKnn(request));
+        assertEquals(expected, executeQuery(query, SQL2, true));
+        verifyEmbeddingRequests(0);
+    }
+
+    private static String containsQuery(String text) {
+        return "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '" + text + "')";
+    }
+
+    private static String knnField(String model) {
+        return VECTOR_SPACES + "." + model + "." + InferenceConstants.VECTOR;
+    }
+
+    private JsonNode searchRequest(String query) {
+        // the explained request contains the query vector, which exceeds the default toString length
+        int maxLength = JsonpUtils.maxToStringLength();
+        JsonpUtils.maxToStringLength(1_000_000);
+        try {
+            return MAPPER.readTree(extractSearchRequestJsonBody(explain(query, SQL2)));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            JsonpUtils.maxToStringLength(maxLength);
+        }
+    }
+
+    private static boolean hasKnn(JsonNode searchRequest) {
+        return !searchRequest.findValues("knn").isEmpty();
+    }
+
+    private static List<String> knnFields(JsonNode searchRequest) {
+        return searchRequest.findValues("knn").stream()
+                .map(knn -> knn.get("field").asText())
+                .collect(Collectors.toList());
+    }
+
+    private static List<String> queryStrings(JsonNode searchRequest) {
+        return searchRequest.findValues("query_string").stream()
+                .map(qs -> qs.get("query").asText())
+                .collect(Collectors.toList());
+    }
+
+    private void verifyEmbeddingRequests(int count) {
+        wireMock.verify(count, WireMock.postRequestedFor(WireMock.urlEqualTo("/v1/embeddings")));
+    }
+
+    private String embeddingsResponse() throws IOException {
+        return IOUtils.toString(this.getClass().getResource(
+                "/inferenceUsingConfig/queries/a_beginner_guide_to_data_manipulation_in_python.json"), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Registers a successful embeddings response for the given text, overriding previous stubs for the same text.
+     */
+    private void stubEmbeddings(String jcrIndexName, String model, String text) throws IOException {
+        String payload = InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, model).getPayload()
+                .getInferencePayload(text);
+        wireMock.stubFor(WireMock.post("/v1/embeddings")
+                .withRequestBody(WireMock.equalToJson(payload))
+                .willReturn(WireMock.okJson(embeddingsResponse())));
     }
 
     private void enableExperimentalInferenceCompatibility() {
