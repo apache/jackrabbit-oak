@@ -69,6 +69,7 @@ under the License.
         <item href="query/query-troubleshooting.html" name="Troubleshooting" />
         <item href="query/indexing.html" name="Indexing" />
         <item href="query/oak-run-indexing.html" name="Indexing with Oak-Run" />
+        <item href="query/index-definition-audit.html" name="Index Definition Audit" />
         <item href="query/lucene.html" name="Lucene Index" />
         <item href="query/elastic.html" name="Elastic Index" />
         <item href="query/property-index.html" name="Property Index" />

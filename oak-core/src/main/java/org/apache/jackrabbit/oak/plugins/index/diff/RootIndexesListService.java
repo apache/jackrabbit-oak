@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,6 +49,10 @@ public class RootIndexesListService implements IndexPathService {
         String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";
         json.object();
         for (String indexPath : definitions.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(indexPath)) {
+                // not an index definition, e.g. the index definition audit (OAK-12458)
+                continue;
+            }
             NodeState node = definitions.child(indexPath).getNodeState();
             json.key("/oak:index/" + indexPath);
             JsonSerializer s = new JsonSerializer(json, filter, new Base64BlobSerializer());

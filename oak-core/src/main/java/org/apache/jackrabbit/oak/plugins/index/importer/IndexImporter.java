@@ -100,6 +100,8 @@ public class IndexImporter {
     private final IndexingReporter indexingReporter;
     private final boolean useLegacyImportFlow;
 
+    private boolean indexDefinitionAuditEnabled;
+
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
         this(nodeStore, indexDir, indexEditorProvider, indexerLock, false);
@@ -211,6 +213,16 @@ public class IndexImporter {
         importers.put(importerProvider.getType(), importerProvider);
     }
 
+    /**
+     * Records the changes of the imported index definitions
+     * (see {@link org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit}), also when the
+     * system property {@code oak.indexDefinitionAudit} is not set,
+     * for example if the feature toggle is enabled.
+     */
+    public void setIndexDefinitionAuditEnabled(boolean indexDefinitionAuditEnabled) {
+        this.indexDefinitionAuditEnabled = indexDefinitionAuditEnabled;
+    }
+
     void switchLanes() throws CommitFailedException {
         try {
             NodeState root = nodeStore.getRoot();
@@ -297,7 +309,7 @@ public class IndexImporter {
                 indexDisabler.markDisableFlagIfRequired(indexInfo.indexPath, idxBuilder);
             }
             updateIndexImporterState(root.builder(), IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA, false);
-            mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
+            mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider, indexDefinitionAuditEnabled);
         } catch (CommitFailedException e) {
             LOG.error("Failed while performing importIndexData and updating indexImportState from  [{}] to  [{}]",
                     IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA);
