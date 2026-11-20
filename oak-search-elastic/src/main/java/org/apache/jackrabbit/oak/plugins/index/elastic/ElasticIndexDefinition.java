@@ -23,12 +23,14 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
@@ -39,8 +41,12 @@ import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ElasticIndexDefinition extends IndexDefinition {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexDefinition.class);
 
     public static final String TYPE_ELASTICSEARCH = "elasticsearch";
 
@@ -61,6 +67,23 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public static final String SECURE_FACETS_DOCS_SIZE = "secureFacetsDocsSize";
     public static final int SECURE_FACETS_DOCS_SIZE_DEFAULT = 10000;
+
+    /**
+     * Controls semantic (hybrid) search for full-text conditions answered by this index. See {@link SemanticMode}.
+     */
+    public static final String SEMANTIC = "semantic";
+
+    public enum SemanticMode {
+        /** Semantic search only for queries with an inference prefix (e.g. {@code ?{}?}). */
+        DEFAULT,
+        /**
+         * Positive full-text conditions without an inference prefix use the default inference model.
+         * Behaves like {@link #DEFAULT} if the feature toggle {@code FT_OAK-12549} is switched on.
+         */
+        ALWAYS,
+        /** Never use semantic search, even for queries with an inference prefix. */
+        OFF
+    }
 
     /**
      * Hidden property for storing the index mapping version.
@@ -202,6 +225,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final InferenceDefinition inferenceDefinition;
     public final long limitTotalFields;
     public final int secureFacetsDocsSize;
+    public final SemanticMode semanticMode;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<ElasticPropertyDefinition> dynamicBoostProperties;
@@ -235,6 +259,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsFields = getOptionalValues(defn, SIMILARITY_TAGS_FIELDS, Type.STRINGS, String.class, SIMILARITY_TAGS_FIELDS_DEFAULT);
         this.limitTotalFields = getOptionalValue(defn, LIMIT_TOTAL_FIELDS, LIMIT_TOTAL_FIELDS_DEFAULT);
         this.secureFacetsDocsSize = getOptionalValue(defn, SECURE_FACETS_DOCS_SIZE, SECURE_FACETS_DOCS_SIZE_DEFAULT);
+        this.semanticMode = readSemanticMode(defn.getProperty(SEMANTIC), indexPath);
 
         this.propertiesByName = getDefinedRules()
                 .stream()
@@ -270,6 +295,24 @@ public class ElasticIndexDefinition extends IndexDefinition {
         } else {
             this.inferenceDefinition = null;
         }
+    }
+
+    private static SemanticMode readSemanticMode(@Nullable PropertyState property, String indexPath) {
+        if (property == null) {
+            return SemanticMode.DEFAULT;
+        }
+        // checking the type first: converting other types (e.g. binaries) could fail
+        if (property.getType() == Type.STRING) {
+            String value = property.getValue(Type.STRING).trim().toUpperCase(Locale.ROOT);
+            for (SemanticMode mode : SemanticMode.values()) {
+                if (mode.name().equals(value)) {
+                    return mode;
+                }
+            }
+        }
+        LOG.warn("Index {}: invalid property {} of type {}, expected a string with one of default, always, off; using default",
+                indexPath, property, property.getType());
+        return SemanticMode.DEFAULT;
     }
 
     @Nullable
