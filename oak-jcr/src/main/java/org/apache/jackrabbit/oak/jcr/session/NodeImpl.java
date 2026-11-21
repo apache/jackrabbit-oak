@@ -676,10 +676,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                Iterator<PropertyDelegate> properties = node.getProperties();
-                long size = node.getPropertyCount();
-                return new PropertyIteratorAdapter(
-                        propertyIterator(properties), size);
+                PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, null);
+                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())) {
+                    @Override
+                    public long getSize() {
+                        return delegate.getSize();
+                    }
+                };
             }
             @Override
             public String toString() {
@@ -893,7 +896,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
-                return node.getPropertyCount() != 0;
+                return node.getProperties().hasNext();
             }
         });
     }
@@ -1718,9 +1721,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     }
 
-    private static class PropertyIteratorDelegate {
+    /**
+     * Shares lazy size calculation between filtered and unfiltered property iterators.
+     * A {@code null} predicate selects unfiltered iteration.
+     */
+    private class PropertyIteratorDelegate {
         private final NodeDelegate node;
         private final Predicate<PropertyDelegate> predicate;
+        private long size = -1;
+        private long updateCount = -1;
 
         PropertyIteratorDelegate(NodeDelegate node, Predicate<PropertyDelegate> predicate) {
             this.node = node;
@@ -1728,16 +1737,27 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
 
         public Iterator<PropertyDelegate> iterator() throws InvalidItemStateException {
-            return IteratorUtils.filter(node.getProperties(), predicate::test);
+            Iterator<PropertyDelegate> properties = node.getProperties();
+            return predicate == null ? properties : IteratorUtils.filter(properties, predicate::test);
         }
 
         public long getSize() {
-            try {
-                return IteratorUtils.size(iterator());
-            } catch (InvalidItemStateException e) {
-                throw new IllegalStateException(
-                        "This iterator is no longer valid", e);
-            }
+            return sessionDelegate.safePerform(new SessionOperation<Long>("getPropertyIteratorSize") {
+                @Override
+                public Long perform() {
+                    try {
+                        long currentUpdateCount = sessionDelegate.getUpdateCount();
+                        if (size == -1 || updateCount != currentUpdateCount) {
+                            size = predicate == null ? node.getPropertyCount() : IteratorUtils.size(iterator());
+                            updateCount = currentUpdateCount;
+                        }
+                        return size;
+                    } catch (InvalidItemStateException e) {
+                        throw new IllegalStateException(
+                                "This iterator is no longer valid", e);
+                    }
+                }
+            });
         }
 
     }
