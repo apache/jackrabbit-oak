@@ -56,7 +56,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService.FT_OAK_12173;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles.FT_OAK_12173_ENABLE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -111,7 +111,7 @@ public class LuceneIndexProviderServiceTrackerSeedQueryTest {
 
     @After
     public void tearDown() {
-        FT_OAK_12173.set(true);
+        FT_OAK_12173_ENABLE.set(true);
     }
 
     /**
@@ -121,7 +121,7 @@ public class LuceneIndexProviderServiceTrackerSeedQueryTest {
      * {@code explain} query - returning the resulting query plan as a string.
      */
     private String explainQueryImmediatelyAfterActivation(boolean toggleEnabled) throws Exception {
-        FT_OAK_12173.set(toggleEnabled);
+        FT_OAK_12173_ENABLE.set(toggleEnabled);
 
         NodeState prebuilt = rootWithFullyBuiltLuceneIndex();
         NodeStore nodeStore = new MemoryNodeStore(prebuilt);

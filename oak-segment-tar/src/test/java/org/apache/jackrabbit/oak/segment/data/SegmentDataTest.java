@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.data;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertNull;
 public class SegmentDataTest {
     @Test
     public void readSmallLength() {
-        Buffer buffer = Buffer.wrap(new byte[]{0b1111111});
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{0b1111111});
         SegmentData segmentData = new SegmentDataV12(buffer);
         long length = segmentData.readLength(Segment.MAX_SEGMENT_SIZE - buffer.limit());
         assertEquals(127, length);
@@ -38,7 +38,7 @@ public class SegmentDataTest {
     public void readMediumLength() {
         //                                Medium prefix --
         //                                    Arbitrary    ------          --------
-        Buffer buffer = Buffer.wrap(new byte[]{(byte) 0b10_000111, (byte)0b10101010});
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{(byte) 0b10_000111, (byte)0b10101010});
         SegmentData segmentData = new SegmentDataV12(buffer);
         long length = segmentData.readLength(Segment.MAX_SEGMENT_SIZE - buffer.limit());
 
@@ -50,7 +50,7 @@ public class SegmentDataTest {
     public void readLongLength() {
         //   Long prefix --
         //     Arbitrary    ------    --------    --------    --------    --------    --------    --------    --------
-        Buffer buffer = Buffer.wrap(new byte[]{
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{
                 (byte) 0b11_111000, 0b00001111, 0b00101010, 0b00001010, 0b01010101, 0b00010001, 0b01111110, 0b00000000
         });
         SegmentData segmentData = new SegmentDataV12(buffer);
@@ -62,7 +62,7 @@ public class SegmentDataTest {
 
     @Test(expected = IllegalStateException.class)
     public void readStringWithLengthLargerThanIntegerMaxValueThrows() {
-        Buffer buffer = Buffer.wrap(new byte[]{
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{
                 (byte)0b111111111,
                 (byte)0b111111111,
                 (byte)0b111111111,
@@ -78,7 +78,7 @@ public class SegmentDataTest {
 
     @Test
     public void readStringWithSmallLength() {
-        Buffer buffer = Buffer.wrap(new byte[]{5, (byte)'H', (byte)'e', (byte)'l', (byte)'l', (byte)'o'});
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{5, (byte)'H', (byte)'e', (byte)'l', (byte)'l', (byte)'o'});
         SegmentData segmentData = new SegmentDataV12(buffer);
         StringData str = segmentData.readString(Segment.MAX_SEGMENT_SIZE - buffer.limit());
         assertEquals("Hello", str.getString());
@@ -89,7 +89,7 @@ public class SegmentDataTest {
     @Test
     public void readStringWithMediumLength() {
         int stringLength = (1 << 7) + 42;
-        Buffer buffer = Buffer.wrap(padRight(
+        ByteBuffer buffer = ByteBuffer.wrap(padRight(
                 //                   --                  Medium prefix
                 //                      ------        -- 42
                 new byte[] {(byte) 0b10_000000, (byte)42},
@@ -110,7 +110,7 @@ public class SegmentDataTest {
 
         //   Long prefix --
         //            42    ------    --------    --------    --------    --------    --------    --------    --------
-        Buffer buffer = Buffer.wrap(new byte[]{
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{
                 (byte) 0b11_000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00101010,
 
                 // seg ref       record number
@@ -129,7 +129,7 @@ public class SegmentDataTest {
     public void readRecordId() {
         //                                      seg. ref.       record number
         //                                     ----------  ----------------------
-        Buffer buffer = Buffer.wrap(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06});
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06});
         SegmentData segmentData = new SegmentDataV12(buffer);
         var recordId = segmentData.readRecordId(Segment.MAX_SEGMENT_SIZE - buffer.limit());
         assertEquals(0x01_02, recordId.getSegmentReference());

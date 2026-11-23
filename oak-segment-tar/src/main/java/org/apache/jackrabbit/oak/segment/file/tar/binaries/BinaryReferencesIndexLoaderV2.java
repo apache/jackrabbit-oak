@@ -27,7 +27,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
 class BinaryReferencesIndexLoaderV2 {
@@ -36,8 +36,8 @@ class BinaryReferencesIndexLoaderV2 {
 
     static final int FOOTER_SIZE = 16;
 
-    static Buffer loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
-        Buffer meta = reader.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
+    static ByteBuffer loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
+        ByteBuffer meta = reader.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
 
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -57,12 +57,11 @@ class BinaryReferencesIndexLoaderV2 {
         return reader.readAtEnd(size, size);
     }
 
-    public static BinaryReferencesIndex parseBinaryReferencesIndex(Buffer buffer) throws InvalidBinaryReferencesIndexException {
-        Buffer data = buffer.slice();
+    public static BinaryReferencesIndex parseBinaryReferencesIndex(ByteBuffer buffer) throws InvalidBinaryReferencesIndexException {
+        ByteBuffer data = buffer.slice();
         data.limit(data.limit() - FOOTER_SIZE);
 
-        buffer.position(buffer.limit() - FOOTER_SIZE);
-        Buffer meta = buffer.slice();
+        ByteBuffer meta = buffer.slice(buffer.limit() - FOOTER_SIZE, FOOTER_SIZE);
 
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -80,9 +79,7 @@ class BinaryReferencesIndexLoaderV2 {
         }
 
         CRC32 checksum = new CRC32();
-        data.mark();
-        data.update(checksum);
-        data.reset();
+        checksum.update(data.duplicate());
 
         if ((int) (checksum.getValue()) != crc32) {
             throw new InvalidBinaryReferencesIndexException("Invalid checksum");
@@ -91,7 +88,7 @@ class BinaryReferencesIndexLoaderV2 {
         return new BinaryReferencesIndex(parseBinaryReferencesIndex(count, data));
     }
 
-    private static Map<Generation, Map<UUID, Set<String>>> parseBinaryReferencesIndex(int count, Buffer buffer) {
+    private static Map<Generation, Map<UUID, Set<String>>> parseBinaryReferencesIndex(int count, ByteBuffer buffer) {
         Map<Generation, Map<UUID, Set<String>>> result = new HashMap<>(count);
         for (int i = 0; i < count; i++) {
             Generation k = parseGeneration(buffer);
@@ -101,18 +98,18 @@ class BinaryReferencesIndexLoaderV2 {
         return result;
     }
 
-    private static Generation parseGeneration(Buffer buffer) {
+    private static Generation parseGeneration(ByteBuffer buffer) {
         int generation = buffer.getInt();
         int full = buffer.getInt();
         boolean compacted = buffer.get() != 0;
         return new Generation(generation, full, compacted);
     }
 
-    private static Map<UUID, Set<String>> parseEntriesBySegment(Buffer buffer) {
+    private static Map<UUID, Set<String>> parseEntriesBySegment(ByteBuffer buffer) {
         return parseEntriesBySegment(buffer.getInt(), buffer);
     }
 
-    private static Map<UUID, Set<String>> parseEntriesBySegment(int count, Buffer buffer) {
+    private static Map<UUID, Set<String>> parseEntriesBySegment(int count, ByteBuffer buffer) {
         Map<UUID, Set<String>> result = new HashMap<>(count);
         for (int i = 0; i < count; i++) {
             UUID k = parseUUID(buffer);
@@ -122,17 +119,17 @@ class BinaryReferencesIndexLoaderV2 {
         return result;
     }
 
-    private static UUID parseUUID(Buffer buffer) {
+    private static UUID parseUUID(ByteBuffer buffer) {
         long msb = buffer.getLong();
         long lsb = buffer.getLong();
         return new UUID(msb, lsb);
     }
 
-    private static Set<String> parseEntries(Buffer buffer) {
+    private static Set<String> parseEntries(ByteBuffer buffer) {
         return parseEntries(buffer.getInt(), buffer);
     }
 
-    private static Set<String> parseEntries(int count, Buffer buffer) {
+    private static Set<String> parseEntries(int count, ByteBuffer buffer) {
         Set<String> entries = new HashSet<>(count);
         for (int i = 0; i < count; i++) {
             entries.add(parseString(buffer));
@@ -140,11 +137,11 @@ class BinaryReferencesIndexLoaderV2 {
         return entries;
     }
 
-    private static String parseString(Buffer buffer) {
+    private static String parseString(ByteBuffer buffer) {
         return parseString(buffer.getInt(), buffer);
     }
 
-    private static String parseString(int length, Buffer buffer) {
+    private static String parseString(int length, ByteBuffer buffer) {
         byte[] data = new byte[length];
         buffer.get(data);
         return new String(data, StandardCharsets.UTF_8);

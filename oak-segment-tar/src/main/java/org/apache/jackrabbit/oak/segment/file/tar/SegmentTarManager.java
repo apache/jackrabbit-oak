@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
+import static java.nio.ByteBuffer.wrap;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarEntryHeader.readName;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarEntryHeader.readSize;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +38,7 @@ import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
 import org.apache.commons.io.filefilter.SuffixFileFilter;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -234,10 +236,9 @@ public class SegmentTarManager implements SegmentArchiveManager {
             }
 
             // The header checksum passes, so read the entry name and size
-            Buffer buffer = wrap(header);
-            String name = readString(buffer, 100);
-            buffer.position(124);
-            int size = readNumber(buffer, 12);
+            ByteBuffer buffer = wrap(header);
+            String name = readName(buffer);
+            int size = readSize(buffer);
             if (access.getFilePointer() + size > access.length()) {
                 // checksum was correct, so the size field should be accurate
                 log.warn("Partial entry {} in tar file {}, ignoring...", name, file);
@@ -283,31 +284,6 @@ public class SegmentTarManager implements SegmentArchiveManager {
                 access.seek(position);
             }
         }
-    }
-
-    private static String readString(Buffer buffer, int fieldSize) {
-        byte[] b = new byte[fieldSize];
-        buffer.get(b);
-        int n = 0;
-        while (n < fieldSize && b[n] != 0) {
-            n++;
-        }
-        return new String(b, 0, n, StandardCharsets.UTF_8);
-    }
-
-    private static int readNumber(Buffer buffer, int fieldSize) {
-        byte[] b = new byte[fieldSize];
-        buffer.get(b);
-        int number = 0;
-        for (int i = 0; i < fieldSize; i++) {
-            int digit = b[i] & 0xff;
-            if ('0' <= digit && digit <= '7') {
-                number = number * 8 + digit - '0';
-            } else {
-                break;
-            }
-        }
-        return number;
     }
 
 }

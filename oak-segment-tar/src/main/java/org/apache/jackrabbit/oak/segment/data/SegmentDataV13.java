@@ -17,13 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.data;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 class SegmentDataV13 extends SegmentDataV12 {
 
     private static final int FULL_GENERATION_OFFSET = 4;
 
-    SegmentDataV13(Buffer buffer) {
+    SegmentDataV13(ByteBuffer buffer) {
         super(buffer);
     }
 

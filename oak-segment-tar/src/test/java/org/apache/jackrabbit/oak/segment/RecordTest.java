@@ -243,6 +243,33 @@ public class RecordTest {
     }
 
     @Test
+    public void testManyPropertiesRoundTrip() throws IOException {
+        // Drives SegmentNodeState.getProperties -> ListRecord.getEntry(i) across the single-level
+        // (bucketSize == 1, <= 255 entries) and multi-level (> 255) property-list layouts, covering
+        // the getEntry fast path and the bucketed recursion.
+        for (int n : new int[] {1, 2, 255, 256, 300, 1000}) {
+            NodeBuilder builder = EMPTY_NODE.builder();
+            for (int i = 0; i < n; i++) {
+                builder.setProperty("p" + i, "v" + i, STRING);
+            }
+            NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+                    writer.writeNode(builder.getNodeState()));
+            int seen = 0;
+            for (PropertyState p : state.getProperties()) {
+                assertEquals(p.getValue(STRING), "v" + p.getName().substring(1));
+                seen++;
+            }
+            assertEquals("property count for n=" + n, n, seen);
+            // Also exercise the singular getEntry via random access by name.
+            for (int i = 0; i < n; i++) {
+                PropertyState p = state.getProperty("p" + i);
+                assertNotNull("missing p" + i + " for n=" + n, p);
+                assertEquals("v" + i, p.getValue(STRING));
+            }
+        }
+    }
+
+    @Test
     public void testReadPropertyPerformance() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);

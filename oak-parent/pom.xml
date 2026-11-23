@@ -30,14 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>2.7-SNAPSHOT</version>
+  <version>2.9-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1787141740</project.build.outputTimestamp>
-    <project.build.outputTimestamp>1787156463</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1792007258</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -55,25 +54,25 @@
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
     <mongo.url />
-    <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <mongo.driver.version>5.4.0</mongo.driver.version>
-    <slf4j.api.version>2.0.20</slf4j.api.version>
-    <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.6.4</logback.version>
+    <mongo.driver.version>5.5.2</mongo.driver.version>
+    <slf4j.api.version>1.7.36</slf4j.api.version>
+    <slf4j.version>2.0.20</slf4j.version> <!-- sync with logback.runtime.version -->
+    <logback.version>1.2.13</logback.version> <!-- library test backend -->
+    <logback.runtime.version>1.6.4</logback.runtime.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
     <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
-    <jackson.version>2.21.7</jackson.version>
+    <jackson.version>2.21.8</jackson.version>
     <jackson.annotations.version>2.21</jackson.annotations.version> <!-- not necessarily aligned with other jackson modules -->
     <testcontainers.version>2.0.5</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>4.0.33</groovy.version>
-    <netty.version>4.1.139.Final</netty.version>
-    <aws.sdk.version>2.37.5</aws.sdk.version>
+    <netty.version>4.1.140.Final</netty.version>
+    <aws.sdk.version>2.38.9</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>17</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -395,6 +394,32 @@
     </pluginManagement>
     <plugins>
       <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>netty-version-alignment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>io.netty:*</exclude>
+                  </excludes>
+                  <includes>
+                    <include>io.netty:*:[${netty.version}]</include>
+                    <include>io.netty:netty-tcnative*</include>
+                    <include>io.netty:netty-incubator*</include>
+                  </includes>
+                  <message>Netty dependencies must use ${netty.version}; native TLS and incubator artifacts have separate version schemes.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
       </plugin>
       <plugin>
@@ -497,6 +522,13 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>osgi.core</artifactId>
         <version>7.0.0</version>
@@ -590,7 +622,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.23.0</version>
+        <version>5.24.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -600,22 +632,22 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>log4j-over-slf4j</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>jcl-over-slf4j</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>jul-to-slf4j</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${slf4j.api.version}</version>
       </dependency>
       <dependency>
         <groupId>ch.qos.logback</groupId>
@@ -652,7 +684,7 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.14.0</version>
+        <version>2.15.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -677,7 +709,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.22.1</version>
+        <version>1.23.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -687,12 +719,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.121</version>
+        <version>9.0.123</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.121</version>
+        <version>9.0.123</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -762,7 +794,7 @@
       <dependency>
         <groupId>at.yawk.lz4</groupId>
         <artifactId>lz4-java</artifactId>
-        <version>1.11.2</version>
+        <version>1.11.4</version>
       </dependency>
       <!-- Testcontainers dependency -->
       <dependency>
@@ -875,7 +907,7 @@
       <dependency>
         <groupId>org.apache.sling</groupId>
         <artifactId>org.apache.sling.testing.paxexam</artifactId>
-        <version>3.1.0</version>
+        <version>4.1.2</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -948,6 +980,14 @@
   </dependencyManagement>
 
   <profiles>
+    <!-- Runtime compatibility checks only; compile library classes against the default 1.7 API. -->
+    <profile>
+      <id>slf4j-2.0</id>
+      <properties>
+        <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+        <logback.version>${logback.runtime.version}</logback.version>
+      </properties>
+    </profile>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  Unit testing profiles -->
     <profile>
          <id>unittesting</id>
@@ -963,6 +1003,18 @@
             </plugins>
          </build>
     </profile>
+    <profile>
+      <id>skip-jacoco-on-single-test</id>
+      <activation>
+        <property>
+          <name>test</name>
+        </property>
+      </activation>
+      <properties>
+        <jacoco.skip>true</jacoco.skip>
+      </properties>
+    </profile>
+
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Integration testing profiles -->
     <profile>
       <!-- runs all the IT agains the default fixture. See <properties> section -->

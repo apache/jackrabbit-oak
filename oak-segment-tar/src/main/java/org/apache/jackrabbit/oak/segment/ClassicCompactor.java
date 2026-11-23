@@ -33,7 +33,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -142,7 +142,7 @@ public class ClassicCompactor extends Compactor {
 
     protected @Nullable CompactedNodeState writeNodeState(
             @NotNull NodeState nodeState,
-            @Nullable Buffer stableIdBytes,
+            @Nullable ByteBuffer stableIdBytes,
             boolean complete
     ) throws IOException {
         if (complete) {

@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.CompositeData;
 
+import com.codahale.metrics.Gauge;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -1418,6 +1419,56 @@ public class AsyncIndexUpdateTest {
         } finally {
             freshProvider.close();
         }
+    }
+
+    /**
+     * The indexing task only runs on the leader, so LAST_INDEXED_TIME does not move on
+     * other cluster members. LAST_INDEXED_TIME_CLUSTER reads the shared
+     * {@code :async/<lane>-LastIndexedTo} property on every read (OAK-12505).
+     */
+    @Test
+    public void lastIndexedTimeClusterGaugeFollowsLeaderOnNonLeader() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        MetricStatisticsProvider nonLeaderProvider = new MetricStatisticsProvider(
+                ManagementFactory.getPlatformMBeanServer(), executor);
+        try {
+            // never runs an indexing cycle, like a non-leader cluster member
+            new AsyncIndexUpdate("async", store, provider, nonLeaderProvider, false);
+            Gauge<?> gauge = nonLeaderProvider.getRegistry().getGauges()
+                    .get("async.LAST_INDEXED_TIME_CLUSTER");
+            assertNotNull(gauge);
+            assertEquals("no value before the initial index update", 0L, gauge.getValue());
+
+            AsyncIndexUpdate leader = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
+            runOneCycle(leader);
+            assertEquals(lastIndexedToMillis(store), gauge.getValue());
+
+            long first = lastIndexedToMillis(store);
+            Thread.sleep(5);
+            builder = store.getRoot().builder();
+            builder.child("testRoot").setProperty("foo", "def");
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            runOneCycle(leader);
+            long second = lastIndexedToMillis(store);
+            assertTrue(second > first);
+            assertEquals("gauge must follow the leader's progress", second, gauge.getValue());
+        } finally {
+            nonLeaderProvider.close();
+        }
+    }
+
+    private static long lastIndexedToMillis(NodeStore store) {
+        return ISO8601.parse(store.getRoot().getChildNode(":async")
+                .getProperty(AsyncIndexUpdate.lastIndexedTo("async")).getValue(Type.STRING))
+                .getTimeInMillis();
     }
 
     @Test

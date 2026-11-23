@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.azure.v8;
 
 import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.readBufferFully;
 
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -27,7 +28,6 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzureBlobMetadata;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -56,12 +56,12 @@ public class AzureSegmentArchiveReaderV8 extends AbstractRemoteSegmentArchiveRea
     }
 
     @Override
-    protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
+    protected void doReadSegmentToBuffer(String segmentFileName, ByteBuffer buffer) throws IOException {
         readBufferFully(getBlob(segmentFileName), buffer);
     }
 
     @Override
-    protected Buffer doReadDataFile(String extension) throws IOException {
+    protected ByteBuffer doReadDataFile(String extension) throws IOException {
         return readBlob(getName() + extension);
     }
 
@@ -78,14 +78,14 @@ public class AzureSegmentArchiveReaderV8 extends AbstractRemoteSegmentArchiveRea
         }
     }
 
-    private Buffer readBlob(String name) throws IOException {
+    private ByteBuffer readBlob(String name) throws IOException {
         try {
             CloudBlockBlob blob = getBlob(name);
             if (!blob.exists()) {
                 return null;
             }
             long length = blob.getProperties().getLength();
-            Buffer buffer = Buffer.allocate((int) length);
+            ByteBuffer buffer = ByteBuffer.allocate((int) length);
             AzureUtilitiesV8.readBufferFully(blob, buffer);
             return buffer;
         } catch (StorageException e) {

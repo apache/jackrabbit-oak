@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -36,15 +37,17 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class RecoverJournalTest {
+public class RecoverJournalTest extends CheckRepositoryTestBase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -86,6 +89,25 @@ public class RecoverJournalTest {
 
         Set<String> recoveredRevisions = revisions(file("journal.log"));
         assertTrue(recoveredRevisions.containsAll(originalRevisions));
+    }
+
+    @Test
+    public void recoveryFallsBackOnValidRevisionWhenOnlyNewNodeIsCorrupt() throws Exception {
+        addInvalidRevisionWithCorruptNewNodeProperty();
+
+        int code = RecoverJournal.builder()
+            .withPath(temporaryFolder.getRoot())
+            .withOut(new PrintStream(new NullOutputStream()))
+            .withErr(new PrintStream(new NullOutputStream()))
+            .build()
+            .run();
+        assertEquals(0, code);
+
+        try (ReadOnlyFileStore store = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).buildReadOnly()) {
+            NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
+            assertTrue(root.hasChildNode("a"));
+            assertFalse(root.hasChildNode("z"));
+        }
     }
 
     private File file(String name) {

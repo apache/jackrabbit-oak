@@ -18,13 +18,18 @@ package org.apache.jackrabbit.oak.segment.aws.tool;
 
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeDescription;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
+import java.nio.ByteBuffer;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -34,10 +39,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
@@ -75,6 +82,10 @@ public class AwsSegmentStoreMigrator implements Closeable  {
     private final Integer revisionCount;
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
+
+    private File sourceStoreDirectory;
+
+    private ReadOnlyFileStore sourceStore;
 
     private AwsSegmentStoreMigrator(Builder builder) {
         this.source = builder.source;
@@ -175,8 +186,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             try (SegmentArchiveReader reader = sourceManager.forceOpen(archiveName)) {
                 SegmentArchiveWriter writer = targetManager.create(archiveName);
                 try {
-                    migrateSegments(reader, writer);
-                    migrateBinaryRef(reader, writer);
+                    Map<UUID, ByteBuffer> segments = migrateSegments(reader, writer);
+                    migrateBinaryRef(archiveName, segments, reader, writer);
                     migrateGraph(reader, writer);
                 } catch (Exception e) {
                     log.error("Can't write archive", e);
@@ -188,7 +199,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
+    private Map<UUID, ByteBuffer> migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
             futures.add(executor.submit(() -> runWithRetry(() -> {
@@ -198,18 +209,42 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             }, 16, 5)));
         }
 
+        Map<UUID, ByteBuffer> segments = new LinkedHashMap<>();
         for (Future<Segment> future : futures) {
             Segment segment = future.get();
             segment.write(writer);
+            segments.put(segment.id(), segment.data);
         }
+        return segments;
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
-        Buffer binaryReferences = reader.getBinaryReferences();
+    private void migrateBinaryRef(String archiveName, Map<UUID, ByteBuffer> segments, SegmentArchiveReader reader,
+                                  SegmentArchiveWriter writer) throws IOException {
+        ByteBuffer binaryReferences = reader.getBinaryReferences();
+        byte[] array;
         if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
-            writer.writeBinaryReferences(array);
+            array = fetchByteArray(binaryReferences);
+        } else {
+            log.warn("{}/{} has no binary references, recovering them from its segments", sourceName, archiveName);
+            array = sourceStore().recoverBinaryReferences(segments);
         }
+        writer.writeBinaryReferences(array);
+    }
+
+    /**
+     * Opened only when an archive without binary references is migrated. It must be read-only:
+     * a writable store would recover the source archives and modify the source.
+     */
+    private ReadOnlyFileStore sourceStore() throws IOException {
+        if (sourceStore == null) {
+            sourceStoreDirectory = Files.createTempDirectory("segment-store-migrator").toFile();
+            try {
+                sourceStore = fileStoreBuilder(sourceStoreDirectory).withCustomPersistence(source).buildReadOnly();
+            } catch (InvalidFileStoreVersionException e) {
+                throw new IOException(e);
+            }
+        }
+        return sourceStore;
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
@@ -252,6 +287,11 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS));
         } catch (InterruptedException e) {
             throw new IOException(e);
+        } finally {
+            if (sourceStore != null) {
+                sourceStore.close();
+            }
+            FileUtils.deleteQuietly(sourceStoreDirectory);
         }
     }
 
@@ -264,7 +304,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
 
         private final SegmentArchiveEntry entry;
 
-        private volatile Buffer data;
+        private volatile ByteBuffer data;
 
         private Segment(SegmentArchiveEntry entry) {
             this.entry = entry;
@@ -281,9 +321,13 @@ public class AwsSegmentStoreMigrator implements Closeable  {
                     entry.getFullGeneration(), entry.isCompacted());
         }
 
+        private UUID id() {
+            return new UUID(entry.getMsb(), entry.getLsb());
+        }
+
         @Override
         public String toString() {
-            return new UUID(entry.getMsb(), entry.getLsb()).toString();
+            return id().toString();
         }
     }
 

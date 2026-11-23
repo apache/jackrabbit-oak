@@ -1,68 +1,67 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.jackrabbit.oak.cache;
 
 import java.util.Map;
-import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
-
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Cache statistics.
+ * Exposes a {@link Cache}'s statistics via the {@link org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean}
+ * interface.
  */
 public class CacheStats extends AbstractCacheStats {
+
     private final Cache<Object, Object> cache;
     private final Weigher<Object, Object> weigher;
     private final long maxWeight;
 
     /**
-     * Construct the cache stats object.
-     * 
-     * @param cache the cache
-     * @param name the name of the cache
-     * @param weigher the weigher used to estimate the current weight
-     * @param maxWeight the maximum weight
+     * Creates an adapter for the given cache.
+     *
+     * @param cache     the cache whose statistics to expose (must not be null)
+     * @param name      the JMX bean name (must not be null)
+     * @param weigher   optional weigher used to estimate current cache weight; {@code null} if unknown
+     * @param maxWeight configured maximum weight for the cache; {@code -1} if unbounded
      */
     @SuppressWarnings("unchecked")
-    public CacheStats(
-            @NotNull Cache<?, ?> cache,
+    public <K, V> CacheStats(
+            @NotNull Cache<K, V> cache,
             @NotNull String name,
-            @Nullable Weigher<?, ?> weigher,
+            @Nullable Weigher<K, V> weigher,
             long maxWeight) {
         super(name);
-        this.cache = (Cache<Object, Object>) Objects.requireNonNull(cache);
+        this.cache = (Cache<Object, Object>) cache;
         this.weigher = (Weigher<Object, Object>) weigher;
         this.maxWeight = maxWeight;
     }
 
     @Override
-    protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
+    protected CacheStatsSnapshot getCurrentStats() {
         return cache.stats();
     }
 
     @Override
     public long getElementCount() {
-        return cache.size();
+        return cache.asMap().size();
     }
 
     @Override
@@ -70,13 +69,11 @@ public class CacheStats extends AbstractCacheStats {
         if (weigher == null) {
             return -1;
         }
-        long size = 0;
-        for (Map.Entry<?, ?> e : cache.asMap().entrySet()) {
-            Object k = e.getKey();
-            Object v = e.getValue();
-            size += weigher.weigh(k, v);
+        long total = 0;
+        for (Map.Entry<Object, Object> e : cache.asMap().entrySet()) {
+            total += weigher.weigh(e.getKey(), e.getValue());
         }
-        return size;
+        return total;
     }
 
     @Override

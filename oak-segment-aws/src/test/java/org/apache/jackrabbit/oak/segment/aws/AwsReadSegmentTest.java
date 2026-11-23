@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.util.Date;
 
@@ -26,7 +27,6 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -101,7 +101,7 @@ public class AwsReadSegmentTest {
                     S3Directory archiveDirectory = awsContext.directory.withDirectory(archiveName);
                     return new AwsSegmentArchiveReader(archiveDirectory, archiveName, ioMonitor) {
                         @Override
-                        public Buffer readSegment(long msb, long lsb) throws IOException {
+                        public ByteBuffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(new RuntimeException("Cannot access AWS S3"));
                         }
                     };
@@ -112,7 +112,7 @@ public class AwsReadSegmentTest {
                     S3Directory archiveDirectory = awsContext.directory.withDirectory(archiveName);
                     return new AwsSegmentArchiveWriter(archiveDirectory, archiveName, ioMonitor, fileStoreMonitor) {
                         @Override
-                        public Buffer readSegment(long msb, long lsb) throws IOException {
+                        public ByteBuffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(new RuntimeException("Cannot access AWS S3"));
                         }
                     };

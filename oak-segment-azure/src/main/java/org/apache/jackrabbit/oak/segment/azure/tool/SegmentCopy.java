@@ -42,7 +42,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.Segment;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
@@ -322,17 +321,12 @@ public class SegmentCopy {
                     for (Future<Segment> future : futures) {
                         Segment segment = future.get();
                         RETRIER.execute(() -> {
-                            final byte[] array = segment.data.array();
                             String segmentId = new UUID(segment.entry.getMsb(), segment.entry.getLsb()).toString();
                             File segmentFile = new File(directory, segmentId);
                             File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + ".part");
-                            Buffer buffer = Buffer.wrap(array);
-
-                            Buffer bufferCopy = buffer.duplicate();
-
                             try {
                                 try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
-                                    bufferCopy.write(channel);
+                                    channel.write(segment.data.duplicate());
                                 }
                                 try {
                                     Files.move(tempSegmentFile.toPath(), segmentFile.toPath(),

@@ -21,14 +21,14 @@ import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIn
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.junit.Test;
 
 public class IndexLoaderTest {
 
-    private static Index loadIndex(Buffer buffer) throws Exception {
+    private static Index loadIndex(ByteBuffer buffer) throws Exception {
         return newIndexLoader(1).loadIndex((whence, length) -> {
-            Buffer slice = buffer.duplicate();
+            ByteBuffer slice = buffer.duplicate();
             slice.position(slice.limit() - whence);
             slice.limit(slice.position() + length);
             return slice.slice();
@@ -47,7 +47,7 @@ public class IndexLoaderTest {
 
     @Test(expected = InvalidIndexException.class)
     public void testUnrecognizedMagicNumber() throws Exception {
-        Buffer buffer = Buffer.allocate(Integer.SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.SIZE);
         buffer.duplicate().putInt(0xDEADBEEF);
         try {
             loadIndex(buffer);
@@ -59,7 +59,7 @@ public class IndexLoaderTest {
 
     @Test
     public void testLoadIndexV1() throws Exception {
-        Buffer buffer = Buffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
                 .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10)
@@ -76,7 +76,7 @@ public class IndexLoaderTest {
 
     @Test
     public void testLoadIndexV2() throws Exception {
-        Buffer buffer = Buffer.allocate(2 * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0)
                 .putLong(7).putLong(8).putInt(9).putInt(10).putInt(11).putInt(12).put((byte) 1)

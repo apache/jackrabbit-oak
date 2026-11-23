@@ -20,10 +20,10 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -38,7 +38,7 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
     }
 
     private static Iterable<ArchiveEntry> createEntryIterable(S3Directory directory, String archiveName) throws IOException{
-        Buffer buffer = directory.readObjectToBuffer(archiveName + ".idx", OFF_HEAP);
+        ByteBuffer buffer = directory.readObjectToBuffer(archiveName + ".idx", OFF_HEAP);
         return () -> new Iterator<>() {
             @Override
             public boolean hasNext() {
@@ -64,12 +64,12 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
     }
 
     @Override
-    protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
+    protected void doReadSegmentToBuffer(String segmentFileName, ByteBuffer buffer) throws IOException {
         directory.readObjectToBuffer(segmentFileName, buffer);
     }
 
     @Override
-    protected Buffer doReadDataFile(String extension) throws IOException {
+    protected ByteBuffer doReadDataFile(String extension) throws IOException {
         return readObjectToBuffer(getName() + extension);
     }
 
@@ -78,7 +78,7 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
         return new File(directory.getPath());
     }
 
-    private Buffer readObjectToBuffer(String name) throws IOException {
+    private ByteBuffer readObjectToBuffer(String name) throws IOException {
         if (directory.doesObjectExist(name)) {
             return directory.readObjectToBuffer(name, false);
         }

@@ -25,11 +25,13 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.commons.testing.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler;
@@ -258,7 +260,9 @@ public abstract class DocumentStoreFixture {
         @Override
         public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
             try {
+                Stopwatch sw = Stopwatch.createStarted();
                 MongoConnection connection = MongoUtils.getConnection();
+                Objects.requireNonNull(connection, "MongoDB connection is null for URL " + MongoUtils.URL + " (after waiting " + sw + ")");
                 connections.add(connection);
                 return new MongoDocumentStore(connection.getMongoClient(),
                         connection.getDatabase(), builder);

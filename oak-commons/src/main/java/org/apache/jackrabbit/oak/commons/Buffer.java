@@ -41,7 +41,11 @@ import java.util.zip.CRC32;
  * {@link ByteBuffer}. Since it is not possible to directly convert a {@link
  * Buffer} into a {@link ByteBuffer} and the other way around, {@link Buffer}
  * makes it less likely to develop dangerous code in the future.
+ *
+ * @deprecated For code that can rely on a Java version of at least 9, the
+ * compatibility concern above no longer applies. Use {@link ByteBuffer} directly.
  */
+@Deprecated
 final public class Buffer {
 
     private final ByteBuffer buffer;

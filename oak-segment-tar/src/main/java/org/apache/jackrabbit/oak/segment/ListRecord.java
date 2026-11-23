@@ -64,6 +64,8 @@ class ListRecord extends Record {
         checkIndex(index, size);
         if (size == 1) {
             return getRecordId();
+        } else if (bucketSize == 1) {
+            return getSegment().readRecordId(getRecordNumber(), 0, index);
         } else {
             int bucketIndex = index / bucketSize;
             int bucketOffset = index % bucketSize;

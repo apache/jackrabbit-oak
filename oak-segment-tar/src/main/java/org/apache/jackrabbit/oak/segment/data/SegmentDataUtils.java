@@ -23,7 +23,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 
 import org.apache.commons.io.HexDump;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 
@@ -33,33 +33,30 @@ class SegmentDataUtils {
         // Prevent instantiation
     }
 
-    static void hexDump(Buffer buffer, OutputStream stream) throws IOException {
+    static void hexDump(ByteBuffer buffer, OutputStream stream) throws IOException {
         byte[] data = new byte[buffer.remaining()];
-        buffer.duplicate().get(data);
+        buffer.get(buffer.position(), data);
         HexDump.dump(data, 0, stream, 0);
     }
 
-    static void binDump(Buffer buffer, OutputStream stream) throws IOException {
-        Buffer data = buffer.duplicate();
+    static void binDump(ByteBuffer buffer, OutputStream stream) throws IOException {
+        ByteBuffer data = buffer.duplicate();
         try (WritableByteChannel channel = Channels.newChannel(stream)) {
             while (data.hasRemaining()) {
-                data.write(channel);
+                channel.write(data);
             }
         }
     }
 
-    static int estimateMemoryUsage(Buffer buffer) {
+    static int estimateMemoryUsage(ByteBuffer buffer) {
         return buffer.isDirect() ? 0 : buffer.remaining();
     }
 
-    static Buffer readBytes(Buffer buffer, int index, int size) {
-        Buffer duplicate = buffer.duplicate();
-        duplicate.position(index);
-        duplicate.limit(index + size);
-        return duplicate.slice();
+    static ByteBuffer readBytes(ByteBuffer buffer, int index, int size) {
+        return buffer.slice(index, size);
     }
 
-    static int index(Buffer buffer, int recordReferenceOffset) {
+    static int index(ByteBuffer buffer, int recordReferenceOffset) {
         return buffer.limit() - (MAX_SEGMENT_SIZE - recordReferenceOffset);
     }
 

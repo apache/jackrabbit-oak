@@ -19,11 +19,11 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -159,7 +159,7 @@ public class OpImpl extends DynamicOperandImpl {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(operand1, operator, operand2);
+        return Objects.hash(operand1, operator, operand2);
     }
 
     @Override

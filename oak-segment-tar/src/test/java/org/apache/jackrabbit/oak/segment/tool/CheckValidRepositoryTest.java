@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Tests for {@link Check} assuming a consistent repository.
  */
@@ -335,5 +337,92 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         assertExpectedOutput(strOut.toString(), List.of("Checking checkpoints", "Searched through 1 revisions and 1 checkpoints",
             "No good revision found"));
         assertExpectedOutput(strErr.toString(), List.of("Checkpoint bogus-checkpoint not found in this revision!"));
+    }
+
+    @Test
+    public void testInvalidRevisionFallbackOnValidWhenOnlyNewNodeIsCorrupt() throws Exception {
+        addInvalidRevisionWithCorruptNewNodeOnly();
+
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+
+        Check.builder()
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(checkpoints)
+            .withFilterPaths(Set.of("/"))
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
+        outWriter.close();
+        errWriter.close();
+
+        assertExpectedOutput(strOut.toString(), List.of("Checked 7 nodes and 21 properties", "Path / is consistent",
+            "Searched through 2 revisions"));
+        assertExpectedOutput(strErr.toString(),
+            List.of("Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds"));
+    }
+
+    @Test
+    public void testNewNodeFilterWithoutValidRevision() throws Exception {
+        addInvalidRevisionWithCorruptNewNodeOnly();
+
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+
+        Check.builder()
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(Set.of("/z"))
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
+        outWriter.close();
+        errWriter.close();
+
+        assertExpectedOutput(strOut.toString(), List.of("Searched through 2 revisions", "No good revision found"));
+        assertExpectedOutput(strErr.toString(), List.of("Error while traversing /z", "Path /z not found"));
+    }
+
+    @Test
+    public void testSuccessfulFullCheckWithContinueOnError() throws Exception {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+
+        int result;
+        try (PrintWriter outWriter = new PrintWriter(strOut, true);
+             PrintWriter errWriter = new PrintWriter(strErr, true)) {
+            result = Check.builder()
+                .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+                .withDebugInterval(Long.MAX_VALUE)
+                .withCheckBinaries(true)
+                .withCheckHead(true)
+                .withCheckpoints(new HashSet<String>())
+                .withFilterPaths(Set.of("/"))
+                .withContinueOnError(true)
+                .withOutWriter(outWriter)
+                .withErrWriter(errWriter)
+                .build()
+                .run();
+        }
+
+        assertEquals(0, result);
+        assertExpectedOutput(strOut.toString(), List.of("Checked 7 nodes and 21 properties", "Path / is consistent"));
+        assertEquals("", strErr.toString());
     }
 }

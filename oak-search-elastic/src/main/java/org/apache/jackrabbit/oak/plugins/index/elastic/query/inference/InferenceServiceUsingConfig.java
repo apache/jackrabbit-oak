@@ -93,11 +93,6 @@ public class InferenceServiceUsingConfig implements InferenceService {
         try {
             // Create the JSON payload.
             String jsonInputString = inferenceModelConfig.getPayload().getInferencePayload(text);
-            List<String> headerValues = inferenceModelConfig.getHeader().getInferenceHeaderPayload()
-                .entrySet().stream()
-                .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
-
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .timeout(java.time.Duration.ofMillis(timeoutMillis))

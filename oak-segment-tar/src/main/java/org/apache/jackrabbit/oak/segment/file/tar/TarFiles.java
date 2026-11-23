@@ -20,7 +20,6 @@ import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 
-import static java.util.Collections.emptySet;
 
 import java.io.Closeable;
 import java.io.File;
@@ -49,7 +48,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -638,14 +637,14 @@ public class TarFiles implements Closeable {
         return false;
     }
 
-    public Buffer readSegment(long msb, long lsb) {
+    public ByteBuffer readSegment(long msb, long lsb) {
         try {
             Node head;
 
             lock.readLock().lock();
             try {
                 if (writer != null) {
-                    Buffer b = writer.readEntry(msb, lsb);
+                    ByteBuffer b = writer.readEntry(msb, lsb);
                     if (b != null) {
                         return b;
                     }
@@ -656,7 +655,7 @@ public class TarFiles implements Closeable {
             }
 
             for (TarReader reader : iterable(head)) {
-                Buffer b = reader.readEntry(msb, lsb);
+                ByteBuffer b = reader.readEntry(msb, lsb);
                 if (b != null) {
                     return b;
                 }
@@ -783,7 +782,7 @@ public class TarFiles implements Closeable {
                 result.interrupted = true;
                 return result;
             }
-            cleaned.put(reader, reader.sweep(reclaim, result.reclaimedSegmentIds));
+            cleaned.put(reader, reader.sweep(reclaim, result.reclaimedSegmentIds, tarRecovery));
         }
         long sweepNanos = System.nanoTime() - sweepStartNanos;
         log.info("TarFiles cleanup: sweep phase took {}", formatDuration(sweepNanos));
@@ -931,7 +930,7 @@ public class TarFiles implements Closeable {
         }
 
         for (TarReader reader : iterable(head)) {
-            reader.collectBlobReferences(collector, reclaim);
+            reader.collectBlobReferences(collector, reclaim, tarRecovery);
         }
     }
 

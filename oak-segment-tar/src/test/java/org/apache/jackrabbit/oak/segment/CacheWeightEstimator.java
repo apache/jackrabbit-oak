@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
@@ -335,7 +335,7 @@ public class CacheWeightEstimator {
         buffer[GC_FULL_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
         buffer[GC_FULL_GENERATION_OFFSET + 3] = (byte) generation;
 
-        Buffer data = Buffer.wrap(buffer);
+        ByteBuffer data = ByteBuffer.wrap(buffer);
         SegmentId id = randomSegmentId(false);
         Segment segment = new Segment(store.getSegmentIdProvider(), id, data);
 

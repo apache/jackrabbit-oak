@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 /**
  * Access the data of a segment.
@@ -68,11 +68,11 @@ public interface SegmentData {
 
     int MAX_MEDIUM_LENGTH_VALUE = (1 << 14) + MAX_SMALL_LENGTH_VALUE;
 
-    static SegmentData newSegmentData(Buffer buffer) {
+    static SegmentData newSegmentData(ByteBuffer buffer) {
         return SegmentDataLoader.newSegmentData(buffer);
     }
 
-    static SegmentData newRawSegmentData(Buffer buffer) {
+    static SegmentData newRawSegmentData(ByteBuffer buffer) {
         return SegmentDataLoader.newRawSegmentData(buffer);
     }
 
@@ -129,8 +129,8 @@ public interface SegmentData {
         int index = length >= MAX_SMALL_LENGTH_VALUE
                     ? recordReferenceOffset + Short.BYTES
                     : recordReferenceOffset + Byte.BYTES;
-        Buffer buffer = readBytes(index, (int) length);
-        String string = buffer.decode(StandardCharsets.UTF_8).toString();
+        ByteBuffer buffer = readBytes(index, (int) length);
+        String string = StandardCharsets.UTF_8.decode(buffer).toString();
         return new StringData(string, (int)length);
     }
 
@@ -148,7 +148,7 @@ public interface SegmentData {
 
     long readLong(int recordReferenceOffset);
 
-    Buffer readBytes(int recordReferenceOffset, int size);
+    ByteBuffer readBytes(int recordReferenceOffset, int size);
 
     int size();
 

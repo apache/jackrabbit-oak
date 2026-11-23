@@ -20,11 +20,20 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.Closeable;
 import java.text.ParseException;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -44,6 +53,96 @@ public class FilterTest {
     private Filter createFilterSQL(String sql) throws ParseException {
         QueryImpl q = (QueryImpl) p.parse(sql);
         return q.createFilter(true);
+    }
+
+    @Test
+    public void emptyNodeNameExcludingRoot() throws Exception {
+        assertEmptyNodeNameExcludingRoot("name", "function*@:name");
+    }
+
+    @Test
+    public void emptyNodeLocalNameExcludingRoot() throws Exception {
+        assertEmptyNodeNameExcludingRoot("localname", "function*@:localname");
+    }
+
+    private void assertEmptyNodeNameExcludingRoot(String function, String functionRestriction) throws Exception {
+        for (String condition : new String[] {
+                "isdescendantnode('/content/dam') and " + function + "() = ''",
+                "isdescendantnode('/content/dam') and " + function + "() like ''",
+                function + "() = '' and isdescendantnode('/content/dam')",
+                function + "() like '' and isdescendantnode('/content/dam')"
+        }) {
+            Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertTrue(condition + ": " + filter, filter.isAlwaysFalse());
+            assertNull(filter.getPropertyRestriction(":localname"));
+            assertNull(filter.getPropertyRestriction(functionRestriction));
+        }
+    }
+
+    @Test
+    public void emptyNodeNameLegacyMode() throws Exception {
+        assertEmptyNodeNameLegacyMode("name", "function*@:name");
+    }
+
+    @Test
+    public void emptyNodeLocalNameLegacyMode() throws Exception {
+        assertEmptyNodeNameLegacyMode("localname", "function*@:localname");
+    }
+
+    private void assertEmptyNodeNameLegacyMode(String function, String functionRestriction) throws Exception {
+        QueryImpl query = (QueryImpl) p.parse("select * from [nt:base] "
+                + "where isdescendantnode('/content/dam') and " + function + "() = ''");
+        DefaultWhiteboard whiteboard = new DefaultWhiteboard();
+        whiteboard.register(QueryEngineSettings.class, query.getSettings(), Map.of());
+        try (Closeable repository = (Closeable) new Oak()
+                .with(whiteboard)
+                .with(new OpenSecurityProvider())
+                .createContentRepository()) {
+            FeatureToggle toggle = WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
+                    feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
+                            .equals(feature.getName()));
+            assertNotNull(toggle);
+            assertFalse(toggle.isEnabled());
+            assertTrue(query.createFilter(true).isAlwaysFalse());
+
+            toggle.setEnabled(true);
+            Filter legacyFilter = query.createFilter(true);
+            assertFalse(legacyFilter.isAlwaysFalse());
+            assertEquals("/content/dam", legacyFilter.getPath());
+            assertEquals(Filter.PathRestriction.ALL_CHILDREN, legacyFilter.getPathRestriction());
+            assertNull(legacyFilter.getPropertyRestriction(":localname"));
+            assertNull(legacyFilter.getPropertyRestriction(functionRestriction));
+
+            toggle.setEnabled(false);
+            assertTrue(query.createFilter(true).isAlwaysFalse());
+        }
+        assertNull(WhiteboardUtils.getService(whiteboard, FeatureToggle.class,
+                feature -> QueryEngineSettings.FT_EMPTY_NODE_NAME_RESTRICTION_LEGACY_MODE
+                        .equals(feature.getName())));
+    }
+
+    @Test
+    public void emptyNodeNameIncludingRoot() throws Exception {
+        assertEmptyNodeNameIncludingRoot("name");
+    }
+
+    @Test
+    public void emptyNodeLocalNameIncludingRoot() throws Exception {
+        assertEmptyNodeNameIncludingRoot("localname");
+    }
+
+    private void assertEmptyNodeNameIncludingRoot(String function) throws Exception {
+        for (String condition : new String[] {
+                function + "() = ''",
+                "issamenode('/') and " + function + "() = ''",
+                function + "() like ''"
+        }) {
+            Filter filter = createFilterSQL("select * from [nt:base] where " + condition);
+            assertFalse(filter.isAlwaysFalse());
+            assertEquals("/", filter.getPath());
+            assertEquals(Filter.PathRestriction.EXACT, filter.getPathRestriction());
+            assertNull(filter.getPropertyRestriction(":localname"));
+        }
     }
 
     @Test

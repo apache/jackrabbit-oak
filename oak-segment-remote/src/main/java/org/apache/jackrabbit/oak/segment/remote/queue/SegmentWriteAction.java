@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.queue;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public class SegmentWriteAction {
@@ -47,8 +47,8 @@ public class SegmentWriteAction {
         return new UUID(indexEntry.getMsb(), indexEntry.getLsb());
     }
 
-    public Buffer toBuffer() {
-        return Buffer.wrap(buffer, offset, length);
+    public ByteBuffer toByteBuffer() {
+        return ByteBuffer.wrap(buffer, offset, length);
     }
 
     public void passTo(SegmentWriteQueue.SegmentConsumer consumer) throws IOException {

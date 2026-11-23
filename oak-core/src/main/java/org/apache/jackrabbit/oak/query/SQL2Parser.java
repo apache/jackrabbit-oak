@@ -330,8 +330,8 @@ public class SQL2Parser {
 
     private String readLabel() throws ParseException {
         String label = readName();
-        if (!label.matches("[a-zA-Z0-9_]*") || label.isEmpty() || label.length() > 128) {
-            throw getSyntaxError("a-z, A-Z, 0-9, _");
+        if (!label.matches("[a-zA-Z0-9_.-]*") || label.isEmpty() || label.length() > 128) {
+            throw getSyntaxError("a-z, A-Z, 0-9, _, -, .");
         }
         return label;
     }

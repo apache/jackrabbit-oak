@@ -92,6 +92,11 @@ public class ElasticRetryPolicy {
         return maxIntervalMs;
     }
 
+    /**
+     * Retries failures thrown by the supplied operation, not asynchronous work it has enqueued.
+     * In particular, retrying an enqueue after observing a connection failure does not replay
+     * the previously failed bulk request.
+     */
     public void withRetries(IOOperation callable) throws IOException {
         int numberOfAttempts = 0;
         long retryUntil = 0;

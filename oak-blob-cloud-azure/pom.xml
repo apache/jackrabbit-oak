@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>2.7-SNAPSHOT</version>
+        <version>2.9-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -29,6 +29,13 @@
     <artifactId>oak-blob-cloud-azure</artifactId>
     <name>Oak Azure Cloud Blob Store</name>
     <packaging>bundle</packaging>
+
+    <properties>
+        <!-- enable execution of jacoco and set minimal line coverage -->
+        <skip.coverage>false</skip.coverage>
+        <minimum.line.coverage>0.37</minimum.line.coverage>
+        <minimum.branch.coverage>0.26</minimum.branch.coverage>
+    </properties>
 
     <build>
         <plugins>
@@ -52,6 +59,7 @@
                             com.sun.jna*;resolution:=optional,
                             io.netty.channel.epoll;resolution:=optional,
                             io.netty.handler.codec.*;resolution:=optional,
+                            io.netty.incubator.codec.quic;resolution:=optional,
                             !com.google.*,
                             !org.checkerframework.*,
                             !android.os,
@@ -221,17 +229,20 @@
             <version>1.23.1</version>
         </dependency>
         <dependency>
+            <!-- keep in sync with azure-core-http-netty -->
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
+            <version>3.7.19</version>
         </dependency>
         <dependency>
+            <!-- keep in sync with azure-core-http-netty -->
             <groupId>com.nimbusds</groupId>
             <artifactId>oauth2-oidc-sdk</artifactId>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core-http-netty</artifactId>
-            <version>1.16.4</version>
+            <version>1.16.8</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -291,10 +302,12 @@
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty-http</artifactId>
+            <version>1.2.18</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty-core</artifactId>
+            <version>1.2.18</version>
         </dependency>
         <dependency>
             <groupId>net.minidev</groupId>
@@ -343,7 +356,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
+            <version>33.7.2-jre</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

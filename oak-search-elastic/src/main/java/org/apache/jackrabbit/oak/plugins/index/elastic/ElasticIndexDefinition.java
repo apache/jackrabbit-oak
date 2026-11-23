@@ -123,6 +123,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
 
+    /**
+     * @deprecated Retained for compatibility with the removed experimental inference API.
+     * Will be removed in package version 3.0.0.
+     */
+    @Deprecated(forRemoval = true)
     public static final String INFERENCE = ":inference";
 
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
@@ -145,6 +150,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
 
+    /**
+     * @deprecated Index-local inference configuration is no longer used.
+     * Will be removed in package version 3.0.0.
+     */
+    @Deprecated(forRemoval = true)
     protected static final String INFERENCE_CONFIG = "inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
@@ -184,6 +194,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final Integer trackTotalHits;
     public final String dynamicMapping;
     public final long indexNameSeed;
+    /**
+     * @deprecated Retained for compatibility; indexing and queries ignore this configuration.
+     * Will be removed in package version 3.0.0.
+     */
+    @Deprecated(forRemoval = true)
     public final InferenceDefinition inferenceDefinition;
     public final long limitTotalFields;
     public final int secureFacetsDocsSize;
@@ -395,11 +410,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
-     * Checks if the ElasticIndexDefinition allows external updates.
-     * Definitions including the inference config are considered externally modifiable.
-     *
-     * @return true if the definition allows external updates, false otherwise
+     * @return whether the legacy index-local inference configuration is present
+     * @deprecated Retained for compatibility; document writes use the shared inference configuration instead.
+     * Will be removed in package version 3.0.0.
      */
+    @Deprecated(forRemoval = true)
     public boolean isExternallyModifiable() {
         return this.inferenceDefinition != null;
     }
@@ -434,9 +449,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
-     * Represents the inference configuration for an Elasticsearch index definition.
-     * This class holds the properties and queries used for inference.
+     * Represents the original index-local inference configuration.
+     *
+     * @deprecated Retained for compatibility; indexing and queries use the shared inference configuration instead.
+     * Will be removed in package version 3.0.0.
      */
+    @Deprecated(forRemoval = true)
     public static class InferenceDefinition {
 
         /**
@@ -483,19 +501,21 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
 
         /**
-         * Represents a property used for inference.
+         * @deprecated Retained for compatibility with the original inference configuration.
+         * Will be removed in package version 3.0.0.
          */
+        @Deprecated(forRemoval = true)
         public static class Property {
             /**
-             * The name of the property. It will be prefixed with "{@link ElasticIndexDefinition#INFERENCE}." when stored in the index.
+             * The name of the property, prefixed with "{@link ElasticIndexDefinition#INFERENCE}.".
              */
             public String name;
             /**
-             * The model used for inference. Default is "semantic". This will be used by the inference service to determine the model to use.
+             * The model used for inference. Default is "semantic".
              */
             public String model;
             /**
-             * The fields used for inference. These fields will be used to generate the vector for the inference.
+             * The fields used for inference.
              */
             public List<String> fields;
             /**
@@ -545,8 +565,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
 
         /**
-         * Represents a query used for inference.
+         * @deprecated Retained for compatibility with the original inference configuration.
+         * Will be removed in package version 3.0.0.
          */
+        @Deprecated(forRemoval = true)
         public static class Query {
             /**
              * The name of the query.
@@ -557,11 +579,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
              */
             public String serviceUrl;
             /**
-             * The model used for the query. Default is "semantic". It needs to match with one of the models used for the properties.
+             * The model used for the query. Default is "semantic".
              */
             public String model;
             /**
-             * The prefix used for the query. If the input string starts with this prefix, the query will be executed. Default is null (no prefix).
+             * The prefix used for the query. Default is null (no prefix).
              */
             public String prefix;
             /**
@@ -573,9 +595,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
              */
             public int numCandidates;
             /**
-             * The type of the query. Default is "hybrid". Currently not used
+             * The type of the query. Default is "hybrid". Currently not used.
              */
-            public String type; // this can be hybrid or vector
+            public String type;
             /**
              * The similarity threshold used for the query. Default is 0.5.
              */

@@ -27,7 +27,6 @@ import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
 
-import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -338,7 +337,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // hence we iterate over the queries returned by createQueries
         List<Bson> queries = createQueries(gcTypes, sweepRevs, oldestRevTimeStamp);
 
-        Iterable<NodeDocument> allResults = emptyList();
+        List<Iterable<NodeDocument>> results = new ArrayList<>(queries.size());
         for (Bson query : queries) {
             // this query uses a timeout of 15min. hitting the timeout will
             // result in an exception which should show up in the log file.
@@ -350,9 +349,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     input -> store.convertFromDBObject(NODES, input)),
                     input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));
-            allResults = IterableUtils.chainedIterable(allResults, iterable);
+            results.add(iterable);
         }
-        return allResults;
+        // chain once: nesting one chainedIterable per query makes hasNext() exponential (OAK-12532)
+        return IterableUtils.chainedIterable(results);
     }
 
     @Override

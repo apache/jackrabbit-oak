@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.mongodb.BasicDBObject;
@@ -24,11 +27,15 @@ import com.mongodb.MongoQueryException;
 import com.mongodb.client.MongoCollection;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -43,6 +50,9 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.getAllPreviousDocs;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.getMaxRangeHeight;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
@@ -163,5 +173,31 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
             e.printStackTrace();
             fail(e.toString());
         }
+    }
+
+    @Test(timeout = 30000) // OAK-12532
+    public void identifyGarbageWithManySweepRevisions() throws Exception {
+        DocumentNodeStore ns = mk.getNodeStore();
+        MongoDocumentStore store = (MongoDocumentStore) ns.getDocumentStore();
+        long now = clock.getTime();
+        List<Revision> sweepRevs = new ArrayList<>();
+        for (int clusterId = 1; clusterId <= 40; clusterId++) {
+            sweepRevs.add(new Revision(now, 0, clusterId));
+        }
+        Revision splitRev = new Revision(now - HOURS.toMillis(2), 0, 1);
+        String splitDocId = Utils.getPreviousIdFor(Path.fromString("/foo"), splitRev, 0);
+        BasicDBObject splitDoc = new BasicDBObject(Document.ID, splitDocId);
+        splitDoc.put(SD_TYPE, DEFAULT_NO_BRANCH.typeCode());
+        splitDoc.put(SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(splitRev.getTimestamp()));
+        mongoConnection.getDatabase().getCollection(NODES.toString(), BasicDBObject.class).insertOne(splitDoc);
+
+        MongoVersionGCSupport gcSupport = new MongoVersionGCSupport(store);
+        Iterable<NodeDocument> garbage = gcSupport.identifyGarbage(
+                EnumSet.of(DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH),
+                new RevisionVector(sweepRevs), now);
+
+        List<String> ids = new ArrayList<>();
+        garbage.forEach(doc -> ids.add(doc.getId()));
+        assertEquals(List.of(splitDocId), ids);
     }
 }

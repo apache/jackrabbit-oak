@@ -1,0 +1,247 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.luceneNg;
+
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * OSGi service that provides Lucene 9 index providers.
+ * This service registers both the QueryIndexProvider and IndexEditorProvider
+ * for handling indexes with type "luceneNg".
+ */
+@Component
+@Designate(ocd = LuceneNgIndexProviderService.Config.class)
+public class LuceneNgIndexProviderService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexProviderService.class);
+
+    private static final String REPOSITORY_HOME = "repository.home";
+    /** Separate from oak-lucene's {@code index} folder, whose startup cleanup scans every index folder. */
+    private static final String DEFAULT_LOCAL_INDEX_DIR = "indexNg";
+    private static final int INDEX_COPIER_POOL_SIZE = 5;
+    private static final int OBSERVER_QUEUE_LENGTH = 5;
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak LuceneNgIndexProvider",
+            description = "Lucene 9 index provider for Oak"
+    )
+    public @interface Config {
+        @AttributeDefinition(
+                name = "Disable this component",
+                description = "If true, this component is disabled."
+        )
+        boolean disabled() default false;
+
+        @AttributeDefinition(
+                name = "Enable CopyOnRead support",
+                description = "Enable copying of Lucene 9 index files to local disk before serving reads. " +
+                        "Recommended when the NodeStore's blob store is remote (e.g. S3, Azure), to avoid " +
+                        "reading segment files over the network on every query and to keep readiness-probe " +
+                        "latency bounded."
+        )
+        boolean enableCopyOnReadSupport() default true;
+
+        @AttributeDefinition(
+                name = "Enable read-before-write support",
+                description = "Serve writer reads of existing segments from local disk, copying them on first read. " +
+                        "New files are written synchronously to Oak storage. Independent of reader CopyOnRead."
+        )
+        boolean enableReadBeforeWriteSupport() default true;
+
+        @AttributeDefinition(
+                name = "Local index storage path",
+                description = "Local file system path for reader and writer segment caching. " +
+                        "If not specified, indexes are stored under an 'indexNg' directory under " +
+                        "repository home."
+        )
+        String localIndexDir();
+
+        @AttributeDefinition(
+                name = "Prefetch index files",
+                description = "When CopyOnRead is enabled, copy all new index files locally before the index " +
+                        "is made available to the query engine, instead of copying lazily on first read."
+        )
+        boolean prefetchIndexFiles() default false;
+    }
+
+    private final List<ServiceRegistration<?>> regs = new ArrayList<>();
+    private LuceneNgIndexTracker indexTracker;
+    private LuceneNgIndexEditorProvider editorProvider;
+    private LuceneNgIndexCopier indexCopier;
+    private BackgroundObserver backgroundObserver;
+    private ExecutorService executorService;
+
+    @Activate
+    private void activate(BundleContext bundleContext, Config config) {
+        if (config.disabled()) {
+            LOG.info("LuceneNg component disabled by configuration");
+            return;
+        }
+
+        LOG.info("Activating LuceneNg Index Provider");
+
+        LuceneNgIndexCopier copier = null;
+        if (config.enableCopyOnReadSupport() || config.enableReadBeforeWriteSupport()) {
+            try {
+                copier = createIndexCopier(bundleContext, config);
+                LOG.info("Enabling local caching for luceneNg indexes. Index files copied under {}",
+                        copier.getIndexRootDir());
+            } catch (IOException e) {
+                LOG.warn("Could not initialize local caching for luceneNg indexes; " +
+                        "falling back to reading directly from the remote NodeStore", e);
+            }
+        }
+        this.indexCopier = copier;
+
+        // Initialize tracker
+        indexTracker = new LuceneNgIndexTracker(config.enableCopyOnReadSupport() ? copier : null);
+
+        // Register QueryIndexProvider
+        LuceneNgQueryIndexProvider queryProvider = new LuceneNgQueryIndexProvider(indexTracker);
+        Dictionary<String, Object> props = new Hashtable<>();
+        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), queryProvider, props));
+        LOG.info("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+
+        backgroundObserver = new BackgroundObserver(queryProvider, getExecutorService(), OBSERVER_QUEUE_LENGTH);
+        regs.add(bundleContext.registerService(Observer.class.getName(), backgroundObserver, null));
+
+        // Register IndexEditorProvider
+        editorProvider = new LuceneNgIndexEditorProvider(indexTracker,
+                config.enableReadBeforeWriteSupport() ? copier : null);
+        props = new Hashtable<>();
+        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
+        LOG.info("Registered IndexEditorProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+    }
+
+    private LuceneNgIndexCopier createIndexCopier(BundleContext bundleContext, Config config) throws IOException {
+        String indexDirPath = config.localIndexDir();
+        if (indexDirPath == null || indexDirPath.isEmpty()) {
+            String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
+            if (repoHome == null) {
+                throw new IOException("Index directory cannot be determined as neither localIndexDir " +
+                        "config nor repository.home is set");
+            }
+            indexDirPath = Paths.get(repoHome, DEFAULT_LOCAL_INDEX_DIR).toString();
+        }
+        boolean prefetchEnabled = config.prefetchIndexFiles();
+        if (prefetchEnabled) {
+            LOG.info("Prefetching of luceneNg index files enabled");
+        }
+        return new LuceneNgIndexCopier(getExecutorService(), new File(indexDirPath), prefetchEnabled);
+    }
+
+    private ExecutorService getExecutorService() {
+        if (executorService == null) {
+            executorService = ExecutorHelper.linkedQueueExecutor(
+                    INDEX_COPIER_POOL_SIZE, "oak-luceneNg-%d",
+                    (t, e) -> LOG.warn("Error occurred in asynchronous luceneNg index copy processing", e));
+        }
+        return executorService;
+    }
+
+    @Deactivate
+    private void deactivate() {
+        LOG.info("Deactivating LuceneNg Index Provider");
+
+        for (ServiceRegistration<?> reg : regs) {
+            releaseQuietly("unregistering a service", reg::unregister);
+        }
+        regs.clear();
+
+        if (backgroundObserver != null) {
+            releaseQuietly("closing the background observer", backgroundObserver::close);
+            backgroundObserver = null;
+        }
+
+        if (editorProvider != null) {
+            releaseQuietly("closing the editor provider", editorProvider::close);
+            editorProvider = null;
+        }
+
+        if (indexTracker != null) {
+            // FulltextIndexTracker.close() is not accessible from this package; updating the
+            // tracker with an empty root closes every open index node through the public API.
+            LuceneNgIndexTracker tracker = indexTracker;
+            releaseQuietly("closing the open indexes", () -> tracker.update(EmptyNodeState.EMPTY_NODE));
+            indexTracker = null;
+        }
+
+        if (indexCopier != null) {
+            LuceneNgIndexCopier copier = indexCopier;
+            releaseQuietly("closing the index copier", () -> {
+                try {
+                    copier.close();
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+            indexCopier = null;
+        }
+
+        if (executorService != null) {
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(1, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            executorService = null;
+        }
+    }
+
+    /**
+     * Runs one deactivation step; a failure is logged so that the following steps still release
+     * their resources.
+     */
+    private static void releaseQuietly(String step, Runnable release) {
+        try {
+            release.run();
+        } catch (RuntimeException e) {
+            LOG.warn("Error {} while deactivating the LuceneNg index provider", step, e);
+        }
+    }
+}

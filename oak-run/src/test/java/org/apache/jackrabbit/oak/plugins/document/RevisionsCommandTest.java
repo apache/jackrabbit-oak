@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,6 +29,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.run.RevisionsCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -388,7 +395,7 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String errOutput = captureSystemErr(new RevisionsCmd("fullGC", "--verify", "true"));
-        assertTrue(errOutput.contains("--path or --entireRepo option is required for fullGC command"));
+        assertTrue(errOutput.contains("--path, --pathsFile or --entireRepo option is required for fullGC command"));
     }
 
     @Test
@@ -425,6 +432,108 @@ public class RevisionsCommandTest {
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--verify", "true", "--path", "/"));
         assertTrue(output.contains("EmbeddedVerification is enabled : true"));
         assertTrue(output.contains("running fullGC on the document: /"));
+    }
+
+    @Test
+    public void fullGCWithEmbeddedWithPathsFile() throws Exception {
+        ns.dispose();
+
+        File pathsFile = createPathsFile("/\n");
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--verify", "true", "--pathsFile", pathsFile.getAbsolutePath()));
+        assertTrue(output.contains("EmbeddedVerification is enabled : true"));
+        assertTrue(output.contains("running fullGC on the document: /"));
+    }
+
+    @Test
+    public void fullGCWithPathsFileMultipleEntries() throws Exception {
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a");
+        builder.child("b");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns.dispose();
+
+        String content = "/a\n\n  \n/missing\r\n\n/b\n\n";
+        File pathsFile = createPathsFile(content);
+
+        RevisionsCmd cmd = new RevisionsCmd("fullGC", "--pathsFile", pathsFile.getAbsolutePath());
+        String[] errOutput = new String[1];
+        String output = captureSystemOut(() -> errOutput[0] = captureSystemErr(cmd));
+        assertTrue(output.contains("[1/3] "));
+        assertTrue(output.contains("running fullGC on the document: /a"));
+        assertTrue(output.contains("[2/3] "));
+        assertTrue(output.contains("running fullGC on the document: /missing"));
+        assertTrue(output.contains("[3/3] "));
+        assertTrue(output.contains("running fullGC on the document: /b"));
+        assertTrue(errOutput[0].contains("Document not found: /missing"));
+        assertTrue(output.contains("Processed 3 documents (1 not found)"));
+    }
+
+    @Test
+    public void fullGCWithEmptyPathsFile() throws Exception {
+        ns.dispose();
+
+        File pathsFile = createPathsFile("\n  \n\n");
+        RevisionsCmd cmd = new RevisionsCmd("fullGC", "--pathsFile", pathsFile.getAbsolutePath());
+        String output = captureSystemOut(cmd);
+        assertTrue(!output.contains("running fullGC on the document"));
+        assertTrue(!output.contains("Processed"));
+
+        pathsFile = createPathsFile("");
+        output = captureSystemOut(new RevisionsCmd("fullGC", "--pathsFile", pathsFile.getAbsolutePath()));
+        assertTrue(!output.contains("running fullGC on the document"));
+    }
+
+    @Test
+    public void fullGCWithPathsFileAndPathNotRun() throws Exception {
+        ns.dispose();
+
+        File pathsFile = createPathsFile("/\n");
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--path", "/",
+                "--pathsFile", pathsFile.getAbsolutePath()));
+        assertTrue(!output.contains("running fullGC on the document"));
+    }
+
+    @Test
+    public void fullGCWithPathsFileAndEntireRepoNotRun() throws Exception {
+        ns.dispose();
+
+        File pathsFile = createPathsFile("/\n");
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo",
+                "--pathsFile", pathsFile.getAbsolutePath()));
+        assertTrue(!output.contains("running fullGC on the document"));
+        assertTrue(!output.contains("starting gc collect"));
+    }
+
+    private static File createPathsFile(String content) throws IOException {
+        File file = File.createTempFile("paths", ".txt");
+        file.deleteOnExit();
+        Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    @Test
+    public void fullGCWithPathAndPathsFile() {
+        ns.dispose();
+
+        String errOutput = captureSystemErr(new RevisionsCmd("fullGC", "--path", "/", "--pathsFile", "paths.txt"));
+        assertTrue(errOutput.contains("--path, --pathsFile and --entireRepo options are mutually exclusive for fullGC command"));
+    }
+
+    @Test
+    public void fullGCWithPathAndEntireRepo() {
+        ns.dispose();
+
+        String errOutput = captureSystemErr(new RevisionsCmd("fullGC", "--path", "/", "--entireRepo"));
+        assertTrue(errOutput.contains("--path, --pathsFile and --entireRepo options are mutually exclusive for fullGC command"));
+    }
+
+    @Test
+    public void fullGCWithPathsFileAndEntireRepo() {
+        ns.dispose();
+
+        String errOutput = captureSystemErr(new RevisionsCmd("fullGC", "--pathsFile", "paths.txt", "--entireRepo"));
+        assertTrue(errOutput.contains("--path, --pathsFile and --entireRepo options are mutually exclusive for fullGC command"));
     }
 
     @Test

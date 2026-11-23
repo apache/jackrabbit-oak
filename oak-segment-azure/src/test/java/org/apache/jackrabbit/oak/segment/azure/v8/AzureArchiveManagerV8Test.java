@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -59,6 +58,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -314,7 +314,7 @@ public class AzureArchiveManagerV8Test {
         writer.close();
 
         SegmentArchiveReader reader = manager.open("data00000a.tar");
-        Buffer segment = reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
+        ByteBuffer segment = reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
         assertNotNull(segment);
 
         ListBlobItem segment0000 = container.listBlobs("oak/data00000a.tar/0000.").iterator().next();
@@ -345,7 +345,7 @@ public class AzureArchiveManagerV8Test {
         writer.close();
 
         SegmentArchiveReader reader = manager.open("data00000a.tar");
-        Buffer segment = reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
+        ByteBuffer segment = reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
         assertNotNull(segment);
 
         ListBlobItem segment0000 = container.listBlobs("oak/data00000a.tar/0000.").iterator().next();
@@ -622,7 +622,7 @@ public class AzureArchiveManagerV8Test {
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override
-            protected Buffer readSegmentInternal(long msb, long lsb) {
+            protected ByteBuffer readSegmentInternal(long msb, long lsb) {
                 return null;
             }
 
@@ -632,7 +632,7 @@ public class AzureArchiveManagerV8Test {
             }
 
             @Override
-            public void writeSegment(long msb, long lsb, Buffer buffer) {
+            public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
 
             }
 

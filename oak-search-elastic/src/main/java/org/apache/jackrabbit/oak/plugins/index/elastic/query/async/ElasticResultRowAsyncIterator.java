@@ -30,10 +30,12 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.Fu
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.ErrorCause;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
@@ -48,6 +50,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -150,7 +153,13 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         Throwable error = queryErrorRef.get();
         if (error != null) {
             error.fillInStackTrace();
-            LOG.error("Error while fetching results from Elastic for [{}]", indexPlan.getFilter(), error);
+            if (isQueryParsingError(error)) {
+                // The query itself is malformed (e.g. crafted attack payload); this is expected to reoccur
+                // identically on retry and is not an Elastic system issue, so log at WARN instead of ERROR.
+                LOG.warn("Error while fetching results from Elastic for [{}]", indexPlan.getFilter(), error);
+            } else {
+                LOG.error("Error while fetching results from Elastic for [{}]", indexPlan.getFilter(), error);
+            }
             return false;
         }
 
@@ -233,6 +242,46 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         }
 
         return new ElasticQueryScanner(listeners);
+    }
+
+    /**
+     * Detects whether the given failure represents an Elasticsearch query-parsing error (e.g. caused by a
+     * malformed full-text search term, such as attack payloads probing for injection vulnerabilities) as
+     * opposed to a genuine Elasticsearch system/connectivity issue. Parsing errors are caused by the query
+     * itself and are expected to reoccur identically on every retry, so they are logged at a lower level and
+     * are eligible for {@link ElasticInvalidQueryCache} short-circuiting (see OAK-70592).
+     */
+    static boolean isQueryParsingError(@Nullable Throwable t) {
+        if (!(t instanceof ElasticsearchException)) {
+            return false;
+        }
+        return containsParsingError(((ElasticsearchException) t).error(), 0);
+    }
+
+    private static boolean containsParsingError(@Nullable ErrorCause cause, int depth) {
+        // guard against unexpectedly deep/cyclic cause chains
+        if (cause == null || depth > 10) {
+            return false;
+        }
+        if (isParsingErrorCause(cause)) {
+            return true;
+        }
+        if (containsParsingError(cause.causedBy(), depth + 1)) {
+            return true;
+        }
+        for (ErrorCause rootCause : cause.rootCause()) {
+            if (isParsingErrorCause(rootCause) || containsParsingError(rootCause.causedBy(), depth + 1)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isParsingErrorCause(ErrorCause cause) {
+        String type = cause.type();
+        String reason = cause.reason();
+        return (type != null && type.toLowerCase(Locale.ROOT).contains("pars"))
+                || (reason != null && reason.toLowerCase(Locale.ROOT).contains("failed to parse"));
     }
 
     /*
@@ -331,6 +380,16 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                     }
             );
 
+            if (ElasticInvalidQueryCache.isKnownInvalid(cacheKey())) {
+                // This exact query recently failed with a parsing error (e.g. a malformed full-text term, often
+                // caused by attack/probing traffic) and is expected to fail identically again. Skip the call to
+                // Elastic and terminate gracefully with no results, same as a query returning zero hits.
+                LOG.debug("Skipping Elastic request for index {}: query recently failed with a parsing error and is cached as invalid",
+                        indexNode.getDefinition().getIndexPath());
+                close();
+                return;
+            }
+
             LOG.trace("Kicking initial search for query {}", searchRequest);
             boolean permitAcquired = semaphore.tryAcquire();
             if (!permitAcquired) {
@@ -345,6 +404,14 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                     .search(searchRequest, ObjectNode.class)
                     .whenCompleteAsync(this::handleResponse, indexNode.getConnection().getResponseExecutor());
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
+        }
+
+        /**
+         * Stable cache key identifying this logical query (index + query DSL), independent of pagination state
+         * such as {@code search_after}. Used to look up / record entries in {@link ElasticInvalidQueryCache}.
+         */
+        private String cacheKey() {
+            return indexNode.getDefinition().getIndexPath() + "::" + query.toString();
         }
 
         /**
@@ -425,9 +492,23 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
             }
 
+            boolean isParsingError = isQueryParsingError(t);
+            if (isParsingError) {
+                // Cache the failing query so identical subsequent requests (e.g. repeated attack traffic) can
+                // be short-circuited without calling Elastic again. No-op when the feature toggle is disabled.
+                ElasticInvalidQueryCache.markInvalid(cacheKey());
+            }
+
             if (t instanceof ElasticsearchException) {
-                LOG.error("Elastic could not process the request for jcr query [{}] :: Corresponding ES request {} :: ES Response {} : closing scanner, notifying listeners",
-                        indexPlan.getFilter(), searchRequest, ((ElasticsearchException) t).error(), t);
+                // Parsing errors are caused by the (malformed) query itself, not by an Elastic system issue, and
+                // are expected to reoccur identically on retry, so they are logged at WARN instead of ERROR.
+                if (isParsingError) {
+                    LOG.warn("Elastic could not parse the query for jcr query [{}] :: Corresponding ES request {} :: ES Response {} : closing scanner, notifying listeners",
+                            indexPlan.getFilter(), searchRequest, ((ElasticsearchException) t).error(), t);
+                } else {
+                    LOG.error("Elastic could not process the request for jcr query [{}] :: Corresponding ES request {} :: ES Response {} : closing scanner, notifying listeners",
+                            indexPlan.getFilter(), searchRequest, ((ElasticsearchException) t).error(), t);
+                }
             } else {
                 LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES request {} : closing scanner, notifying listeners",
                         indexPlan.getFilter(), searchRequest, t);

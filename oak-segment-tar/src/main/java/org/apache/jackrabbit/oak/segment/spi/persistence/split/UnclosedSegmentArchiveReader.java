@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
@@ -33,14 +33,14 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
 
     private final SegmentArchiveReader delegate;
 
-    private static final Buffer EMPTY_BINARY_REF = Buffer.wrap(BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter().write()).asReadOnlyBuffer();
+    private static final ByteBuffer EMPTY_BINARY_REF = ByteBuffer.wrap(BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter().write()).asReadOnlyBuffer();
 
     UnclosedSegmentArchiveReader(SegmentArchiveReader delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public @Nullable Buffer readSegment(long msb, long lsb) throws IOException {
+    public @Nullable ByteBuffer readSegment(long msb, long lsb) throws IOException {
         return delegate.readSegment(msb, lsb);
     }
 
@@ -65,13 +65,9 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public @NotNull Buffer getBinaryReferences() throws IOException {
-        Buffer buffer = delegate.getBinaryReferences();
-        if (buffer == null) {
-            return EMPTY_BINARY_REF;
-        } else {
-            return buffer;
-        }
+    public @NotNull ByteBuffer getBinaryReferences() throws IOException {
+        ByteBuffer buffer = delegate.getBinaryReferences();
+        return buffer == null ? EMPTY_BINARY_REF.duplicate() : buffer;
     }
 
     @Override

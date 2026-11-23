@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
+import java.nio.ByteBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -35,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
@@ -211,7 +211,7 @@ public class ToolUtils {
         pw.println(MessageFormat.format(format, arg));
     }
 
-    public static byte[] fetchByteArray(Buffer buffer) throws IOException {
+    public static byte[] fetchByteArray(ByteBuffer buffer) throws IOException {
         byte[] data = new byte[buffer.remaining()];
         buffer.get(data);
         return data;

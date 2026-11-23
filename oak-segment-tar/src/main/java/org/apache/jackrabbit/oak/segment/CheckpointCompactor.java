@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
 
-import static java.util.Objects.requireNonNullElseGet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.CHECKPOINTS;
@@ -39,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
@@ -127,7 +126,7 @@ public class CheckpointCompactor extends Compactor {
                 "softCanceller is only supported for compactDown, i.e. when Objects.equals(after, onto)");
 
         Set<String> superRoots = collectSuperRootPaths(before, after);
-        Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
+        ByteBuffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
 
         NodeBuilder rootBuilder = onto.builder();
 
@@ -136,14 +135,12 @@ public class CheckpointCompactor extends Compactor {
             rootBuilder.getChildNode(CHECKPOINTS).getChildNode(deletedCheckpoint).remove();
         }
 
-        CompactedNodeState compacted = null;
+        NodeState baseRoot = getRoot(before);
+        NodeState ontoRoot = getRoot(onto);
         for (String path : superRoots) {
             NodeState afterSuperRoot = getDescendant(after, path, NodeState::getChildNode);
-
-            NodeState baseRoot = requireNonNullElseGet(compacted, () -> getRoot(before));
-            NodeState ontoRoot = requireNonNullElseGet(compacted, () -> getRoot(onto));
-
-            compacted = compactRootState(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, softCanceller);
+            NodeState afterRoot = getRoot(afterSuperRoot);
+            CompactedNodeState compacted = compactRootState(baseRoot, afterRoot, ontoRoot, hardCanceller, softCanceller);
             if (compacted == null) {
                 // only happens for hard cancellation
                 return null;
@@ -161,6 +158,9 @@ public class CheckpointCompactor extends Compactor {
             if (isCancelled(softCanceller)) {
                 break;
             }
+
+            baseRoot = afterRoot; // afterRoot is the baseRoot of the next iteration
+            ontoRoot = compacted;
         }
 
         return compactor.writeNodeState(rootBuilder.getNodeState(), stableIdBytes, !isCancelled(softCanceller));

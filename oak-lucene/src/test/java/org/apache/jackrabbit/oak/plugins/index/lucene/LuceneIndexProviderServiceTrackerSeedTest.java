@@ -48,7 +48,7 @@ import org.junit.rules.TemporaryFolder;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService.FT_OAK_12173;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles.FT_OAK_12173_ENABLE;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
@@ -96,7 +96,7 @@ public class LuceneIndexProviderServiceTrackerSeedTest {
 
     @After
     public void tearDown() {
-        FT_OAK_12173.set(true);
+        FT_OAK_12173_ENABLE.set(true);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class LuceneIndexProviderServiceTrackerSeedTest {
         // Turns off the fix. Now the tracker only gets updates through the
         // same background queue as above, which this test never processes -
         // so the index should NOT be found. This proves the toggle works.
-        FT_OAK_12173.set(false);
+        FT_OAK_12173_ENABLE.set(false);
 
         NodeState prebuilt = rootWithFullyBuiltLuceneIndex();
         registerCommonServices(new MemoryNodeStore(prebuilt));

@@ -17,16 +17,21 @@
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -260,6 +265,79 @@ public class DiffIndexMergerTest {
                 }""", newImageLuceneDefinitions.toString());
     }
 
+    @Test
+    public void disabledProductIndexDuringMigration() {
+        disabledProductIndexCustomization(true);
+    }
+
+    @Test
+    public void disabledProductIndexAfterMigration() {
+        disabledProductIndexCustomization(false);
+    }
+
+    private void disabledProductIndexCustomization(boolean migration) {
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/damCollectionLucene-4": {
+                        "type": "disabled",
+                        "async": ["async", "nrt"],
+                        "includedPaths": "/content/dam",
+                        "indexRules": {
+                            "nt:unstructured": {
+                                "properties": {
+                                    "title": {
+                                        "name": "jcr:title",
+                                        "propertyIndex": true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/oak:index/damCollectionLucene-4-custom-1": {
+                        "type": "lucene"
+                    },
+                    "/oak:index/diff.index": {
+                        "diff": {
+                            "damCollectionLucene": {
+                                "indexRules": {
+                                    "nt:unstructured": {
+                                        "properties": {
+                                            "custom": {
+                                                "name": "custom",
+                                                "propertyIndex": true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """, true);
+        if (!migration) {
+            repositoryDefinitions.getChildren().get("/oak:index/damCollectionLucene-4-custom-1")
+                    .getProperties().put("mergeChecksum", "\"old\"");
+        }
+        String originalDefinitions = repositoryDefinitions.toString();
+        JsonObject newDefinitions = new JsonObject(true);
+        DiffIndexMerger merger = getMerger();
+        merger.merge(newDefinitions, repositoryDefinitions, null);
+
+        JsonObject merged = newDefinitions.getChildren().get("/oak:index/damCollectionLucene-4-custom-2");
+        assertNotNull(merged);
+        assertEquals("\"lucene\"", merged.getProperties().get("type"));
+        JsonObject properties = merged.getChildren().get("indexRules").getChildren().get("nt:unstructured")
+                .getChildren().get("properties");
+        assertNotNull(properties.getChildren().get("title"));
+        assertNotNull(properties.getChildren().get("custom"));
+        assertEquals(originalDefinitions, repositoryDefinitions.toString());
+
+        repositoryDefinitions.getChildren().putAll(newDefinitions.getChildren());
+        JsonObject nextDefinitions = new JsonObject(true);
+        merger.merge(nextDefinitions, repositoryDefinitions, null);
+        assertEquals("{}", nextDefinitions.toString());
+    }
+
     private static String jsonFileNode(String json) {
         return """
                 {
@@ -403,6 +481,58 @@ public class DiffIndexMergerTest {
         JsonObject jcrContent = target.get("damAssetLucene").
                 getChildren().get("test.txt").getChildren().get("jcr:content");
         assertEquals("Hello World", JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data"));
+    }
+
+    @Test
+    public void plainStringDataIsMergedAsBinary() {
+        for (String data : new String[] {"<properties>\n\"tika\" \\ \u00e4</properties>", ""}) {
+            JsonObject definitions = JsonObject.fromJson("""
+                    {
+                      "/oak:index/diff.index": {
+                        "diff": {
+                          "acme.test": {
+                            "type": "lucene",
+                            "includedPaths": ["/content"],
+                            "tika": {
+                              "config.xml": {
+                                "jcr:content": {
+                                  "jcr:primaryType": "nt:resource"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """, true);
+            JsonObject content = definitions.getChildren().get("/oak:index/diff.index")
+                    .getChildren().get("diff").getChildren().get("acme.test")
+                    .getChildren().get("tika").getChildren().get("config.xml")
+                    .getChildren().get("jcr:content");
+            content.getProperties().put("jcr:data", JsopBuilder.encode(data));
+            content.getProperties().put("description", JsopBuilder.encode(data));
+
+            getMerger().merge(definitions, new JsonObject(true), null);
+
+            JsonObject mergedContent = definitions.getChildren().get("/oak:index/acme.test-1-custom-1")
+                    .getChildren().get("tika").getChildren().get("config.xml")
+                    .getChildren().get("jcr:content");
+            assertEquals(JsopBuilder.encode(":blobId:" + Base64.getEncoder()
+                    .encodeToString(data.getBytes(StandardCharsets.UTF_8))),
+                    mergedContent.getProperties().get("jcr:data"));
+            assertEquals(JsopBuilder.encode(data), mergedContent.getProperties().get("description"));
+            assertEquals(JsopBuilder.encode(data), content.getProperties().get("jcr:data"));
+        }
+    }
+
+    @Test
+    public void colonPrefixedDataIsNotConverted() {
+        for (String data : new String[] {":blobId:dGVzdA==", ":file:test.txt", ":other:value"}) {
+            JsonObject definition = new JsonObject(true);
+            definition.getProperties().put("jcr:data", JsopBuilder.encode(data));
+            JsonObject normalized = DiffIndexMerger.cleanedAndNormalized(definition);
+            assertEquals(JsopBuilder.encode(data), normalized.getProperties().get("jcr:data"));
+        }
     }
 
     // a file reference within the nested "diff" JSON object is resolved as well
@@ -1204,6 +1334,66 @@ public class DiffIndexMergerTest {
     }
 
     @Test
+    public void storedDiffIndexesAreUsedUnlessExplicitlyReplaced() throws Exception {
+        String customerDiff = """
+                {
+                    "jcr:primaryType": "nt:unstructured",
+                    "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                    "diff": {
+                        "damAssetLucene": {
+                            "indexRules": {
+                                "dam:Asset": {
+                                    "properties": {
+                                        "customer": {"name": "customer", "propertyIndex": true}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """;
+        String optimizerDiff = customerDiff.replace("customer", "optimizer");
+        NodeStore repositoryNodeStore = storeInRepository("/oak:index/diff.index", customerDiff);
+        NodeBuilder builder = repositoryNodeStore.getRoot().builder();
+        JsonNodeUpdater.addOrReplace(builder, repositoryNodeStore,
+                "/oak:index/diff.index.optimizer", "nt:unstructured", optimizerDiff);
+        repositoryNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/damAssetLucene-12": {
+                        "jcr:primaryType": "oak:QueryIndexDefinition",
+                        "type": "lucene",
+                        "includedPaths": "/content/dam"
+                    }
+                }
+                """, true);
+        for (boolean supplyCustomer : new boolean[] {false, true}) {
+            for (boolean supplyOptimizer : new boolean[] {false, true}) {
+                JsonObject newDefinitions = new JsonObject(true);
+                if (supplyCustomer) {
+                    newDefinitions.getChildren().put("/oak:index/diff.index",
+                            JsonObject.fromJson(customerDiff.replace("customer", "replacement"), true));
+                }
+                if (supplyOptimizer) {
+                    newDefinitions.getChildren().put("/oak:index/diff.index.optimizer",
+                            JsonObject.fromJson(optimizerDiff.replace("optimizer", "updatedOptimizer"), true));
+                }
+
+                getMerger().merge(newDefinitions, repositoryDefinitions, repositoryNodeStore);
+
+                JsonObject merged = newDefinitions.getChildren().get("/oak:index/damAssetLucene-12-custom-1");
+                assertNotNull(merged);
+                assertEquals(Set.of(
+                                supplyCustomer ? "replacement" : "customer",
+                                supplyOptimizer ? "updatedOptimizer" : "optimizer"),
+                        merged.getChildren().get("indexRules").getChildren().get("dam:Asset")
+                                .getChildren().get("properties").getChildren().keySet());
+            }
+        }
+    }
+
+    @Test
     public void removeUnchangedDiffIndex() throws Exception {
         NodeStore repositoryNodeStore = storeInRepository("/oak:index/diff.index", """
                 {
@@ -1796,6 +1986,26 @@ public class DiffIndexMergerTest {
                 }""", merged.toString());
     }
 
+    @Test
+    public void aggregateIncludeOrderIsPreserved() {
+        JsonObject diff = JsonObject.fromJson("""
+                {
+                    "aggregates": {
+                        "nt:unstructured": {
+                            "include0": { "path": "*" },
+                            "include1": { "path": "*/*" }
+                        }
+                    }
+                }
+                """, true);
+
+        JsonObject merged = getMerger().processMerge("custom.test", null, diff);
+        JsonObject aggregate = merged.getChildren().get("aggregates")
+                .getChildren().get("nt:unstructured");
+        assertEquals(List.of("include0", "include1"),
+                new ArrayList<>(aggregate.getChildren().keySet()));
+    }
+
     // GRANITE-69361: an empty child node in the diff (eg. an analyzer filter
     // without any properties, such as "LowerCase": {}) must be kept as an
     // empty node - just getting a "jcr:primaryType" added - and not be turned
@@ -1883,4 +2093,19 @@ public class DiffIndexMergerTest {
         DiffIndexMerger.removeDiffIndexEntries(definitions);
         assertEquals("[/oak:index/damAssetLucene-8]", definitions.getChildren().keySet().toString());
     }
+
+    @Test
+    public void mergeDiffsPreservesChildOrder() {
+        JsonObject a = JsonObject.fromJson("""
+                { "properties": { "existing": {} } }
+                """, true);
+        JsonObject b = JsonObject.fromJson("""
+                { "properties": { "include0": {}, "include1": {}, "existing": {} } }
+                """, true);
+
+        JsonObject merged = DiffIndexMerger.mergeDiffs(a, b);
+        assertEquals(List.of("existing", "include0", "include1"),
+                new ArrayList<>(merged.getChildren().get("properties").getChildren().keySet()));
+    }
+
 }

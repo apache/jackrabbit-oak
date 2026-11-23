@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
@@ -241,7 +241,7 @@ public class ParallelCompactor extends ClassicCompactor {
             }
 
             NodeBuilder builder = new MemoryNodeBuilder(onto);
-            Buffer stableIdBytes = CompactorUtils.getStableIdBytes(after);
+            ByteBuffer stableIdBytes = CompactorUtils.getStableIdBytes(after);
 
             for (int i = 0; i < modifiedChildren.size(); i++) {
                 Entry<String, CompactionTree> entry = modifiedChildren.get(i);

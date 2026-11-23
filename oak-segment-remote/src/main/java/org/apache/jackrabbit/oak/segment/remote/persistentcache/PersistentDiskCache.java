@@ -21,7 +21,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.NoSuchFileException;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -141,7 +142,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     }
 
     @Override
-    protected Buffer readSegmentInternal(long msb, long lsb) {
+    protected ByteBuffer readSegmentInternal(long msb, long lsb) {
         try {
             String segmentId = new UUID(msb, lsb).toString();
             File segmentFile = new File(directory, segmentId);
@@ -152,22 +153,15 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 try (FileInputStream fis = new FileInputStream(segmentFile); FileChannel channel = fis.getChannel()) {
                     int length = (int) channel.size();
 
-                    Buffer buffer;
-                    if (OFF_HEAP) {
-                        buffer = Buffer.allocateDirect(length);
-                    } else {
-                        buffer = Buffer.allocate(length);
-                    }
-                    if (buffer.readFully(channel, 0) < length) {
+                    ByteBuffer buffer = OFF_HEAP ? ByteBuffer.allocateDirect(length) : ByteBuffer.allocate(length);
+                    if (IOUtils.readFully(channel, 0, buffer) < length) {
                         throw new EOFException();
                     }
 
                     long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
                     diskCacheIOMonitor.afterSegmentRead(segmentFile, msb, lsb, (int) segmentFile.length(), elapsed);
 
-                    buffer.flip();
-
-                    return buffer;
+                    return buffer.flip();
                 } catch (FileNotFoundException e) {
                     logger.info("Segment {} deleted from file system!", segmentId);
                 } catch (IOException e) {
@@ -187,12 +181,12 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, Buffer buffer) {
+    public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
         String segmentId = new UUID(msb, lsb).toString();
         File segmentFile = new File(directory, segmentId);
         File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + TEMP_FILE_SUFFIX);
 
-        Buffer bufferCopy = buffer.duplicate();
+        ByteBuffer bufferCopy = buffer.duplicate();
 
         Runnable task = () -> {
             if (writesPending.add(segmentId)) {
@@ -208,7 +202,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     if (FT_OAK_12212_SKIP_MISSING_FILE_CHECK.get() || !segmentFile.exists()) {
                         int fileSize;
                         try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
-                            fileSize = bufferCopy.write(channel);
+                            fileSize = channel.write(bufferCopy);
                         }
                         try {
                             Files.move(tempSegmentFile.toPath(), segmentFile.toPath(), StandardCopyOption.ATOMIC_MOVE);

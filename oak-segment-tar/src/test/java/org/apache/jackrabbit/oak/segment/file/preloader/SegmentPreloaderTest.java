@@ -22,7 +22,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -54,6 +54,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CountDownLatch;
+import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -282,6 +287,56 @@ public class SegmentPreloaderTest {
         assertEquals(1, SegmentPreloader.adaptPreloadDepth(4, 1.0));
     }
 
+    @Test
+    public void droppedDispatchTaskIsNotLeftInProgress() throws Exception {
+        withSegmentPreloader(preloader -> {
+            try {
+                ThreadPoolExecutor dispatchPool = (ThreadPoolExecutor) getField(preloader, "dispatchPool");
+                Map<?, ?> inProgress = (Map<?, ?>) getField(preloader, "inProgressPrefetch");
+                CountDownLatch release = new CountDownLatch(1);
+                CountDownLatch started = new CountDownLatch(1);
+                dispatchPool.execute(() -> {
+                    started.countDown();
+                    try {
+                        release.await();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                });
+                assertTrue(started.await(10, TimeUnit.SECONDS));
+
+                int maxQueueSize = (int) getStaticField("DISPATCH_QUEUE_MAX_SIZE");
+                for (int i = 0; i < maxQueueSize; i++) {
+                    dispatchPool.getQueue().add(createDispatchTask(preloader, i, i, 1));
+                }
+
+                Method execute = SegmentPreloader.class.getDeclaredMethod("execute", ExecutorService.class, Runnable.class);
+                execute.setAccessible(true);
+                execute.invoke(preloader, dispatchPool, createDispatchTask(preloader, -1, -1, 1));
+
+                assertEquals(maxQueueSize, dispatchPool.getQueue().size());
+                assertTrue("dropped task must not remain in progress", inProgress.isEmpty());
+
+                dispatchPool.getQueue().clear();
+                release.countDown();
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+    }
+
+    private static Object getField(SegmentPreloader preloader, String name) throws ReflectiveOperationException {
+        Field field = SegmentPreloader.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(preloader);
+    }
+
+    private static Object getStaticField(String name) throws ReflectiveOperationException {
+        Field field = SegmentPreloader.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(null);
+    }
+
     private void withSegmentPreloader(Consumer<SegmentPreloader> withPreloader) throws IOException {
         MemoryTestCache cache = new MemoryTestCache();
         PersistentCachePreloadingConfiguration config =
@@ -367,10 +422,10 @@ public class SegmentPreloaderTest {
 
     private static class MemoryTestCache implements PersistentCache {
 
-        Map<Long, Buffer> segments = new ConcurrentHashMap<>();
+        Map<Long, ByteBuffer> segments = new ConcurrentHashMap<>();
 
         @Override
-        public @Nullable Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
+        public @Nullable ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader) {
             return segments.computeIfAbsent(lsb, i -> {
                 try {
                     return loader.call();
@@ -386,7 +441,7 @@ public class SegmentPreloaderTest {
         }
 
         @Override
-        public void writeSegment(long msb, long lsb, Buffer buffer) {
+        public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
             segments.put(lsb, buffer);
         }
 

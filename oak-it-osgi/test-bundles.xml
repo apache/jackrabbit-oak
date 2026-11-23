@@ -24,6 +24,17 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>
     <dependencySet>
+      <outputDirectory>cloud</outputDirectory>
+      <outputFileNameMapping>${artifact.artifactId}.jar</outputFileNameMapping>
+      <scope>test</scope>
+      <includes>
+        <include>org.apache.jackrabbit:oak-blob-cloud</include>
+        <include>org.apache.httpcomponents:httpclient-osgi</include>
+        <include>org.apache.httpcomponents:httpcore-osgi</include>
+      </includes>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+    </dependencySet>
+    <dependencySet>
       <outputDirectory/>
       <outputFileNameMapping>${artifact.artifactId}.jar</outputFileNameMapping>
       <scope>test</scope>
@@ -57,7 +68,7 @@
         <include>org.apache.jackrabbit:oak-segment-azure</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
         <include>org.apache.jackrabbit:oak-lucene</include>
-        <include>org.apache.jackrabbit:oak-search-elastic</include>
+        <include>org.apache.jackrabbit:oak-search-elastic:jar</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
         <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>

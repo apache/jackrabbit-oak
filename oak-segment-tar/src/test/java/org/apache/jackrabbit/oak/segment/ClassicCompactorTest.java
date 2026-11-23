@@ -36,7 +36,7 @@ import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
@@ -212,7 +212,7 @@ public class ClassicCompactorTest {
 
         @NotNull
         @Override
-        public RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes) throws IOException {
+        public RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes) throws IOException {
             if (state.hasChildNode(failOnName)) {
                 throw new IOException("Encountered node with name " + failOnName);
             }

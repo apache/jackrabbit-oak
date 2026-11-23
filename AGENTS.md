@@ -4,7 +4,8 @@
 
 Apache Jackrabbit Oak is a scalable, high-performance hierarchical content repository
 implementing the JCR (Java Content Repository) specification. It is a multi-module Maven
-project with ~47 modules written in Java 11.
+project with ~47 modules written in Java 17 (minimum build/runtime version; `oak-jackrabbit-api`
+still compiles with release 11).
 
 ## General Guidelines
 
@@ -188,6 +189,9 @@ Toggles are disabled by default and can be enabled without redeployment.
 
 ### Style
 - No wildcard imports (import each class individually)
+- No new Guava imports, including static imports from `org.apache.jackrabbit.guava`.
+  The long-term goal is to remove all Guava dependencies; prefer JDK APIs or existing
+  Oak utilities instead.
 - Follow existing code style in the module you are modifying
 - OSGi bundle compliance is required - modules produce OSGi bundles
 - Never use regular expression parsing and find / replace for JSON or XML data
@@ -245,7 +249,7 @@ via the Apache RAT plugin. Use this exact header:
 
 ## CI
 
-- **GitHub Actions:** Runs on PRs and pushes to trunk. Builds with Java 11, runs full
+- **GitHub Actions:** Runs on PRs and pushes to trunk. Builds with Java 17, runs full
   test suite with `SEGMENT_TAR` and `DOCUMENT_NS` fixtures.
 - **Jenkins:** Parallel module testing pipeline.
 - **SonarCloud:** Code quality analysis runs after build.

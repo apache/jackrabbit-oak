@@ -115,9 +115,6 @@ class ElasticIndexHelper {
         );
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
-        if (indexDefinition.inferenceDefinition != null) {
-            mapInferenceDefinition(builder, indexDefinition.inferenceDefinition);
-        }
         // We only add mappings if both the inference config (in queryEngineSettings config) and the inference index config are enabled.
         if (InferenceConfig.getInstance().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()) {
             mapInferenceConfig(builder, indexDefinition, InferenceConfig.getInstance());
@@ -201,29 +198,6 @@ class ElasticIndexHelper {
                 )
                 .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d))
                 .properties(FieldNames.NULL_PROPS, p -> p.keyword(k -> k.docValues(dv -> dv.enabled(false))));
-    }
-
-    private static void mapInferenceDefinition(@NotNull TypeMapping.Builder builder, @NotNull ElasticIndexDefinition.InferenceDefinition inferenceDefinition) {
-        // Store the inference configuration in the index metadata so that it can be used by the inference service
-        builder.meta("inference", JsonData.of(inferenceDefinition));
-
-        if (inferenceDefinition.properties != null) {
-            inferenceDefinition.properties.forEach(p -> builder.properties(
-                    ElasticIndexUtils.fieldName(p.name),
-                    b -> b.object(bo -> bo
-                            .properties("value", pb -> pb.denseVector(dv ->
-                                            dv.index(true)
-                                                    .dims(p.dims)
-                                                    .similarity(
-                                                            Arrays.stream(DenseVectorSimilarity.values()).filter(s ->
-                                                                    Objects.equals(s.jsonValue(), p.similarity)).findAny().orElseThrow()
-                                                    )
-                                    )
-                            )
-                            .properties("metadata", pb -> pb.flattened(b1 -> b1))
-                    )
-            ));
-        }
     }
 
     /**

@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
@@ -117,7 +117,7 @@ public class LegacyCheckpointCompactor extends Compactor {
         }
 
         NodeBuilder builder = after.builder();
-        Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
+        ByteBuffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
 
         getChild(builder, getParentPath(path)).setChildNode(getName(path), compacted);
 
@@ -161,7 +161,7 @@ public class LegacyCheckpointCompactor extends Compactor {
         LinkedHashMap<String, NodeState> roots = collectRoots(before, after);
 
         NodeBuilder builder = after.builder();
-        Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
+        ByteBuffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
 
         before = getRoot(before);
         onto = getRoot(onto);

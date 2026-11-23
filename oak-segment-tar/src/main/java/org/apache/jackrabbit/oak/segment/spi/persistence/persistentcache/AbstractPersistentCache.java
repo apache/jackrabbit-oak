@@ -21,7 +21,6 @@ import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
@@ -30,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -88,8 +88,8 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
-        Buffer segment = readSegmentInternal(msb, lsb);
+    public ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader) {
+        ByteBuffer segment = readSegmentInternal(msb, lsb);
         if (segment != null) {
             segmentCacheStats.hitCount.incrementAndGet();
             return segment;
@@ -97,7 +97,7 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
         segmentCacheStats.missCount.incrementAndGet();
 
         // Either use the next cache or the 'loader'
-        Callable<Buffer> nextLoader = nextCache != null
+        Callable<ByteBuffer> nextLoader = nextCache != null
                 ? () -> nextCache.readSegment(msb, lsb, loader)
                 : loader;
 
@@ -131,7 +131,7 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
      * @param lsb the least significant bits of the identifier of the segment
      * @return byte buffer containing the segment data or null if the segment doesn't exist
      */
-    protected abstract Buffer readSegmentInternal(long msb, long lsb);
+    protected abstract ByteBuffer readSegmentInternal(long msb, long lsb);
 
     /**
      * Records time spent to load data from external source, after cache miss.

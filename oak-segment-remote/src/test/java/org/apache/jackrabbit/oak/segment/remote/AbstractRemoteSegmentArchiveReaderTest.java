@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader.ArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -50,14 +50,14 @@ public class AbstractRemoteSegmentArchiveReaderTest {
         }
 
         @Override
-        protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
+        protected void doReadSegmentToBuffer(String segmentFileName, ByteBuffer buffer) throws IOException {
             for (int i = 0; i < buffer.limit(); i++) {
                 buffer.put((byte) 1);
             }
         }
 
         @Override
-        protected Buffer doReadDataFile(String extension) throws IOException {
+        protected ByteBuffer doReadDataFile(String extension) throws IOException {
             return null;
         }
 
@@ -98,7 +98,7 @@ public class AbstractRemoteSegmentArchiveReaderTest {
 
     @Test
     public void testReadSegment() throws IOException {
-        Buffer buffer = reader.readSegment(0L, 1L);
+        ByteBuffer buffer = reader.readSegment(0L, 1L);
         assertNotNull(buffer);
         assertEquals(20, buffer.limit());
         for (int i = 0; i < buffer.limit(); i++) {
@@ -108,7 +108,7 @@ public class AbstractRemoteSegmentArchiveReaderTest {
 
     @Test
     public void testReadNonExistentSegment() throws IOException {
-        Buffer buffer = reader.readSegment(1L, 3L);
+        ByteBuffer buffer = reader.readSegment(1L, 3L);
         assertNull(buffer);
     }
 

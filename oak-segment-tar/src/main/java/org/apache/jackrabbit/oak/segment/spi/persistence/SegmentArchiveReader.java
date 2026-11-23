@@ -20,12 +20,12 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,7 +44,7 @@ public interface SegmentArchiveReader extends Closeable {
      * @return byte buffer containing the segment data or null if the segment doesn't exist
      */
     @Nullable
-    Buffer readSegment(long msb, long lsb) throws IOException;
+    ByteBuffer readSegment(long msb, long lsb) throws IOException;
 
     /**
      * Check if the segment exists.
@@ -89,7 +89,7 @@ public interface SegmentArchiveReader extends Closeable {
      * @return byte buffer representing the binary references structure.
      */
     @Nullable
-    Buffer getBinaryReferences() throws IOException;
+    ByteBuffer getBinaryReferences() throws IOException;
 
     /**
      * Get the current length of the archive.

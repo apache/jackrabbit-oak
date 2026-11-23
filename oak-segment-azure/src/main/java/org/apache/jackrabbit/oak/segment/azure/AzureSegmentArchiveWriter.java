@@ -22,7 +22,6 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.options.BlockBlobSimpleUploadOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 
+import java.nio.ByteBuffer;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -95,13 +95,9 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     }
 
     @Override
-    protected Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry)  throws IOException {
-        Buffer buffer;
-        if (OFF_HEAP) {
-            buffer = Buffer.allocateDirect(indexEntry.getLength());
-        } else {
-            buffer = Buffer.allocate(indexEntry.getLength());
-        }
+    protected ByteBuffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry)  throws IOException {
+        int length = indexEntry.getLength();
+        ByteBuffer buffer = OFF_HEAP ? ByteBuffer.allocateDirect(length) : ByteBuffer.allocate(length);
         readBufferFully(getBlockBlobClient(getSegmentFileName(indexEntry)), buffer);
         return buffer;
     }

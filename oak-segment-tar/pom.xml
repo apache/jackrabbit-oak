@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>2.7-SNAPSHOT</version>
+        <version>2.9-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -31,6 +31,12 @@
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
+
+    <properties>
+        <skip.coverage>false</skip.coverage>
+        <minimum.line.coverage>0.71</minimum.line.coverage>
+        <minimum.branch.coverage>0.64</minimum.branch.coverage>
+    </properties>
 
     <build>
         <plugins>
@@ -386,7 +392,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.2.1</version>
+            <version>4.3.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.segment.data;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 
 class SegmentDataRaw implements SegmentData {
 
-    private final Buffer buffer;
+    private final ByteBuffer buffer;
 
-    SegmentDataRaw(Buffer buffer) {
+    SegmentDataRaw(ByteBuffer buffer) {
         this.buffer = buffer;
     }
 
@@ -35,7 +35,7 @@ class SegmentDataRaw implements SegmentData {
     }
 
     @Override
-    public Buffer readBytes(int recordReferenceOffset, int size) {
+    public ByteBuffer readBytes(int recordReferenceOffset, int size) {
         return SegmentDataUtils.readBytes(buffer, index(recordReferenceOffset), size);
     }
 

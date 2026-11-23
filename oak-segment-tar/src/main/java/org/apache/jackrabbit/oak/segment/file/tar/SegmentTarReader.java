@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter.getPaddingSize;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarEntryHeader.readName;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarEntryHeader.readSize;
 import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
 
 import java.io.File;
@@ -29,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +73,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb) throws IOException {
+    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
         int i = index.findEntry(msb, lsb);
         if (i == -1) {
             return null;
@@ -78,7 +81,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
         IndexEntry indexEntry = index.entry(i);
         ioMonitor.beforeSegmentRead(file, msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Buffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
+        ByteBuffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
         long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         ioMonitor.afterSegmentRead(file, msb, lsb, indexEntry.getLength(), elapsed);
         return buffer;
@@ -114,7 +117,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
             return null;
         }
         ReaderAtEnd r = (whence, size) -> {
-            Buffer buffer = Buffer.allocate(size);
+            ByteBuffer buffer = ByteBuffer.allocate(size);
             file.seek(length - 2 * BLOCK_SIZE - whence);
             file.readFully(buffer.array());
             return buffer;
@@ -129,7 +132,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
 
     @Override
     public @NotNull SegmentGraph getGraph() throws IOException {
-        int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
+        int end = startOfIndexEntry();
         SegmentGraph graph = SegmentGraph.load((whence, amount) -> access.read(end - whence, amount));
         if (graph == null) {
             log.warn("Recomputing missing graph for {}.", name);
@@ -138,14 +141,45 @@ public class SegmentTarReader implements SegmentArchiveReader {
         return graph;
     }
 
+    /**
+     * The entry that follows the last segment tells whether the binary references are present:
+     * {@code <archive>.brf} if they are, {@code <archive>.gph} or {@code <archive>.idx} if they are
+     * missing. This tells a missing entry apart from a corrupt one, which still has its header.
+     */
     @Override
-    public @NotNull Buffer getBinaryReferences() throws IOException {
+    public @Nullable ByteBuffer getBinaryReferences() throws IOException {
+        int position = endOfLastSegment();
+        ByteBuffer header = access.read(position, BLOCK_SIZE);
+        String entryName = readName(header);
+        if (entryName.equals(name + ".gph") || entryName.equals(name + ".idx")) {
+            return null;
+        }
+        if (!entryName.equals(name + ".brf")) {
+            throw new IOException("Unexpected entry " + entryName + " after the last segment of " + name);
+        }
+        int size = readSize(header);
+        if (size < 0 || size > startOfIndexEntry() - position - BLOCK_SIZE) {
+            throw new IOException("Invalid size " + size + " of the binary references entry of " + name);
+        }
+        int end = position + BLOCK_SIZE + size;
         try {
-            int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
             return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
         } catch (InvalidBinaryReferencesIndexException e) {
             throw new IOException(e);
         }
+    }
+
+    private int startOfIndexEntry() throws IOException {
+        return access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
+    }
+
+    private int endOfLastSegment() {
+        int end = 0;
+        for (int i = 0; i < index.count(); i++) {
+            IndexEntry entry = index.entry(i);
+            end = Math.max(end, entry.getPosition() + entry.getLength() + getPaddingSize(entry.getLength()));
+        }
+        return end;
     }
 
     @Override
@@ -170,15 +204,6 @@ public class SegmentTarReader implements SegmentArchiveReader {
 
     private int getIndexEntrySize() {
         return getEntrySize(index.size());
-    }
-
-    private int getGraphEntrySize() {
-        try {
-            return getEntrySize(getGraph().size());
-        } catch (IOException e) {
-            log.warn("Exception while loading pre-compiled tar graph", e);
-            return 0;
-        }
     }
 
     @Override

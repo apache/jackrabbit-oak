@@ -25,7 +25,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -87,7 +87,7 @@ public class NodeRecordTest {
         }
     }
 
-    private static final byte[] asByteArray(Buffer bytes) {
+    private static final byte[] asByteArray(ByteBuffer bytes) {
         byte[] buffer = new byte[RecordId.SERIALIZED_RECORD_ID_BYTES];
         bytes.get(buffer);
         return buffer;

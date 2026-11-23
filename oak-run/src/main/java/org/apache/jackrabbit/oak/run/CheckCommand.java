@@ -69,6 +69,8 @@ class CheckCommand implements Command {
                 .withOptionalArg()
                 .ofType(Boolean.class)
                 .defaultsTo(false);
+        OptionSpec<?> continueOnError = parser.accepts("continue-on-error", "report all inconsistent nodes of a revision instead of stopping at the first one "
+                + "(default: false); best combined with --head and --last 1");
         OptionSpec<String> persistentCachePath = parser.accepts("persistent-cache-path", "Path/URI to persistent cache where " +
                         "resulting segments will be written")
                 .withRequiredArg()
@@ -100,7 +102,8 @@ class CheckCommand implements Command {
                     .withIOStatistics(options.has(ioStatistics))
                     .withOutWriter(new PrintWriter(System.out, true))
                     .withErrWriter(new PrintWriter(System.err, true))
-                    .withFailFast(failFast.value(options));
+                    .withFailFast(failFast.value(options))
+                    .withContinueOnError(options.has(continueOnError));
 
             if (options.has(last)) {
                 builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
@@ -124,7 +127,8 @@ class CheckCommand implements Command {
                     .withIOStatistics(options.has(ioStatistics))
                     .withOutWriter(new PrintWriter(System.out, true))
                     .withErrWriter(new PrintWriter(System.err, true))
-                    .withFailFast(failFast.value(options));
+                    .withFailFast(failFast.value(options))
+                    .withContinueOnError(options.has(continueOnError));
 
             if (options.has(journal)) {
                 builder.withJournal(new File(journal.value(options)));

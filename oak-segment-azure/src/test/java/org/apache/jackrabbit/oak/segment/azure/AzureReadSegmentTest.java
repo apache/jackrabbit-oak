@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobStorageException;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -37,6 +36,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -90,7 +90,7 @@ public class AzureReadSegmentTest {
                 public SegmentArchiveReader open(String archiveName) throws IOException {
                     return new AzureSegmentArchiveReader(readBlobContainerClient, rootPrefix, archiveName, ioMonitor) {
                         @Override
-                        public Buffer readSegment(long msb, long lsb) throws IOException {
+                        public ByteBuffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(
                                     new RuntimeException("Cannot access Azure storage"));
                         }
@@ -101,7 +101,7 @@ public class AzureReadSegmentTest {
                 public SegmentArchiveWriter create(String archiveName) throws IOException {
                     return new AzureSegmentArchiveWriter(writeBlobContainerClient, rootPrefix, archiveName, ioMonitor, fileStoreMonitor, writeAccessController) {
                         @Override
-                        public Buffer readSegment(long msb, long lsb) throws IOException {
+                        public ByteBuffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(
                                     new RuntimeException("Cannot access Azure storage"));
                         }

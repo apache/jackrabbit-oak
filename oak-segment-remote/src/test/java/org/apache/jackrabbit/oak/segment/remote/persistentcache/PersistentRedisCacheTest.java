@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
 import org.junit.Assume;
@@ -95,7 +95,7 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
         //Segment not in cache, monitor methods not invoked
         verify(ioMonitorAdapter, never()).afterSegmentRead(any(), anyLong(), anyLong(), anyInt(), anyLong());
 
-        persistentCache.writeSegment(msb, lsb, Buffer.wrap("segment_content".getBytes()));
+        persistentCache.writeSegment(msb, lsb, ByteBuffer.wrap("segment_content".getBytes()));
 
         Thread.sleep(300);
 

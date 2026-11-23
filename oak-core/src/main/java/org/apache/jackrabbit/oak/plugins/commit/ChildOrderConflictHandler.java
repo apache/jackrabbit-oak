@@ -74,20 +74,24 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
     }
 
     private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
-        Set<String> theirOrder = SetUtils.toSet(theirs.getValue(Type.NAMES));
-        PropertyBuilder<String> merged = PropertyBuilder.array(Type.NAME).assignFrom(theirs);
+        Set<String> ourOrder = SetUtils.toLinkedSet(ours.getValue(Type.NAMES));
+        Set<String> theirOrder = SetUtils.toLinkedSet(theirs.getValue(Type.NAMES));
+        PropertyBuilder<String> merged = PropertyBuilder.array(Type.NAME, theirs.getName());
 
-        // Append child node names from ours that are not in theirs
-        for (String ourChild : ours.getValue(Type.NAMES)) {
-            if (!theirOrder.contains(ourChild)) {
-                merged.addValue(ourChild);
+        // merged property should contain names that are in either
+        // 1) both ours and theirs or 2) exactly one of them and still in the parent
+
+        // covers 1) and their part of 2)
+        for (String theirChild : theirOrder) {
+            if (ourOrder.contains(theirChild) || parent.hasChildNode(theirChild)) {
+                merged.addValue(theirChild);
             }
         }
 
-        // Remove child node names of nodes that have been removed
-        for (String child : merged.getValues()) {
-            if (!parent.hasChildNode(child)) {
-                merged.removeValue(child);
+        // covers our part of 2)
+        for (String ourChild : ourOrder) {
+            if (!theirOrder.contains(ourChild) && parent.hasChildNode(ourChild)) {
+                merged.addValue(ourChild);
             }
         }
 

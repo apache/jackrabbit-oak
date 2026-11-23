@@ -28,13 +28,13 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.LeaseStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -82,7 +82,7 @@ public final class AzureUtilitiesV8 {
         return blobList;
     }
 
-    public static void readBufferFully(CloudBlob blob, Buffer buffer) throws IOException {
+    public static void readBufferFully(CloudBlob blob, ByteBuffer buffer) throws IOException {
         try {
             blob.download(new ByteBufferOutputStream(buffer));
             buffer.flip();
@@ -174,9 +174,9 @@ public final class AzureUtilitiesV8 {
     private static class ByteBufferOutputStream extends OutputStream {
 
         @NotNull
-        private final Buffer buffer;
+        private final ByteBuffer buffer;
 
-        public ByteBufferOutputStream(@NotNull Buffer buffer) {
+        public ByteBufferOutputStream(@NotNull ByteBuffer buffer) {
             this.buffer = buffer;
         }
 

@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>2.7-SNAPSHOT</version>
+    <version>2.9-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -31,6 +31,8 @@
   <name>Oak Integration Tests for OSGi deployments</name>
 
   <properties>
+    <slf4j.api.version>${slf4j.version}</slf4j.api.version>
+    <logback.version>${logback.runtime.version}</logback.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -248,6 +250,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient-osgi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore-osgi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
       <scope>test</scope>
@@ -317,7 +329,6 @@
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.paxexam</artifactId>
-      <version>4.1.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.jcr.Repository;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
+import org.ops4j.pax.exam.Constants;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
@@ -86,6 +88,8 @@ public class OSGiIT {
 
                 // required for slf4j 2.0.x
                 spyflyOptions(),
+                // Keep provider discovery inside OSGi rather than Maven's test classpath.
+                frameworkProperty("felix.bootdelegation.implicit").value("false"),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
@@ -93,19 +97,18 @@ public class OSGiIT {
     }
 
     /**
-     * Provides Apache Aries SPI Fly 1.3.x for SLF4J 2.x service-loader mediation in OSGi.
-     * SPI Fly 1.2.x (bundled by sling.testing.paxexam 3.1.0) embeds ASM 5.x and cannot
-     * weave Java 11+ bytecode. Version 1.3.7 uses external ASM 9.x and supports modern class files.
+     * Provides service-loader mediation with ASM support for Java 25 class files.
      */
     static Option spyflyOptions() {
         return composite(
             mavenBundle("org.apache.aries", "org.apache.aries.util", "1.1.3"),
-            mavenBundle("org.ow2.asm", "asm", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-tree", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-analysis", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-commons", "9.7.1"),
-            mavenBundle("org.ow2.asm", "asm-util", "9.7.1"),
-            mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.7")
+            mavenBundle("org.ow2.asm", "asm", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-tree", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-analysis", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-commons", "9.10.1"),
+            mavenBundle("org.ow2.asm", "asm-util", "9.10.1"),
+            mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.8")
+                    .startLevel(1)
         );
     }
 
@@ -135,10 +138,17 @@ public class OSGiIT {
     }
 
     static Option jarBundles() throws MalformedURLException {
+        return jarBundles(new File("target/test-bundles"));
+    }
+
+    static Option jarBundles(File directory) throws MalformedURLException {
         DefaultCompositeOption composite = new DefaultCompositeOption();
-        for (File bundle : new File("target", "test-bundles").listFiles()) {
+        List<String> loggingBundles = List.of("slf4j-api.jar", "logback-core.jar", "logback-classic.jar");
+        for (File bundle : directory.listFiles()) {
             if (bundle.getName().endsWith(".jar") && bundle.isFile()) {
-                composite.add(bundle(bundle.toURI().toURL().toString()));
+                // Make the provider available before framework services initialize SLF4J.
+                composite.add(bundle(bundle.toURI().toURL().toString()).startLevel(
+                        loggingBundles.contains(bundle.getName()) ? 1 : Constants.START_LEVEL_DEFAULT_PROVISION));
             }
         }
         return composite;

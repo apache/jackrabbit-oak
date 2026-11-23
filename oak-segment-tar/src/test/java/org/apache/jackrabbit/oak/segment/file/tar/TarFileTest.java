@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
@@ -28,17 +30,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +52,8 @@ public class TarFileTest {
     protected static GCGeneration generation(int full) {
         return newGCGeneration(full, 0, false);
     }
+
+    private static final TarRecovery UNEXPECTED_RECOVERY = (id, data, entryRecovery) -> fail("unexpected recovery of " + id);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -73,12 +78,12 @@ public class TarFileTest {
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
-            assertEquals(Buffer.wrap(data), writer.readEntry(msb, lsb));
+            assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         }
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             assertEquals(getWriteAndReadExpectedSize(), reader.size());
-            assertEquals(Buffer.wrap(data), reader.readEntry(msb, lsb));
+            assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         }
     }
 
@@ -175,6 +180,43 @@ public class TarFileTest {
     }
 
     @Test
+    public void missingBinaryReferencesAreNull() throws Exception {
+        SegmentArchiveWriter writer = archiveManager.create("data00000a.tar");
+        writeSegments(writer);
+        writer.writeGraph(new SegmentGraph().write());
+        writer.close();
+
+        assertNull(readBinaryReferences("data00000a.tar"));
+    }
+
+    @Test
+    public void missingBinaryReferencesAndGraphAreNull() throws Exception {
+        SegmentArchiveWriter writer = archiveManager.create("data00000a.tar");
+        writeSegments(writer);
+        writer.close();
+
+        assertNull(readBinaryReferences("data00000a.tar"));
+    }
+
+    /**
+     * Writes segments of different sizes, so that the end of the last segment is not a multiple
+     * of a single segment size.
+     */
+    static void writeSegments(SegmentArchiveWriter writer) throws IOException {
+        for (int size : new int[] {100, 5000, 512}) {
+            UUID id = UUID.randomUUID();
+            writer.writeSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), new byte[size], 0, size, 1, 1, false);
+        }
+    }
+
+    private ByteBuffer readBinaryReferences(String archive) throws IOException {
+        try (SegmentArchiveReader reader = archiveManager.open(archive)) {
+            assertNotNull(archive + " should be readable", reader);
+            return reader.getBinaryReferences();
+        }
+    }
+
+    @Test
     public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
@@ -192,7 +234,7 @@ public class TarFileTest {
         Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<>(), UNEXPECTED_RECOVERY)) {
                 assertNotNull(swept);
 
                 Map<UUID, Set<String>> one = new HashMap<>();
@@ -256,7 +298,7 @@ public class TarFileTest {
         Set<UUID> sweep = newSet(new UUID(1, 2), new UUID(2, 3));
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<>(), UNEXPECTED_RECOVERY)) {
                 assertNotNull(swept);
                 SegmentGraph graph = new SegmentGraph();
                 graph.addEdge(new UUID(2, 1), new UUID(2, 2));

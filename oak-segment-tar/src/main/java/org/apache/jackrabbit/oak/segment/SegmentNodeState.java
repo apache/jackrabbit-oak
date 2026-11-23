@@ -43,7 +43,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -133,11 +133,11 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @NotNull
-    static String getStableId(@NotNull Buffer stableId) {
-        Buffer buffer = stableId.duplicate();
-        long msb = buffer.getLong();
-        long lsb = buffer.getLong();
-        int offset = buffer.getInt();
+    static String getStableId(@NotNull ByteBuffer stableId) {
+        int pos = stableId.position();
+        long msb = stableId.getLong(pos);
+        long lsb = stableId.getLong(pos + 8);
+        int offset = stableId.getInt(pos + 16);
         return new UUID(msb, lsb) + ":" + offset;
     }
 
@@ -160,7 +160,7 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return the stable ID of this node.
      */
-    public Buffer getStableIdBytes() {
+    public ByteBuffer getStableIdBytes() {
         // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getRecordNumber());
 

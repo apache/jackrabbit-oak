@@ -44,7 +44,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 
-import static org.apache.jackrabbit.oak.cache.CacheStats.timeInWords;
+import static org.apache.jackrabbit.oak.cache.AbstractCacheStats.timeInWords;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 

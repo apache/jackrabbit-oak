@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -35,7 +36,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBui
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -129,10 +131,6 @@ public class LuceneIndexProviderService {
     private static final int PROP_INDEX_CLEANER_INTERVAL_IN_SECS_DEFAULT = 10*60;
     private static final boolean PROP_ENABLE_SINGLE_BLOB_INDEX_FILES_DEFAULT = true;
     private static final long PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT = 300;
-
-    // OAK-12173: bug fix, enabled by default - turn off only if synchronous
-    // tracker seeding at startup causes a problem in some deployment.
-    public static final AtomicBoolean FT_OAK_12173 = new AtomicBoolean(true);
 
     @ObjectClassDefinition(
             id = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
@@ -412,9 +410,12 @@ public class LuceneIndexProviderService {
         tracker = createTracker(bundleContext, config);
 
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle("FT_OAK-12173", FT_OAK_12173),
+                new FeatureToggle(LuceneFeatureToggles.FT_OAK_12173, LuceneFeatureToggles.FT_OAK_12173_ENABLE),
                 emptyMap()));
-        if (FT_OAK_12173.get()) {
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(LuceneFeatureToggles.FT_OAK_12469, LuceneFeatureToggles.FT_OAK_12469_ENABLE),
+                emptyMap()));
+        if (LuceneFeatureToggles.FT_OAK_12173_ENABLE.get()) {
             // OAK-12173: update the tracker now, so indexes built before this
             // service started can be used right away. Without this, we'd have
             // to wait for the Observer below, which can be slow to start.
@@ -457,6 +458,13 @@ public class LuceneIndexProviderService {
 
     @Deactivate
     private void deactivate() throws InterruptedException, IOException {
+        if (LuceneFeatureToggles.FT_OAK_12469_ENABLE.get()) {
+            // OAK-12469: the repository depends on the IndexEditorProvider (registered last),
+            // so unregistering it first stops the repository while queries can still use the
+            // QueryIndexProvider (registered first). In registration order, queries traverse.
+            Collections.reverse(regs);
+            Collections.reverse(oakRegs);
+        }
         for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
@@ -727,7 +735,7 @@ public class LuceneIndexProviderService {
         if (extractedTextProvider != null){
             registerExtractedTextProvider(extractedTextProvider);
         }
-        AbstractCacheStats stats = extractedTextCache.getCacheStats();
+        CacheStats stats = extractedTextCache.getCacheStats();
         if (stats != null){
             oakRegs.add(registerMBean(whiteboard,
                     CacheStatsMBean.class, stats,

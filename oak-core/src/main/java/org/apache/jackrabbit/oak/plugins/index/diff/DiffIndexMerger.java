@@ -21,8 +21,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -152,8 +153,8 @@ public class DiffIndexMerger {
         // because they are not regular index definitions,
         // and so they are not in the repositoryDefinitions
         if (repositoryNodeStore != null) {
-            Map<String, JsonObject> diffInRepo = readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER);
-            combined.getChildren().putAll(diffInRepo);
+            combined.getChildren().putAll(readDiffIndex(repositoryNodeStore, DIFF_INDEX));
+            combined.getChildren().putAll(readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER));
         }
 
         // overwrite with the provided definitions (if any)
@@ -493,7 +494,7 @@ public class DiffIndexMerger {
         }
         JsonObject result = JsonObject.fromJson(a.toString(), true);
         result.getProperties().putAll(b.getProperties());
-        HashSet<String> both = new HashSet<>(a.getChildren().keySet());
+        LinkedHashSet<String> both = new LinkedHashSet<>(a.getChildren().keySet());
         both.addAll(b.getChildren().keySet());
         for (String k : both) {
             result.getChildren().put(k, mergeDiffs(a.getChildren().get(k), b.getChildren().get(k)));
@@ -580,6 +581,13 @@ public class DiffIndexMerger {
                         latestProductKey, Arrays.toString(unsupportedIncludedPaths));
                 return false;
             }
+        }
+
+        if (latestProductIndex != null
+                && "disabled".equals(JsonNodeUpdater.oakStringValue(latestProductIndex, "type"))) {
+            // A disabled base index must not disable its new customized version.
+            latestProductIndex = JsonObject.fromJson(latestProductIndex.toString(), true);
+            latestProductIndex.getProperties().put("type", "\"lucene\"");
         }
 
         // merge
@@ -812,7 +820,7 @@ public class DiffIndexMerger {
             } else {
                 // remove "str:", "nam:", etc if needed
                 String v = obj.getProperties().get(p);
-                String v2 = normalizeOakString(v);
+                String v2 = normalizeOakString(p, v);
                 if (!v2.equals(v)) {
                     obj.getProperties().put(p, v2);
                 }
@@ -835,12 +843,14 @@ public class DiffIndexMerger {
     /**
      * "Normalize" a JSON string value. Remove any "nam:" and "dat:" and "str:"
      * prefix in the value, because customers won't use them normally. (We want the
-     * diff to be as simple as possible).
+     * diff to be as simple as possible). Plain strings for "jcr:data" are encoded
+     * as binary values.
      *
+     * @param propertyName the property name
      * @param value the value (including double quotes; eg. "str:value")
      * @return the normalized value (including double quotes)
      */
-    private static String normalizeOakString(String value) {
+    private static String normalizeOakString(String propertyName, String value) {
         if (value == null || !value.startsWith("\"")) {
             // ignore numbers
             return value;
@@ -848,6 +858,9 @@ public class DiffIndexMerger {
         value = JsopTokenizer.decodeQuoted(value);
         if (value.startsWith("str:") || value.startsWith("nam:") || value.startsWith("dat:")) {
             value = value.substring("str:".length());
+        }
+        if ("jcr:data".equals(propertyName) && !value.startsWith(":")) {
+            value = ":blobId:" + Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
         }
         return JsopBuilder.encode(value);
     }
@@ -976,7 +989,11 @@ public class DiffIndexMerger {
                     logAndCollectWarn("{}: Ignoring existing property \"{}\" at {}", indexName, p, pathForLogging);
                 }
             } else {
-                target.getProperties().put(p, diff.getProperties().get(p));
+                String value = diff.getProperties().get(p);
+                if ("jcr:data".equals(p)) {
+                    value = normalizeOakString(p, value);
+                }
+                target.getProperties().put(p, value);
             }
         }
         for (String c : diff.getChildren().keySet()) {
@@ -1006,7 +1023,7 @@ public class DiffIndexMerger {
                 }
                 if (targetChildName.equals(c)) {
                     // only create the child (properties are added below)
-                    target.getChildren().put(c, new JsonObject());
+                    target.getChildren().put(c, new JsonObject(true));
                 }
             } else {
                 childIsNew = false;

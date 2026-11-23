@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
+import java.nio.ByteBuffer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -35,10 +35,10 @@ public class PersistentCacheStatsTest {
     public void testCacheStats() {
         AbstractPersistentCache cache = new PersistentCacheImpl();
 
-        cache.writeSegment(1, 1, Buffer.wrap(new byte[]{1}));
+        cache.writeSegment(1, 1, ByteBuffer.wrap(new byte[]{1}));
 
         //segment in cache
-        Buffer segment = cache.readSegment(1, 1, () -> null);
+        ByteBuffer segment = cache.readSegment(1, 1, () -> null);
         assertNotNull(segment);
 
         assertEquals(1, cache.getCacheStats().getHitCount());
@@ -47,7 +47,7 @@ public class PersistentCacheStatsTest {
 
 
         //segment not in cache but loaded from remote store
-        segment = cache.readSegment(0, 0, () -> Buffer.wrap(new byte[]{0}));
+        segment = cache.readSegment(0, 0, () -> ByteBuffer.wrap(new byte[]{0}));
         assertNotNull(segment);
         assertEquals(1, cache.getCacheStats().getMissCount());
         loadTime = cache.getCacheStats().getTotalLoadTime();
@@ -74,7 +74,7 @@ public class PersistentCacheStatsTest {
         cache1.linkWith(cache2);
 
         //segment not in either cache
-        Buffer segment = cache1.readSegment(0 ,0, () -> null);
+        ByteBuffer segment = cache1.readSegment(0 ,0, () -> null);
 
         assertNull(segment);
         assertEquals(1, cache1.getCacheStats().getMissCount());
@@ -87,7 +87,7 @@ public class PersistentCacheStatsTest {
         assertEquals(0, cache2.segmentCacheStats.getLoadExceptionCount());
 
         //segment in first cache
-        cache1.writeSegment(1, 1, Buffer.wrap(new byte[]{1}));
+        cache1.writeSegment(1, 1, ByteBuffer.wrap(new byte[]{1}));
         segment = cache1.readSegment(1 ,1, () -> null);
 
         assertNotNull(segment);
@@ -101,7 +101,7 @@ public class PersistentCacheStatsTest {
         assertEquals(0, cache2.segmentCacheStats.getLoadExceptionCount());
 
         //segment in second cache
-        cache2.writeSegment(2, 2, Buffer.wrap(new byte[]{2}));
+        cache2.writeSegment(2, 2, ByteBuffer.wrap(new byte[]{2}));
         segment = cache1.readSegment(2 ,2, () -> null);
 
         assertNotNull(segment);
@@ -115,7 +115,7 @@ public class PersistentCacheStatsTest {
         assertEquals(0, cache2.segmentCacheStats.getLoadExceptionCount());
 
         //segment loaded from the remote storage
-        segment = cache1.readSegment(3 ,3, () -> Buffer.wrap(new byte[]{3}));
+        segment = cache1.readSegment(3 ,3, () -> ByteBuffer.wrap(new byte[]{3}));
 
         assertNotNull(segment);
         assertEquals(3, cache1.getCacheStats().getMissCount());
@@ -145,12 +145,12 @@ public class PersistentCacheStatsTest {
         //linked cache throws exception
         cache2 = new PersistentCacheImpl(){
             @Override
-            protected Buffer readSegmentInternal(long msb, long lsb) {
+            protected ByteBuffer readSegmentInternal(long msb, long lsb) {
                 throw new RuntimeException();
             }
         };
         cache1.linkWith(cache2);
-        segment = cache1.readSegment(5 ,5, () -> Buffer.wrap(new byte[]{5}));
+        segment = cache1.readSegment(5 ,5, () -> ByteBuffer.wrap(new byte[]{5}));
 
         assertNull(segment);
         assertEquals(5, cache1.getCacheStats().getMissCount());
@@ -167,7 +167,7 @@ public class PersistentCacheStatsTest {
     }
 
     class PersistentCacheImpl extends AbstractPersistentCache {
-        HashMap<UUID, Buffer> segments = new HashMap<>();
+        HashMap<UUID, ByteBuffer> segments = new HashMap<>();
 
         public PersistentCacheImpl() {
             segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get(), () -> 0L);
@@ -188,7 +188,7 @@ public class PersistentCacheStatsTest {
         }
 
         @Override
-        public void writeSegment(long msb, long lsb, Buffer buffer) {
+        public void writeSegment(long msb, long lsb, ByteBuffer buffer) {
             segments.put(new UUID(msb, lsb), buffer);
         }
 
@@ -198,7 +198,7 @@ public class PersistentCacheStatsTest {
         }
 
         @Override
-        protected Buffer readSegmentInternal(long msb, long lsb) {
+        protected ByteBuffer readSegmentInternal(long msb, long lsb) {
             return segments.get(new UUID(msb, lsb));
         }
     }

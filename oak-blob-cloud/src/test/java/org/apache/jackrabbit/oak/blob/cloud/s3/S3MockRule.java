@@ -101,9 +101,9 @@ public class S3MockRule extends ExternalResource {
     }
 
     /**
-     * Returns the HTTP endpoint URL for the running S3Mock container, e.g. {@code http://127.0.0.1:PORT}.
+     * Returns the HTTP endpoint URL using the host and port reported by Testcontainers.
      */
     public String getHttpEndpoint() {
-        return "http://127.0.0.1:" + getHttpPort();
+        return "http://" + container.getHost() + ":" + getHttpPort();
     }
 }
