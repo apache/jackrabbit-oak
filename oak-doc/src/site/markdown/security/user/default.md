@@ -309,6 +309,10 @@ overcount. They support alerting and investigation, but do not prove that a chan
 audit trail. Creating the admin user itself is not recorded. Logins with token, guest or pre-authenticated credentials, system sessions, and logins handled by a custom
 `UserAuthenticationFactory` are not covered by the admin metrics.
 
+Password logins, impersonations, password changes and impersonator changes of all existing users (including failed
+logins and impersonations of disabled users) are reported to the `UserMonitor`; the default implementation currently
+only records those of the admin user (the user with the configured `adminId`).
+
 <a name="pluggability"></a>
 ### Pluggability
 

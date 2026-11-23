@@ -121,14 +121,16 @@ public class UserMonitorImplTest {
     }
 
     @Test
-    public void testAdminLogin() {
+    public void testLogin() {
         MeterStats succeeded = mockMeter("security.user.admin.login.succeeded");
         MeterStats failed = mockMeter("security.user.admin.login.failed");
         UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
 
-        m.adminLogin(true);
-        m.adminLogin(true);
-        m.adminLogin(false);
+        m.login(true, true);
+        m.login(true, true);
+        m.login(false, true);
+        m.login(true, false);
+        m.login(false, false);
 
         verify(succeeded, times(2)).mark();
         verify(failed, times(1)).mark();
@@ -137,14 +139,16 @@ public class UserMonitorImplTest {
     }
 
     @Test
-    public void testAdminImpersonated() {
+    public void testImpersonated() {
         MeterStats succeeded = mockMeter("security.user.admin.impersonation.succeeded");
         MeterStats failed = mockMeter("security.user.admin.impersonation.failed");
         UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
 
-        m.adminImpersonated(false);
-        m.adminImpersonated(false);
-        m.adminImpersonated(true);
+        m.impersonated(false, true);
+        m.impersonated(false, true);
+        m.impersonated(true, true);
+        m.impersonated(true, false);
+        m.impersonated(false, false);
 
         verify(succeeded, times(1)).mark();
         verify(failed, times(2)).mark();
@@ -153,14 +157,16 @@ public class UserMonitorImplTest {
     }
 
     @Test
-    public void testAdminPasswordChanged() {
+    public void testPasswordChanged() {
         MeterStats added = mockMeter("security.user.admin.password.added");
         MeterStats changed = mockMeter("security.user.admin.password.changed");
         UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
 
-        m.adminPasswordChanged(false);
-        m.adminPasswordChanged(false);
-        m.adminPasswordChanged(true);
+        m.passwordChanged(false, true);
+        m.passwordChanged(false, true);
+        m.passwordChanged(true, true);
+        m.passwordChanged(true, false);
+        m.passwordChanged(false, false);
 
         verify(changed, times(2)).mark();
         verify(added, times(1)).mark();
@@ -169,12 +175,13 @@ public class UserMonitorImplTest {
     }
 
     @Test
-    public void testAdminImpersonatorsChanged() {
+    public void testImpersonatorsChanged() {
         MeterStats granted = mockMeter("security.user.admin.impersonators.granted");
         MeterStats revoked = mockMeter("security.user.admin.impersonators.revoked");
         UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
 
-        m.adminImpersonatorsChanged(3, 1);
+        m.impersonatorsChanged(3, 1, true);
+        m.impersonatorsChanged(2, 2, false);
 
         verify(granted, times(1)).mark(3);
         verify(revoked, times(1)).mark(1);
@@ -185,10 +192,10 @@ public class UserMonitorImplTest {
     @Test
     public void testNoopAdminMethods() {
         UserMonitor noop = UserMonitor.NOOP;
-        noop.adminLogin(true);
-        noop.adminImpersonated(true);
-        noop.adminPasswordChanged(true);
-        noop.adminImpersonatorsChanged(1, 1);
+        noop.login(true, true);
+        noop.impersonated(true, true);
+        noop.passwordChanged(true, true);
+        noop.impersonatorsChanged(1, 1, true);
         verifyNoInteractions(meter, timer);
     }
 

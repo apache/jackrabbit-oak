@@ -81,7 +81,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             throw constraintViolation(21, msg);
         }
 
-        monitorAdminChange(name, null, after);
+        monitorUserChange(name, null, after);
     }
 
     @Override
@@ -112,7 +112,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             throw constraintViolation(24, msg);
         }
 
-        monitorAdminChange(name, before, after);
+        monitorUserChange(name, before, after);
     }
 
 
@@ -128,7 +128,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             throw constraintViolation(25, msg);
         }
 
-        monitorAdminChange(name, before, null);
+        monitorUserChange(name, before, null);
     }
 
     @Override
@@ -181,25 +181,27 @@ class UserValidator extends DefaultValidator implements UserConstants {
     }
 
     /**
-     * Records changes to password and impersonators of an existing admin user. Properties of a newly added
-     * authorizable node (i.e. {@code parentBefore} is {@code null}) are not monitored. Recording is best-effort:
+     * Records changes to password and impersonators of an existing user. Properties of a newly added
+     * authorizable node (i.e. {@code parentBefore} is {@code null}) or of a node that was not a user before
+     * (e.g. converted from a folder) are not monitored. Recording is best-effort:
      * subsequent validation or merge failures do not revert it, and retried commits may record changes again.
      */
-    private void monitorAdminChange(@NotNull String name, @Nullable PropertyState before, @Nullable PropertyState after) {
+    private void monitorUserChange(@NotNull String name, @Nullable PropertyState before, @Nullable PropertyState after) {
         boolean isPassword = REP_PASSWORD.equals(name);
-        if ((!isPassword && !REP_IMPERSONATORS.equals(name)) || parentBefore == null || !isAdminUser(parentAfter)) {
+        if ((!isPassword && !REP_IMPERSONATORS.equals(name)) || parentBefore == null
+                || authorizableType != AuthorizableType.USER || UserUtil.getType(parentBefore) != AuthorizableType.USER) {
             return;
         }
         UserMonitor monitor = provider.getMonitor();
+        boolean isAdmin = isAdminUser(parentAfter);
         if (isPassword) {
-            monitor.adminPasswordChanged(before == null);
+            monitor.passwordChanged(before == null, isAdmin);
         } else {
-            // monitor changes to the list of impersonators of the admin user
             Set<String> namesBefore = getValues(before);
             Set<String> namesAfter = getValues(after);
             long granted = namesAfter.stream().filter(n -> !namesBefore.contains(n)).count();
             long revoked = namesBefore.stream().filter(n -> !namesAfter.contains(n)).count();
-            monitor.adminImpersonatorsChanged(granted, revoked);
+            monitor.impersonatorsChanged(granted, revoked, isAdmin);
         }
     }
 

@@ -20,22 +20,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AccountLockedException;
+import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.CredentialExpiredException;
 import javax.security.auth.login.FailedLoginException;
+import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -54,10 +65,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -125,6 +140,12 @@ public class AdminUserMonitorTest extends AbstractSecurityTest {
 
     private boolean authenticate(@NotNull String loginId, @NotNull Credentials credentials) throws Exception {
         return new UserAuthentication(getUserConfiguration(), root, loginId).authenticate(credentials);
+    }
+
+    private boolean authenticate(@NotNull String loginId, @NotNull Credentials credentials, @NotNull UserMonitor monitor) throws Exception {
+        UserConfigurationImpl uc = spy(getUserConfigurationImpl());
+        doReturn(monitor).when(uc).getMonitor();
+        return new UserAuthentication(uc, root, loginId).authenticate(credentials);
     }
 
     @NotNull
@@ -202,6 +223,169 @@ public class AdminUserMonitorTest extends AbstractSecurityTest {
 
         assertTrue(authentication.authenticate(new SimpleCredentials(adminId, adminId.toCharArray())));
         assertNoAdminMetrics();
+    }
+
+    @Test
+    public void testLoginReportsIsAdmin() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        String userId = getTestUser().getID();
+
+        assertTrue(authenticate(userId, new SimpleCredentials(userId, userId.toCharArray()), monitor));
+        verify(monitor, times(1)).login(true, false);
+        assertTrue(authenticate(adminId, new SimpleCredentials(adminId, adminId.toCharArray()), monitor));
+        verify(monitor, times(1)).login(true, true);
+    }
+
+    @Test
+    public void testFailedLoginReportsIsAdmin() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        String userId = getTestUser().getID();
+
+        assertFailedLogin(userId, new SimpleCredentials(userId, "wrong".toCharArray()), monitor);
+        verify(monitor, times(1)).login(false, false);
+        assertFailedLogin(adminId, new SimpleCredentials(adminId, "wrong".toCharArray()), monitor);
+        verify(monitor, times(1)).login(false, true);
+    }
+
+    @Test
+    public void testImpersonationReportsIsAdmin() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User testUser = getTestUser();
+
+        assertTrue(authenticate(testUser.getID(), impersonationCredentials(testUser.getID(), admin), monitor));
+        verify(monitor, times(1)).impersonated(true, false);
+        assertTrue(authenticate(adminId, impersonationCredentials(adminId, admin), monitor));
+        verify(monitor, times(1)).impersonated(true, true);
+    }
+
+    @Test
+    public void testFailedImpersonationReportsIsAdmin() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User testUser = getTestUser();
+        User other = getUserManager(root).createUser("other", "pw");
+        root.commit();
+
+        assertFailedLogin(testUser.getID(), impersonationCredentials(testUser.getID(), other), monitor);
+        verify(monitor, times(1)).impersonated(false, false);
+        assertFailedLogin(adminId, impersonationCredentials(adminId, testUser), monitor);
+        verify(monitor, times(1)).impersonated(false, true);
+    }
+
+    @Test
+    public void testDisabledUserLoginReportsFailure() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User testUser = getTestUser();
+        testUser.disable("disabled");
+        root.commit();
+
+        assertAccountLocked(testUser.getID(), new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()), monitor);
+        verify(monitor, times(1)).login(false, false);
+        verify(monitor, never()).impersonated(anyBoolean(), anyBoolean());
+    }
+
+    @Test
+    public void testDisabledUserImpersonationReportsFailure() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User testUser = getTestUser();
+        testUser.disable("disabled");
+        root.commit();
+
+        assertAccountLocked(testUser.getID(), impersonationCredentials(testUser.getID(), admin), monitor);
+        verify(monitor, times(1)).impersonated(false, false);
+        verify(monitor, never()).login(anyBoolean(), anyBoolean());
+    }
+
+    @Test
+    public void testDisabledUserGuestOrPreAuthenticatedNotMonitored() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User testUser = getTestUser();
+        testUser.disable("disabled");
+        root.commit();
+
+        assertAccountLocked(testUser.getID(), new GuestCredentials(), monitor);
+        assertAccountLocked(testUser.getID(), PreAuthenticatedLogin.PRE_AUTHENTICATED, monitor);
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testGuestLoginNotMonitored() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        String anonymousId = UserUtil.getAnonymousId(getUserConfiguration().getParameters());
+
+        assertTrue(authenticate(anonymousId, new GuestCredentials(), monitor));
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testPreAuthenticatedLoginNotMonitored() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+
+        assertTrue(authenticate(adminId, PreAuthenticatedLogin.PRE_AUTHENTICATED, monitor));
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testUnknownUserNotMonitored() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+
+        assertFalse(authenticate("unknown", new SimpleCredentials("unknown", "pw".toCharArray()), monitor));
+        assertFalse(authenticate("unknown", impersonationCredentials("unknown", admin), monitor));
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testGroupNotMonitored() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        String groupId = getUserManager(root).createGroup("group").getID();
+        root.commit();
+
+        for (Credentials creds : new Credentials[] {new SimpleCredentials(groupId, "pw".toCharArray()), impersonationCredentials(groupId, admin)}) {
+            try {
+                authenticate(groupId, creds, monitor);
+                fail("AccountNotFoundException expected");
+            } catch (AccountNotFoundException e) {
+                // success
+            }
+        }
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testRepositoryExceptionAfterVerificationReportsFailure() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User user = spy(admin);
+        doThrow(new RepositoryException()).when(user).getPrincipal();
+        UserManager userManager = mock(UserManager.class);
+        when(userManager.getAuthorizable(adminId)).thenReturn(user);
+        UserConfigurationImpl uc = spy(getUserConfigurationImpl());
+        doReturn(monitor).when(uc).getMonitor();
+        doReturn(userManager).when(uc).getUserManager(any(Root.class), any(NamePathMapper.class));
+
+        try {
+            new UserAuthentication(uc, root, adminId).authenticate(new SimpleCredentials(adminId, adminId.toCharArray()));
+            fail("LoginException expected");
+        } catch (LoginException e) {
+            verify(monitor, times(1)).login(false, true);
+            verify(monitor, never()).login(true, true);
+        }
+    }
+
+    private void assertAccountLocked(@NotNull String loginId, @NotNull Credentials credentials, @NotNull UserMonitor monitor) throws Exception {
+        try {
+            authenticate(loginId, credentials, monitor);
+            fail("AccountLockedException expected");
+        } catch (AccountLockedException e) {
+            // success
+        }
+    }
+
+    private void assertFailedLogin(@NotNull String loginId, @NotNull Credentials credentials, @NotNull UserMonitor monitor) throws Exception {
+        try {
+            authenticate(loginId, credentials, monitor);
+            fail("FailedLoginException expected");
+        } catch (FailedLoginException e) {
+            // success
+        }
     }
 
     //---------------------------------------------------< impersonation >---
@@ -410,7 +594,79 @@ public class AdminUserMonitorTest extends AbstractSecurityTest {
         UserValidator validator = new UserValidator(adminTree, adminTree, createValidatorProvider(monitor));
         validator.propertyAdded(adminTree.getProperty(UserConstants.REP_PASSWORD));
 
-        verify(monitor, times(1)).adminPasswordChanged(true);
+        verify(monitor, times(1)).passwordChanged(true, true);
+    }
+
+    @Test
+    public void testValidatorReportsNonAdminPasswordChanged() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        Tree userTree = root.getTree(getTestUser().getPath());
+        PropertyState pw = userTree.getProperty(UserConstants.REP_PASSWORD);
+
+        UserValidator validator = new UserValidator(userTree, userTree, createValidatorProvider(monitor));
+        validator.propertyChanged(pw, pw);
+
+        verify(monitor, times(1)).passwordChanged(false, false);
+    }
+
+    @Test
+    public void testValidatorReportsNonAdminPasswordAdded() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        User u = getUserManager(root).createUser("u2", null);
+        root.commit();
+        Tree userTree = root.getTree(u.getPath());
+
+        UserValidator validator = new UserValidator(userTree, userTree, createValidatorProvider(monitor));
+        validator.propertyAdded(PropertyStates.createProperty(UserConstants.REP_PASSWORD, PasswordUtil.buildPasswordHash("pw")));
+
+        verify(monitor, times(1)).passwordChanged(true, false);
+    }
+
+    @Test
+    public void testValidatorReportsNonAdminImpersonatorsChanged() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        Tree userTree = root.getTree(getTestUser().getPath());
+        PropertyState before = PropertyStates.createProperty(UserConstants.REP_IMPERSONATORS, Set.of("p1", "p2"), Type.STRINGS);
+        PropertyState after = PropertyStates.createProperty(UserConstants.REP_IMPERSONATORS, Set.of("p2", "p3", "p4"), Type.STRINGS);
+
+        UserValidator validator = new UserValidator(userTree, userTree, createValidatorProvider(monitor));
+        validator.propertyAdded(before);
+        validator.propertyChanged(before, after);
+        validator.propertyDeleted(after);
+
+        verify(monitor, times(1)).impersonatorsChanged(2, 0, false);
+        verify(monitor, times(1)).impersonatorsChanged(2, 1, false);
+        verify(monitor, times(1)).impersonatorsChanged(0, 3, false);
+    }
+
+    @Test
+    public void testValidatorIgnoresFolderConvertedToUser() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        String usersPath = UserUtil.getAuthorizableRootPath(getUserConfiguration().getParameters(), AuthorizableType.USER);
+        Tree folder = root.getTree(usersPath).addChild("folder");
+        folder.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_AUTHORIZABLE_FOLDER, Type.NAME);
+        root.commit();
+
+        Tree before = adminSession.getLatestRoot().getTree(folder.getPath());
+        Tree after = root.getTree(folder.getPath());
+        after.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER, Type.NAME);
+
+        UserValidator validator = new UserValidator(before, after, createValidatorProvider(monitor));
+        validator.propertyAdded(PropertyStates.createProperty(UserConstants.REP_PASSWORD, PasswordUtil.buildPasswordHash("pw")));
+        validator.propertyAdded(PropertyStates.createProperty(UserConstants.REP_IMPERSONATORS, Set.of("p1"), Type.STRINGS));
+
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testValidatorIgnoresGroup() throws Exception {
+        UserMonitor monitor = mock(UserMonitor.class);
+        Tree groupTree = root.getTree(getUserManager(root).createGroup("g").getPath());
+
+        UserValidator validator = new UserValidator(groupTree, groupTree, createValidatorProvider(monitor));
+        validator.propertyAdded(PropertyStates.createProperty(UserConstants.REP_IMPERSONATORS, Set.of("p1"), Type.STRINGS));
+
+        verifyNoInteractions(monitor);
     }
 
     @NotNull

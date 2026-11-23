@@ -130,23 +130,31 @@ public class UserMonitorImpl implements UserMonitor {
     }
 
     @Override
-    public void adminLogin(boolean success) {
-        (success ? adminLoginSucceeded : adminLoginFailed).mark();
+    public void login(boolean success, boolean isAdmin) {
+        if (isAdmin) {
+            (success ? adminLoginSucceeded : adminLoginFailed).mark();
+        }
     }
 
     @Override
-    public void adminImpersonated(boolean success) {
-        (success ? adminImpersonationSucceeded : adminImpersonationFailed).mark();
+    public void impersonated(boolean success, boolean isAdmin) {
+        if (isAdmin) {
+            (success ? adminImpersonationSucceeded : adminImpersonationFailed).mark();
+        }
     }
 
     @Override
-    public void adminPasswordChanged(boolean added) {
-        (added ? adminPasswordAdded : adminPasswordChanged).mark();
+    public void passwordChanged(boolean added, boolean isAdmin) {
+        if (isAdmin) {
+            (added ? adminPasswordAdded : adminPasswordChanged).mark();
+        }
     }
 
     @Override
-    public void adminImpersonatorsChanged(long granted, long revoked) {
-        adminImpersonatorsGranted.mark(granted);
-        adminImpersonatorsRevoked.mark(revoked);
+    public void impersonatorsChanged(long granted, long revoked, boolean isAdmin) {
+        if (isAdmin) {
+            adminImpersonatorsGranted.mark(granted);
+            adminImpersonatorsRevoked.mark(revoked);
+        }
     }
 }
