@@ -662,10 +662,9 @@ public class TarFiles implements Closeable {
                     return b;
                 }
             }
+        } catch (ClosedByInterruptException e) {
+            throw new SegmentReadInterruptedException("Interrupted while reading segment " + new UUID(msb, lsb), e);
         } catch (IOException e) {
-            if (e instanceof ClosedByInterruptException && !Boolean.getBoolean("oak.segment.ignoreReadInterrupts")) {
-                throw new SegmentReadInterruptedException("Interrupted while reading segment " + new UUID(msb, lsb), e);
-            }
             log.warn("Unable to read from TAR file", e);
         }
 

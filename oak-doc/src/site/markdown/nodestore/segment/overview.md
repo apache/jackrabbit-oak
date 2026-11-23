@@ -57,8 +57,6 @@ Oak Segment Tar is an evolution of a [previous implementation](../segmentmk.html
 See [Design of Oak Segment Tar](classes.html) for a high level design overview of Oak Segment Tar.   
 
 An interrupted segment read is reported as cancellation rather than as a missing segment.
-To restore the previous handling of interrupted disk-cache and TAR reads, set
-`-Doak.segment.ignoreReadInterrupts=true`.
 
 ## <a name="garbage-collection"/> Garbage Collection
 

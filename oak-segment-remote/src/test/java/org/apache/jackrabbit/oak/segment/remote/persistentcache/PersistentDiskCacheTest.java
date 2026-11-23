@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -88,30 +87,6 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             assertTrue(Thread.currentThread().isInterrupted());
         } finally {
             Thread.interrupted();
-        }
-    }
-
-    @Test
-    public void legacyInterruptHandlingCanBeRestored() throws IOException {
-        File directory = temporaryFolder.newFolder();
-        UUID id = UUID.randomUUID();
-        Files.write(directory.toPath().resolve(id.toString()), new byte[] {1});
-        String property = "oak.segment.ignoreReadInterrupts";
-        String previous = System.setProperty(property, "true");
-        try (PersistentDiskCache cache = new PersistentDiskCache(directory, 1,
-                new DiskCacheIOMonitor(StatisticsProvider.NOOP))) {
-            try {
-                Thread.currentThread().interrupt();
-                assertNull(cache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), () -> null));
-            } finally {
-                Thread.interrupted();
-            }
-        } finally {
-            if (previous == null) {
-                System.clearProperty(property);
-            } else {
-                System.setProperty(property, previous);
-            }
         }
     }
 

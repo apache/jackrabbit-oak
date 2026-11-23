@@ -169,10 +169,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 }
             }
         } catch (ClosedByInterruptException e) {
-            if (!Boolean.getBoolean("oak.segment.ignoreReadInterrupts")) {
-                throw new SegmentReadInterruptedException("Interrupted while reading segment " + segmentId + " from cache", e);
-            }
-            logger.error("Error loading segment {} from cache:", segmentId, e);
+            throw new SegmentReadInterruptedException("Interrupted while reading segment " + segmentId + " from cache", e);
         } catch (Exception e) {
             logger.error("Exception while reading segment {} from the cache:", segmentId, e);
         }

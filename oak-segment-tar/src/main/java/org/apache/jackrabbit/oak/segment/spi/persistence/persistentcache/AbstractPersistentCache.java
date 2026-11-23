@@ -118,14 +118,13 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
 
             // rethrow exception so that this condition can be distinguished from other types of errors (see OAK-9303)
             throw e;
-        } catch (Exception t) {
+        } catch (InterruptedException | ClosedByInterruptException e) {
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
-            if ((t instanceof InterruptedException || t instanceof ClosedByInterruptException)
-                    && !Boolean.getBoolean("oak.segment.ignoreReadInterrupts")) {
-                currentThread().interrupt();
-                throw new SegmentReadInterruptedException("Interrupted while loading segment " + new UUID(msb, lsb), t);
-            }
+            currentThread().interrupt();
+            throw new SegmentReadInterruptedException("Interrupted while loading segment " + new UUID(msb, lsb), e);
+        } catch (Exception t) {
             logger.error("Exception while loading segment {} from remote store or linked cache", new UUID(msb, lsb), t);
+            recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
         }
         return segment;
     }
