@@ -116,10 +116,6 @@ interface which is passed to the query upon calling `UserManager#findAuthorizabl
 
 See section [Group Membership](membership.html) for details.
 
-The `security.user.get_declared_members.timer` metric records the time spent retrieving
-declared members only. The `security.user.get_members.timer` metric records the time
-spent retrieving declared and inherited members.
-
 #### Autosave Behavior
 Due to the nature of the UserManager (see above) we decided to drop the auto-save
 behavior in the default implementation present with OAK. Consequently,
@@ -343,3 +339,4 @@ implementation.
 [OAK-6072]: https://issues.apache.org/jira/browse/OAK-6072
 [OAK-10173]: https://issues.apache.org/jira/browse/OAK-10173
 [Impersonation]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Impersonation.html
+
