@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "full",
+  "commit_sha": "5ccaf0c9ec8aecd82fc9c594dd977d7174ce4161",
+  "author": "anchela@adobe.com",
+  "timestamp": "2026-11-23T10:58:13+01:00",
+  "detection": {
+    "ai_assisted": true,
+    "method": "heuristic",
+    "tool": "copilot",
+    "model": "",
+    "confidence": 0.9
+  },
+  "stats": {
+    "total_additions": 437,
+    "total_deletions": 109,
+    "ai_additions": 437,
+    "ai_deletions": 109,
+    "human_additions": 0,
+    "human_deletions": 0
+  },
+  "files": {
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserAuthentication.java": {
+      "ai_additions": 25,
+      "human_additions": 0,
+      "ai_deletions": 16,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserConfigurationImpl.java": {
+      "ai_additions": 1,
+      "human_additions": 0,
+      "ai_deletions": 1,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserValidator.java": {
+      "ai_additions": 12,
+      "human_additions": 0,
+      "ai_deletions": 10,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/monitor/UserMonitor.java": {
+      "ai_additions": 24,
+      "human_additions": 0,
+      "ai_deletions": 12,
+      "human_deletions": 0
+    },
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/monitor/UserMonitorImpl.java": {
+      "ai_additions": 17,
+      "human_additions": 0,
+      "ai_deletions": 9,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/AdminUserMonitorTest.java": {
+      "ai_additions": 257,
+      "human_additions": 0,
+      "ai_deletions": 1,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/monitor/UserMonitorImplTest.java": {
+      "ai_additions": 25,
+      "human_additions": 0,
+      "ai_deletions": 18,
+      "human_deletions": 0
+    },
+    "oak-doc/src/site/markdown/security/user/default.md": {
+      "ai_additions": 4,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    },
+    "specs/OAK-12495/PLAN.md": {
+      "ai_additions": 51,
+      "human_additions": 0,
+      "ai_deletions": 33,
+      "human_deletions": 0
+    },
+    "specs/OAK-12495/SPEC.md": {
+      "ai_additions": 21,
+      "human_additions": 0,
+      "ai_deletions": 9,
+      "human_deletions": 0
+    }
+  }
+}
