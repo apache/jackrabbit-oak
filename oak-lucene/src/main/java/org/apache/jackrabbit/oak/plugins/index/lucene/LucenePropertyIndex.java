@@ -206,16 +206,6 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
     private final static boolean NON_LAZY = SystemPropertySupplier.create("oak.lucene.nonLazyIndex", true).loggingTo(LOG).get();
-    public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
-    private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
-    public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
-    private final boolean CACHE_FACET_RESULTS =
-            Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
-    public final static String EAGER_FACET_CACHE_FILL_NAME = "oak.lucene.cacheFacetEagerFill";
-    private final static boolean EAGER_FACET_CACHE_FILL =
-            Boolean.parseBoolean(System.getProperty(EAGER_FACET_CACHE_FILL_NAME, "true"));
-
-    private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
     /**
      * Batch size for fetching results from Lucene queries.
@@ -244,15 +234,6 @@ public class LucenePropertyIndex extends FulltextIndex {
     public LucenePropertyIndex(IndexTracker tracker, IndexAugmentorFactory augmentorFactory) {
         this.tracker = tracker;
         this.augmentorFactory = augmentorFactory;
-        logConfigsOnce();
-    }
-
-    private void logConfigsOnce() {
-        if (FLAG_CACHE_FACET_RESULTS_CHANGE) {
-            LOG.info(OLD_FACET_PROVIDER_CONFIG_NAME + " = " + OLD_FACET_PROVIDER);
-            LOG.info(CACHE_FACET_RESULTS_NAME + " = " + CACHE_FACET_RESULTS);
-            FLAG_CACHE_FACET_RESULTS_CHANGE = false;
-        }
     }
 
     @Override
@@ -388,16 +369,8 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                             if (facetProvider == null) {
                                 long f = PERF_LOGGER.start();
-                                if (OLD_FACET_PROVIDER) {
-                                    // here the current searcher gets referenced for later
-                                    // but the searcher might get closed in the meantime
-                                    facetProvider = new LuceneFacetProvider(
-                                            FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
-                                    );
-                                } else {
-                                    // a new searcher is opened and closed when needed
-                                    facetProvider = new DelayedLuceneFacetProvider(LucenePropertyIndex.this, query, plan, indexNode.getDefinition().getSecureFacetConfiguration());
-                                }
+                                // a new searcher is opened and closed when needed
+                                facetProvider = new DelayedLuceneFacetProvider(LucenePropertyIndex.this, query, plan, indexNode.getDefinition().getSecureFacetConfiguration());
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
 
@@ -1675,24 +1648,18 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         @Override
         public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
-            if (!CACHE_FACET_RESULTS) {
-                LOG.trace("{} = {} getting uncached results for columnName = {}", CACHE_FACET_RESULTS_NAME, CACHE_FACET_RESULTS, columnName);
-                return getFacetsUncached(numberOfFacets, columnName);
-            }
             String cacheKey = columnName + "/" + numberOfFacets;
             if (cachedResults.containsKey(cacheKey)) {
                 LOG.trace("columnName = {} returning Facet Data from cache.", columnName);
                 return cachedResults.get(cacheKey);
             }
             LOG.trace("columnName = {} facet Data not present in cache...", columnName);
-            if (EAGER_FACET_CACHE_FILL) {
-                fillFacetCache(numberOfFacets);
-                if (cachedResults.containsKey(cacheKey)) {
-                    LOG.trace("columnName = {} now found", cacheKey);
-                    return cachedResults.get(cacheKey);
-                }
-                LOG.warn("Facet data for {} not found: read using query", cacheKey);
+            fillFacetCache(numberOfFacets);
+            if (cachedResults.containsKey(cacheKey)) {
+                LOG.trace("columnName = {} now found", cacheKey);
+                return cachedResults.get(cacheKey);
             }
+            LOG.warn("Facet data for {} not found: read using query", cacheKey);
             List<Facet> result = getFacetsUncached(numberOfFacets, columnName);
             cachedResults.put(cacheKey, result);
             return result;
@@ -1768,40 +1735,6 @@ public class LucenePropertyIndex extends FulltextIndex {
             }
         }
 
-    }
-
-    static class LuceneFacetProvider implements FacetProvider {
-
-        private final Facets facets;
-
-        LuceneFacetProvider(Facets facets) {
-            this.facets = facets;
-        }
-
-        @Override
-        public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
-            String facetFieldName = FulltextIndex.parseFacetField(columnName);
-
-            if (facets != null) {
-                try {
-                    List<Facet> res = new ArrayList<>();
-                    FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
-                    if (topChildren != null) {
-                        for (LabelAndValue lav : topChildren.labelValues) {
-                            res.add(new Facet(
-                                lav.label, lav.value.intValue()
-                            ));
-                        }
-                        return Collections.unmodifiableList(res);
-                    }
-                } catch (IllegalArgumentException iae) {
-                    LOG.debug(iae.getMessage(), iae);
-                    LOG.warn("facets for {} not yet indexed: " + iae, facetFieldName);
-                }
-            }
-
-            return null;
-        }
     }
 
     /**

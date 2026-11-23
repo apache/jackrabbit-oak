@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.OptionalEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -72,7 +71,6 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -107,8 +105,6 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
     private Jcr jcr;
     private Oak oak;
     private Thread thread;
-    // backup original system properties i.e. before test started
-    private final Properties backupProperties = (Properties) System.getProperties().clone();
 
     @After
     public void tearDown() throws IOException {
@@ -120,8 +116,6 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         }
         new ExecutorCloser(executorService).close();
         nrtIndexFactory.close();
-        // restore original system properties i.e. before test started
-        System.setProperties(backupProperties);
     }
 
     @Override
@@ -182,19 +176,10 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         }
     }
 
-    /*
-        This test's counter part is MultithreadedOldLuceneFacetProviderReadFailureTest which test old implementation having race condition on index reader opening
-        and closing. The test in MultithreadedOldLuceneFacetProviderReadFailureTest is marked as ignored but can be tested on demand.
-     */
     // OAK-9561 Flaky test
     @Ignore
     @Test
     public void facet() throws Exception {
-        // Explicitly setting following configs to run DelayedLuceneFacetProvider and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898
-        System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "false");
-        // The variable is static final so once set it remains same for all tests and which will lead to slow execution
-        // of other tests as this add a sleep of specified milliseconds in refresh reader method in LuceneIndexNodeManager.
-       // System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
         Thread.currentThread().setName("main");
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName);

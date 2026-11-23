@@ -64,8 +64,6 @@ public class LuceneIndexNodeManager {
 
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexNodeManager.class.getName() + ".perf"));
-    public final static String OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME = "oak.lucene.oldFacetProviderTestFailSleepInstrument";
-    private final static int OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_VALUE = Integer.getInteger(OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, 0);
 
     static LuceneIndexNodeManager open(String indexPath, NodeState root, NodeState defnNodeState,
                                        LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
@@ -115,8 +113,6 @@ public class LuceneIndexNodeManager {
     private final Runnable refreshCallback = new Runnable() {
         @Override
         public void run() {
-            //Index reader gets closed when searching facets. This gets triggered in a multi threaded environment. Refer OAK-8898
-            FacetTestHelper.sleep(OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_VALUE);
             if (refreshLock.tryAcquire()) {
                 try {
                     refreshReaders();

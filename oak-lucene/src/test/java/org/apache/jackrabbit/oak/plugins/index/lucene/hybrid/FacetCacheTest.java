@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNodeManager;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
@@ -75,7 +74,6 @@ import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -112,16 +110,12 @@ public class FacetCacheTest extends AbstractQueryTest {
     private Jcr jcr;
     private Oak oak;
     private Thread thread;
-    // backup original system properties i.e. before test started
-    private final Properties backupProperties = (Properties) System.getProperties().clone();
 
     @After
     public void tearDown() throws IOException {
         luceneIndexProvider.close();
         new ExecutorCloser(executorService).close();
         nrtIndexFactory.close();
-        // restore original system properties i.e. before test started
-        System.setProperties(backupProperties);
     }
 
     @Override
@@ -188,8 +182,6 @@ public class FacetCacheTest extends AbstractQueryTest {
                 .forLogger(
                         LucenePropertyIndex.class.getName())
                 .enable(Level.TRACE).create();
-        System.setProperty(LucenePropertyIndex.CACHE_FACET_RESULTS_NAME, "true");
-        System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName);
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
@@ -224,51 +216,6 @@ public class FacetCacheTest extends AbstractQueryTest {
             }
             assertThat("Log should contain ", logs.toString(),
                     containsString("returning Facet Data from cache"));
-        } finally {
-            custom.finished();
-        }
-    }
-
-
-    @Test
-    public void unCachedFacetTest() throws Exception {
-        LogCustomizer custom = LogCustomizer
-                .forLogger(
-                        LucenePropertyIndex.class.getName())
-                .enable(Level.TRACE).create();
-        System.setProperty(LucenePropertyIndex.CACHE_FACET_RESULTS_NAME, "false");
-        System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
-        String idxName = "hybridtest";
-        Tree idx = createIndex(root.getTree("/"), idxName);
-        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
-        setTraversalEnabled(false);
-        root.commit();
-        jcr = new Jcr(oak);
-        jcrRepo = jcr.createRepository();
-        createSmallDataset(0);
-        root.commit();
-        runAsyncIndex();
-        Session anonSession = jcrRepo.login(new GuestCredentials());
-        qm = anonSession.getWorkspace().getQueryManager();
-
-        try {
-            custom.starting();
-            Query q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
-            QueryResult qr = q.execute();
-
-            RowIterator it;
-            try {
-                it = qr.getRows();
-            } catch (Exception e) {
-                throw e;
-            }
-            List<String> logs = custom.getLogs();
-            String firstColumnName = qr.getColumnNames()[0];
-            if (it.hasNext()) {
-                Value v = it.nextRow().getValue(firstColumnName);
-            }
-            assertThat("Log should contain ", logs.toString(),
-                    containsString(LucenePropertyIndex.CACHE_FACET_RESULTS_NAME + " = " + false + " getting uncached results for columnName = "));
         } finally {
             custom.finished();
         }
