@@ -111,9 +111,7 @@ class UserAuthentication implements Authentication, UserConstants {
             if (user == null) {
                 return false;
             }
-            if (user.isDisabled()) {
-                throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
-            }
+            checkNotDisabled(user, loginId);
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
@@ -185,6 +183,12 @@ class UserAuthentication implements Authentication, UserConstants {
             throw new AccountNotFoundException("Not a user " + loginId);
         }
         return (User) authorizable;
+    }
+
+    private static void checkNotDisabled(@NotNull User user, @NotNull String loginId) throws RepositoryException, AccountLockedException {
+        if (user.isDisabled()) {
+            throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
+        }
     }
 
     private static void checkSuccess(boolean success, @NotNull String msg) throws LoginException {

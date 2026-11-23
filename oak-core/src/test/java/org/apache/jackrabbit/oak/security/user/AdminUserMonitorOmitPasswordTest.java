@@ -61,7 +61,8 @@ public class AdminUserMonitorOmitPasswordTest extends AbstractSecurityTest {
         StatisticsProvider statisticsProvider = mock(StatisticsProvider.class);
         when(statisticsProvider.getMeter(anyString(), any(StatsOptions.class))).thenAnswer(
                 invocation -> meters.computeIfAbsent(invocation.getArgument(0), name -> mock(MeterStats.class)));
-        when(statisticsProvider.getTimer(anyString(), any(StatsOptions.class))).thenReturn(mock(TimerStats.class));
+        TimerStats timer = mock(TimerStats.class);
+        when(statisticsProvider.getTimer(anyString(), any(StatsOptions.class))).thenReturn(timer);
         ((UserConfigurationImpl) getUserConfiguration()).getMonitors(statisticsProvider);
     }
 

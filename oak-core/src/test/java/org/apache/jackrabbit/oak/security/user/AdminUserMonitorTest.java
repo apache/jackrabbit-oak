@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -97,14 +96,15 @@ public class AdminUserMonitorTest extends AbstractSecurityTest {
     private String adminId;
     private User admin;
 
-    @Before
+    @Override
     public void before() throws Exception {
         super.before();
 
         StatisticsProvider statisticsProvider = mock(StatisticsProvider.class);
         when(statisticsProvider.getMeter(anyString(), any(StatsOptions.class))).thenAnswer(
                 invocation -> meters.computeIfAbsent(invocation.getArgument(0), name -> mock(MeterStats.class)));
-        when(statisticsProvider.getTimer(anyString(), any(StatsOptions.class))).thenReturn(mock(TimerStats.class));
+        TimerStats timer = mock(TimerStats.class);
+        when(statisticsProvider.getTimer(anyString(), any(StatsOptions.class))).thenReturn(timer);
         getUserConfigurationImpl().getMonitors(statisticsProvider);
 
         adminId = UserUtil.getAdminId(getUserConfiguration().getParameters());
