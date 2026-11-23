@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "full",
+  "commit_sha": "04cb5bf05d48a2f21b37974756cb9d91527dd403",
+  "author": "anchela@adobe.com",
+  "timestamp": "2026-11-23T12:59:13+01:00",
+  "detection": {
+    "ai_assisted": true,
+    "method": "heuristic",
+    "tool": "copilot",
+    "model": "",
+    "confidence": 0.9
+  },
+  "stats": {
+    "total_additions": 14,
+    "total_deletions": 8,
+    "ai_additions": 14,
+    "ai_deletions": 8,
+    "human_additions": 0,
+    "human_deletions": 0
+  },
+  "files": {
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserAuthentication.java": {
+      "ai_additions": 7,
+      "human_additions": 0,
+      "ai_deletions": 3,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/AdminUserMonitorOmitPasswordTest.java": {
+      "ai_additions": 2,
+      "human_additions": 0,
+      "ai_deletions": 1,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/AdminUserMonitorTest.java": {
+      "ai_additions": 3,
+      "human_additions": 0,
+      "ai_deletions": 3,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/UserImporterAdminMonitorTest.java": {
+      "ai_additions": 2,
+      "human_additions": 0,
+      "ai_deletions": 1,
+      "human_deletions": 0
+    }
+  }
+}
