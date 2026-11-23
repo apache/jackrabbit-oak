@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 public class MockReadOnlyFileStore extends ReadOnlyFileStore {
     private int failAfterReadSegmentCount;
     private int readSegmentCount = 0;
+    private RuntimeException readFailure;
 
     @NotNull
     public static MockReadOnlyFileStore buildMock(File path, File journalFile) throws InvalidFileStoreVersionException, IOException {
@@ -59,11 +60,19 @@ public class MockReadOnlyFileStore extends ReadOnlyFileStore {
     public void failAfterReadSegmentCount(int count) {
         this.failAfterReadSegmentCount = count;
     }
+
+    public void failAfterReadSegmentCount(int count, RuntimeException failure) {
+        failAfterReadSegmentCount(count);
+        readFailure = failure;
+    }
     
     @Override
     public @NotNull Segment readSegment(SegmentId id) {
         readSegmentCount++;
         if (readSegmentCount > failAfterReadSegmentCount) {
+            if (readFailure != null) {
+                throw readFailure;
+            }
             throw new SegmentNotFoundException(id);
         }
         return super.readSegment(id);

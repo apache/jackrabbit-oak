@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -179,6 +180,12 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
+        if (e instanceof SegmentReadInterruptedException) {
+            throw (SegmentReadInterruptedException) e;
+        }
+        if (e.getCause() instanceof SegmentReadInterruptedException) {
+            throw (SegmentReadInterruptedException) e.getCause();
+        }
         if (e.getCause() instanceof SegmentNotFoundException) {
             return (SegmentNotFoundException) e.getCause();
         }

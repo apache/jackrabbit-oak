@@ -23,6 +23,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.NoSuchFileException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
@@ -37,6 +38,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -143,8 +145,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     @Override
     protected ByteBuffer readSegmentInternal(long msb, long lsb) {
+        String segmentId = new UUID(msb, lsb).toString();
         try {
-            String segmentId = new UUID(msb, lsb).toString();
             File segmentFile = new File(directory, segmentId);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
@@ -164,12 +166,15 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     return buffer.flip();
                 } catch (FileNotFoundException e) {
                     logger.info("Segment {} deleted from file system!", segmentId);
-                } catch (IOException e) {
-                    logger.error("Error loading segment {} from cache:", segmentId, e);
                 }
             }
+        } catch (ClosedByInterruptException e) {
+            if (!Boolean.getBoolean("oak.segment.ignoreReadInterrupts")) {
+                throw new SegmentReadInterruptedException("Interrupted while reading segment " + segmentId + " from cache", e);
+            }
+            logger.error("Error loading segment {} from cache:", segmentId, e);
         } catch (Exception e) {
-            logger.error("Exception while reading segment {} from the cache:", new UUID(msb, lsb), e);
+            logger.error("Exception while reading segment {} from the cache:", segmentId, e);
         }
 
         return null;

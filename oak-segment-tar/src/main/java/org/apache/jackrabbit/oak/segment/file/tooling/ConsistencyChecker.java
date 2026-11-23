@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -507,6 +508,8 @@ public class ConsistencyChecker {
             }
 
             return null;
+        } catch (SegmentReadInterruptedException e) {
+            throw e;
         } catch (RuntimeException | IOException e) {
             onCheckNodeError(path, e);
             return path;
@@ -548,6 +551,8 @@ public class ConsistencyChecker {
             }
 
             return firstError;
+        } catch (SegmentReadInterruptedException e) {
+            throw e;
         } catch (RuntimeException e) {
             // checkNode already reported this path when its own record is unreadable
             if (!path.equals(firstError)) {
@@ -581,5 +586,4 @@ public class ConsistencyChecker {
     }
 
 }
-
 

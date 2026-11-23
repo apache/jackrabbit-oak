@@ -18,6 +18,10 @@
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.file.Files;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
@@ -35,6 +39,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -57,6 +66,80 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
     public void tearDown() {
         persistentCache.close();
         persistentCache = null;
+    }
+
+    @Test
+    public void interruptedCacheHitDoesNotCallLoader() throws IOException {
+        assertInterruptedCacheHit(false);
+    }
+
+    @Test
+    public void interruptionPropagatesFromLinkedCache() throws IOException {
+        assertInterruptedCacheHit(true);
+    }
+
+    @Test
+    public void interruptedLoaderDoesNotReturnACacheMiss() {
+        InterruptedException interruption = new InterruptedException();
+        try {
+            SegmentReadInterruptedException error = assertThrows(SegmentReadInterruptedException.class,
+                    () -> persistentCache.readSegment(0, 0, () -> { throw interruption; }));
+            assertSame(interruption, error.getCause());
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void legacyInterruptHandlingCanBeRestored() throws IOException {
+        File directory = temporaryFolder.newFolder();
+        UUID id = UUID.randomUUID();
+        Files.write(directory.toPath().resolve(id.toString()), new byte[] {1});
+        String property = "oak.segment.ignoreReadInterrupts";
+        String previous = System.setProperty(property, "true");
+        try (PersistentDiskCache cache = new PersistentDiskCache(directory, 1,
+                new DiskCacheIOMonitor(StatisticsProvider.NOOP))) {
+            try {
+                Thread.currentThread().interrupt();
+                assertNull(cache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), () -> null));
+            } finally {
+                Thread.interrupted();
+            }
+        } finally {
+            if (previous == null) {
+                System.clearProperty(property);
+            } else {
+                System.setProperty(property, previous);
+            }
+        }
+    }
+
+    private void assertInterruptedCacheHit(boolean linked) throws IOException {
+        File directory = temporaryFolder.newFolder();
+        UUID id = UUID.randomUUID();
+        Files.write(directory.toPath().resolve(id.toString()), new byte[] {1});
+        try (PersistentDiskCache diskCache = new PersistentDiskCache(directory, 1,
+                new DiskCacheIOMonitor(StatisticsProvider.NOOP))) {
+            if (linked) {
+                persistentCache.linkWith(diskCache);
+            }
+            AbstractPersistentCache cache = linked ? persistentCache : diskCache;
+            try {
+                Thread.currentThread().interrupt();
+                SegmentReadInterruptedException error = assertThrows(SegmentReadInterruptedException.class,
+                        () -> cache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), () -> {
+                            fail("An interrupted cache hit must not call the loader");
+                            return null;
+                        }));
+                assertTrue(error.getCause() instanceof ClosedByInterruptException);
+                assertTrue(Thread.currentThread().isInterrupted());
+            } finally {
+                Thread.interrupted();
+            }
+            ByteBuffer loaded = ByteBuffer.wrap(new byte[] {2});
+            assertSame(loaded, diskCache.readSegment(0, 0, () -> loaded));
+        }
     }
 
     @Test

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.LongIdMappingBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -31,11 +32,13 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarManager;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -48,6 +51,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -55,6 +59,10 @@ import java.nio.file.StandardCopyOption;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FileStoreTest {
     private  static final String FAILED_TO_WRITE_ON_CLOSE = "Failed to write to the archive on closing";
@@ -64,6 +72,29 @@ public class FileStoreTest {
 
     private File getFileStoreFolder() throws IOException {
         return folder.newFolder("segmentstore");
+    }
+
+    @Test
+    public void interruptedReadsAreNotMissingSegments() throws Exception {
+        File directory = getFileStoreFolder();
+        PersistentCache cache = mock(PersistentCache.class);
+        long msb = 42;
+        long lsb = 0xa000000000000000L;
+        SegmentReadInterruptedException interruption = new SegmentReadInterruptedException(
+                "Cancelled test read", new ClosedByInterruptException());
+        when(cache.readSegment(eq(msb), eq(lsb), any())).thenThrow(interruption);
+        try (FileStore store = fileStoreBuilder(directory).withPersistentCache(cache).build()) {
+            assertSame(interruption, assertThrows(SegmentReadInterruptedException.class,
+                    () -> store.readSegment(new SegmentId(store, msb, lsb))));
+            assertThrows(SegmentNotFoundException.class,
+                    () -> store.readSegment(new SegmentId(store, msb + 1, lsb)));
+        }
+        try (ReadOnlyFileStore store = fileStoreBuilder(directory).withPersistentCache(cache).buildReadOnly()) {
+            assertSame(interruption, assertThrows(SegmentReadInterruptedException.class,
+                    () -> store.readSegment(new SegmentId(store, msb, lsb))));
+            assertThrows(SegmentNotFoundException.class,
+                    () -> store.readSegment(new SegmentId(store, msb + 1, lsb)));
+        }
     }
 
     @Test

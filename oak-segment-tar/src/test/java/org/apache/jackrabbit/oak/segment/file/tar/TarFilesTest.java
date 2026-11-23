@@ -31,6 +31,7 @@ import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -100,6 +102,23 @@ public class TarFilesTest {
 
     private void writeSegment(UUID id) throws IOException {
         writeSegment(id, randomData());
+    }
+
+    @Test
+    public void interruptedArchiveReadIsNotAMissingSegment() throws Exception {
+        UUID id = randomUUID();
+        writeSegment(id);
+        tarFiles.close();
+        setUp();
+        try {
+            Thread.currentThread().interrupt();
+            SegmentReadInterruptedException error = assertThrows(SegmentReadInterruptedException.class,
+                    () -> readSegment(id));
+            assertTrue(error.getCause() instanceof ClosedByInterruptException);
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     private void writeSegmentWithReferences(UUID id, UUID... references) throws IOException {

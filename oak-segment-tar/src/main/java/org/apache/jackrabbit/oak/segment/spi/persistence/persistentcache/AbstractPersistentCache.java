@@ -24,12 +24,14 @@ import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -111,14 +113,19 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
             }
 
             return segment;
-        } catch (RepositoryNotReachableException e) {
+        } catch (SegmentReadInterruptedException | RepositoryNotReachableException e) {
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
 
             // rethrow exception so that this condition can be distinguished from other types of errors (see OAK-9303)
             throw e;
         } catch (Exception t) {
-            logger.error("Exception while loading segment {} from remote store or linked cache", new UUID(msb, lsb), t);
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
+            if ((t instanceof InterruptedException || t instanceof ClosedByInterruptException)
+                    && !Boolean.getBoolean("oak.segment.ignoreReadInterrupts")) {
+                currentThread().interrupt();
+                throw new SegmentReadInterruptedException("Interrupted while loading segment " + new UUID(msb, lsb), t);
+            }
+            logger.error("Exception while loading segment {} from remote store or linked cache", new UUID(msb, lsb), t);
         }
         return segment;
     }

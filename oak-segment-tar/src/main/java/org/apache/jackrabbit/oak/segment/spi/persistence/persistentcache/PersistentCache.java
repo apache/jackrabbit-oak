@@ -37,7 +37,8 @@ public interface PersistentCache {
      * @param msb the most significant bits of the identifier of the segment
      * @param lsb the least significant bits of the identifier of the segment
      * @param loader in case of cache miss, with {@code loader.call()} missing element will be retrieved
-     * @return byte buffer containing the segment data or null if the segment doesn't exist
+    * @return byte buffer containing the segment data or null if the segment doesn't exist
+     * @throws org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException if the read was interrupted
      */
     @Nullable
     ByteBuffer readSegment(long msb, long lsb, @NotNull Callable<ByteBuffer> loader);
