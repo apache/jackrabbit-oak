@@ -23,8 +23,13 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class DefaultStandbyReferencesReader implements StandbyReferencesReader {
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultStandbyReferencesReader.class);
 
     private final FileStore store;
 
@@ -41,7 +46,13 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
         SegmentId segmentId = store.getSegmentIdProvider().newSegmentId(msb, lsb);
 
         if (store.containsSegment(segmentId)) {
-            Segment segment = store.readSegment(segmentId);
+            Segment segment;
+            try {
+                segment = store.readSegment(segmentId);
+            } catch (SegmentReadInterruptedException e) {
+                log.warn("Interrupted while reading references of segment {}, declining request", segmentId, e);
+                return null;
+            }
 
             List<String> references = new ArrayList<>();
 

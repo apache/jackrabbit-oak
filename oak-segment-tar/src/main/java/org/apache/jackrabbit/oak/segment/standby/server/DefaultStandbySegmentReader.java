@@ -24,6 +24,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,13 @@ class DefaultStandbySegmentReader implements StandbySegmentReader {
         SegmentId segmentId = store.getSegmentIdProvider().newSegmentId(msb, lsb);
 
         if (store.containsSegment(segmentId)) {
-            Segment segment = store.readSegment(segmentId);
+            Segment segment;
+            try {
+                segment = store.readSegment(segmentId);
+            } catch (SegmentReadInterruptedException e) {
+                log.warn("Interrupted while reading segment {}, declining request", segmentId, e);
+                return null;
+            }
             try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
                 segment.writeTo(stream);
                 return stream.toByteArray();

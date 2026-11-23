@@ -25,7 +25,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.channels.ClosedByInterruptException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,7 +55,6 @@ import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ForkJoinUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
-import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -662,8 +660,6 @@ public class TarFiles implements Closeable {
                     return b;
                 }
             }
-        } catch (ClosedByInterruptException e) {
-            throw new SegmentReadInterruptedException("Interrupted while reading segment " + new UUID(msb, lsb), e);
         } catch (IOException e) {
             log.warn("Unable to read from TAR file", e);
         }

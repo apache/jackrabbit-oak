@@ -56,7 +56,7 @@ Oak Segment Tar is an evolution of a [previous implementation](../segmentmk.html
 
 See [Design of Oak Segment Tar](classes.html) for a high level design overview of Oak Segment Tar.   
 
-An interrupted segment read is reported as cancellation rather than as a missing segment.
+An interrupted persistent disk cache read is reported as cancellation rather than as a missing segment.
 
 ## <a name="garbage-collection"/> Garbage Collection
 

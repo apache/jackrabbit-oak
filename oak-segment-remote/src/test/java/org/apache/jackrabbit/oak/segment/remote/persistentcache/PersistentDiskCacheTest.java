@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -77,19 +77,6 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
         assertInterruptedCacheHit(true);
     }
 
-    @Test
-    public void interruptedLoaderDoesNotReturnACacheMiss() {
-        InterruptedException interruption = new InterruptedException();
-        try {
-            SegmentReadInterruptedException error = assertThrows(SegmentReadInterruptedException.class,
-                    () -> persistentCache.readSegment(0, 0, () -> { throw interruption; }));
-            assertSame(interruption, error.getCause());
-            assertTrue(Thread.currentThread().isInterrupted());
-        } finally {
-            Thread.interrupted();
-        }
-    }
-
     private void assertInterruptedCacheHit(boolean linked) throws IOException {
         File directory = temporaryFolder.newFolder();
         UUID id = UUID.randomUUID();
@@ -108,12 +95,15 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
                             return null;
                         }));
                 assertTrue(error.getCause() instanceof ClosedByInterruptException);
-                assertTrue(Thread.currentThread().isInterrupted());
+                assertFalse(Thread.currentThread().isInterrupted());
+                assertEquals(ByteBuffer.wrap(new byte[] {1}),
+                        cache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), () -> {
+                            fail("A subsequent read must hit the cache");
+                            return null;
+                        }));
             } finally {
                 Thread.interrupted();
             }
-            ByteBuffer loaded = ByteBuffer.wrap(new byte[] {2});
-            assertSame(loaded, diskCache.readSegment(0, 0, () -> loaded));
         }
     }
 

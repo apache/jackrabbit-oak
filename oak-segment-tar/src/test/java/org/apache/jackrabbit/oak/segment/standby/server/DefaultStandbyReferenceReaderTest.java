@@ -23,15 +23,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.Iterator;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,6 +51,24 @@ public class DefaultStandbyReferenceReaderTest {
 
     private FileStore newFileStore() throws Exception {
         return FileStoreBuilder.fileStoreBuilder(folder.getRoot()).build();
+    }
+
+    @Test
+    public void shouldDeclineInterruptedStandbyReads() {
+        FileStore store = mock(FileStore.class);
+        SegmentIdProvider ids = mock(SegmentIdProvider.class);
+        UUID uuid = randomUUID();
+        long msb = uuid.getMostSignificantBits();
+        long lsb = uuid.getLeastSignificantBits();
+        SegmentId id = new SegmentId(store, msb, lsb);
+        when(store.getSegmentIdProvider()).thenReturn(ids);
+        when(ids.newSegmentId(msb, lsb)).thenReturn(id);
+        when(store.containsSegment(id)).thenReturn(true);
+        when(store.readSegment(id)).thenThrow(new SegmentReadInterruptedException(
+                "Interrupted test read", new ClosedByInterruptException()));
+
+        assertNull(new DefaultStandbyReferencesReader(store).readReferences(uuid.toString()));
+        assertNull(new DefaultStandbySegmentReader(store).readSegment(uuid.toString()));
     }
 
     @Test

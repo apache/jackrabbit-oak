@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -113,15 +112,14 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
             }
 
             return segment;
-        } catch (SegmentReadInterruptedException | RepositoryNotReachableException e) {
+        } catch (RepositoryNotReachableException e) {
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
 
             // rethrow exception so that this condition can be distinguished from other types of errors (see OAK-9303)
             throw e;
-        } catch (InterruptedException | ClosedByInterruptException e) {
+        } catch (SegmentReadInterruptedException e) {
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
-            currentThread().interrupt();
-            throw new SegmentReadInterruptedException("Interrupted while loading segment " + new UUID(msb, lsb), e);
+            throw e;
         } catch (Exception t) {
             logger.error("Exception while loading segment {} from remote store or linked cache", new UUID(msb, lsb), t);
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);

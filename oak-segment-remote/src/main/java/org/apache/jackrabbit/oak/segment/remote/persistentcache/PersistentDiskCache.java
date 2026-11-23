@@ -169,6 +169,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 }
             }
         } catch (ClosedByInterruptException e) {
+            // NIO leaves the flag set. Consume it so a later read on this thread can succeed.
+            Thread.interrupted();
             throw new SegmentReadInterruptedException("Interrupted while reading segment " + segmentId + " from cache", e);
         } catch (Exception e) {
             logger.error("Exception while reading segment {} from the cache:", segmentId, e);
