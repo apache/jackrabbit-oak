@@ -579,6 +579,16 @@ public class QueryImpl implements Query {
         return buff == null ? null : buff.toString();
     }
 
+    private void logFulltextWithoutIndex() {
+        for (SelectorImpl s : selectors) {
+            SelectorExecutionPlan plan = s.getExecutionPlan();
+            if (plan != null && plan.getFulltextFilterWithoutIndex() != null) {
+                LOG.warn("Fulltext query without index for filter {}; no results will be returned",
+                        plan.getFulltextFilterWithoutIndex());
+            }
+        }
+    }
+
     private void logAdditionalMessages() {
         for (SelectorImpl s : selectors) {
             if (s.getExecutionPlan() != null &&
@@ -620,6 +630,7 @@ public class QueryImpl implements Query {
             LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
              "those restricted paths; query={}, called by={}, plan={}", statement, caller, warn);
         }
+        logFulltextWithoutIndex();
         logAdditionalMessages();
         if (explain) {
             String plan = getPlan();
@@ -1236,10 +1247,12 @@ public class QueryImpl implements Query {
             }
         }
 
+        FilterImpl fulltextFilterWithoutIndex = null;
         if (potentiallySlowTraversalQuery || bestIndex == null) {
-            // Log warning for fulltext queries without index, since these cannot return results
+            // fulltext queries without index cannot return results; the warning is logged
+            // when executing, as this plan might be discarded (e.g. for a union alternative)
             if(!filter.getFulltextConditions().isEmpty()) { 
-                LOG.warn("Fulltext query without index for filter {}; no results will be returned", filter);
+                fulltextFilterWithoutIndex = filter;
             } else {
                 LOG.debug("no proper index was found for filter {}", filter);      
             }
@@ -1254,7 +1267,7 @@ public class QueryImpl implements Query {
         }
 
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex,
-                bestPlan, bestCost);
+                bestPlan, bestCost, fulltextFilterWithoutIndex);
     }
     
     private long scaleEntryCount(NodeState rootState, FilterImpl filter, long count) {
