@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -396,6 +397,26 @@ public class DocumentNodeStoreServiceTest {
     @Test
     public void recoveryDelayMillisMinute() {
         doRecoveryDelayMillis(60000);
+    }
+
+    @Test
+    public void legacyUnresolvedLastRevToggle() {
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, newConfig(repoHome));
+        MockOsgi.activate(service, context.bundleContext());
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+
+        FeatureToggle toggle = null;
+        for (FeatureToggle t : context.getServices(FeatureToggle.class, null)) {
+            if (DocumentNodeStoreService.FT_NAME_LEGACY_UNRESOLVED_LAST_REV.equals(t.getName())) {
+                toggle = t;
+            }
+        }
+        assertNotNull(toggle);
+        // the fix is enabled by default
+        assertFalse(toggle.isEnabled());
+        assertFalse(dns.isLegacyUnresolvedLastRev());
+        toggle.setEnabled(true);
+        assertTrue(dns.isLegacyUnresolvedLastRev());
     }
 
     @Test

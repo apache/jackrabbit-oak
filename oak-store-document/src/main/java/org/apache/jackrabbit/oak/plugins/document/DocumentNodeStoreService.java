@@ -223,6 +223,14 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_PREV_NO_PROP_CACHE = "FT_PREV_NO_PROP_OAK-11184";
 
+    /**
+     * Feature toggle name to restore the legacy computation of the last
+     * revision of a node when the most recent change of a cluster node cannot
+     * be resolved to a committed revision. The fix is enabled by default,
+     * enabling this toggle reverts to the previous behavior.
+     */
+    static final String FT_NAME_LEGACY_UNRESOLVED_LAST_REV = "FT_LEGACY_UNRESOLVED_LAST_REV_OAK-12557";
+
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
@@ -263,6 +271,7 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
+    private Feature legacyUnresolvedLastRevFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -300,6 +309,7 @@ public class DocumentNodeStoreService {
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
+        legacyUnresolvedLastRevFeature = Feature.newFeature(FT_NAME_LEGACY_UNRESOLVED_LAST_REV, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -537,6 +547,7 @@ public class DocumentNodeStoreService {
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
+                setLegacyUnresolvedLastRevFeature(legacyUnresolvedLastRevFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setThrottlingTimeMillis(config.throttlingTimeMillis()).
                 setThrottlingJobSchedulePeriodSecs(config.throttlingJobSchedulePeriodSecs()).
@@ -696,7 +707,7 @@ public class DocumentNodeStoreService {
         }
 
         closeFeatures(cancelInvalidationFeature, prevNoPropCacheFeature,
-                docStoreAvoidMergeLockFeature);
+                docStoreAvoidMergeLockFeature, legacyUnresolvedLastRevFeature);
 
         unregisterNodeStore();
     }

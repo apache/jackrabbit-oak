@@ -2159,13 +2159,21 @@ public final class NodeDocument extends Document {
         for (Revision r : getLocalCommitRoot().keySet()) {
             clusterIds.add(r.getClusterId());
         }
+        boolean legacy = isLegacyUnresolvedLastRev(context);
+        Set<Integer> visitedClusterIds = new HashSet<>();
         for (Revision r : mostRecentChanges) {
+            boolean mostRecentOfCluster = visitedClusterIds.add(r.getClusterId());
             if (!clusterIds.contains(r.getClusterId())) {
                 // already found most recent change from this cluster node
                 continue;
             }
+            boolean unresolvedFallback = !legacy && mostRecentOfCluster
+                    && r.getClusterId() != context.getClusterId();
             String commitValue = context.getCommitValue(r, this);
             if (commitValue == null) {
+                if (unresolvedFallback) {
+                    updateWithReadRevision(lastRevs, readRevision, r.getClusterId());
+                }
                 continue;
             }
             // resolve revision
@@ -2173,15 +2181,34 @@ public final class NodeDocument extends Document {
             if (Utils.isCommitted(commitValue)) {
                 lastRevs.update(commitRev);
                 clusterIds.remove(r.getClusterId());
-            } else if (branch != null) {
-                Revision branchRev = commitRev.asBranchRevision();
-                if (branch.containsCommit(branchRev)) {
-                    lastRevs.updateBranch(branchRev);
-                    clusterIds.remove(r.getClusterId());
-                }
+            } else if (branch != null && branch.containsCommit(commitRev.asBranchRevision())) {
+                lastRevs.updateBranch(commitRev.asBranchRevision());
+                clusterIds.remove(r.getClusterId());
+            } else if (unresolvedFallback) {
+                updateWithReadRevision(lastRevs, readRevision, r.getClusterId());
             }
         }
         return lastRevs;
+    }
+
+    /**
+     * The most recent local change of another cluster node cannot be resolved
+     * to a committed revision. This happens when the change is not yet
+     * committed or when the commit root document seen by this cluster node is
+     * not yet up-to-date. Older changes from the other cluster node may have
+     * been moved to a previous document by a split, or removed by garbage
+     * collection, hence the remaining local changes do not tell when this node
+     * was last modified. Stay on the safe side and use the read revision for
+     * the other cluster node, otherwise child nodes added by it may become
+     * invisible (see OAK-12557).
+     */
+    private static void updateWithReadRevision(@NotNull LastRevs lastRevs,
+                                               @NotNull RevisionVector readRevision,
+                                               int clusterId) {
+        Revision rev = readRevision.getRevision(clusterId);
+        if (rev != null) {
+            lastRevs.update(rev.asTrunkRevision());
+        }
     }
 
     /**
@@ -2213,9 +2240,22 @@ public final class NodeDocument extends Document {
                 Revision c = resolveCommitRevision(r, cv);
                 return c.compareRevisionTimeThenClusterId(revision) <= 0;
             }
+            if (cv == null && r.compareRevisionTimeThenClusterId(revision) > 0
+                    && r.getClusterId() != context.getClusterId()
+                    && !isLegacyUnresolvedLastRev(context)) {
+                // a more recent change of another cluster node cannot be
+                // resolved (yet). It may be committed and older changes may
+                // have been split off to a previous document (OAK-12557)
+                return false;
+            }
         }
         // no committed revision found in valueMap
         return true;
+    }
+
+    private static boolean isLegacyUnresolvedLastRev(RevisionContext context) {
+        return context instanceof DocumentNodeStore
+                && ((DocumentNodeStore) context).isLegacyUnresolvedLastRev();
     }
 
     /**

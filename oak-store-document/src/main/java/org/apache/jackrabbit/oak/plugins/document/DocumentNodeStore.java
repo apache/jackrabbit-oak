@@ -188,6 +188,14 @@ public final class DocumentNodeStore
     private boolean disableJournalDiff = SystemPropertySupplier.create(SYS_PROP_DISABLE_JOURNAL, Boolean.FALSE).loggingTo(LOG)
             .get();
 
+    public static final String SYS_PROP_LEGACY_UNRESOLVED_LAST_REV = "oak.documentMK.legacyUnresolvedLastRev";
+    /**
+     * Restores the legacy computation of the last revision of a node when the
+     * most recent change of a cluster node cannot be resolved. See OAK-12557.
+     */
+    private final boolean legacyUnresolvedLastRev = SystemPropertySupplier.create(
+            SYS_PROP_LEGACY_UNRESOLVED_LAST_REV, Boolean.FALSE).loggingTo(LOG).get();
+
     /**
      * Threshold for number of paths in journal entry to require a force push during commit
      * (instead of at background write)
@@ -558,6 +566,8 @@ public final class DocumentNodeStore
 
     private final Feature cancelInvalidationFeature;
 
+    private final Feature legacyUnresolvedLastRevFeature;
+
     private Boolean cancelInvalidationLogged;
 
     private CacheWarming cacheWarming;
@@ -634,6 +644,7 @@ public final class DocumentNodeStore
         }
 
         this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
+        this.legacyUnresolvedLastRevFeature = builder.getLegacyUnresolvedLastRevFeature();
         this.avoidMergeLock = isAvoidMergeLockEnabled(builder);
         this.cacheWarming = new CacheWarming(s);
 
@@ -1306,6 +1317,16 @@ public final class DocumentNodeStore
 
     public Cache<StringValue, StringValue> getPrevNoPropCache() {
         return prevNoPropCache;
+    }
+
+    /**
+     * @return {@code true} if the legacy computation of the last revision of
+     *      a node is enabled for nodes where the most recent change of a
+     *      cluster node cannot be resolved (OAK-12557).
+     */
+    boolean isLegacyUnresolvedLastRev() {
+        return legacyUnresolvedLastRev
+                || (legacyUnresolvedLastRevFeature != null && legacyUnresolvedLastRevFeature.isEnabled());
     }
 
     /**
