@@ -25,7 +25,10 @@ import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.net.URISyntaxException;
@@ -36,6 +39,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AzuriteDockerRule extends ExternalResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AzuriteDockerRule.class);
 
     private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:3.29.0");
     public static final String ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
@@ -49,7 +54,8 @@ public class AzuriteDockerRule extends ExternalResource {
         azuriteContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
                 .withCommand("azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck")
                 .withExposedPorts(10000)
-                .withStartupTimeout(Duration.ofSeconds(30));
+                .withStartupTimeout(Duration.ofSeconds(30))
+                .withLogConsumer(new Slf4jLogConsumer(LOG).withSeparateOutputStreams());
 
         try {
             azuriteContainer.start();
