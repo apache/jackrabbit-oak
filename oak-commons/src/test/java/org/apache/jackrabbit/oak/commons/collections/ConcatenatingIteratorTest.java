@@ -83,6 +83,21 @@ public class ConcatenatingIteratorTest {
         }
     }
 
+    @Test(timeout = 10000)
+    public void manyValuesBehindDeepNestingDoNotRepeatTheTraversal() {
+        int size = 100000;
+        Iterator<Integer> iterator = Collections.nCopies(size, 1).iterator();
+        for (int i = 0; i < size; i++) {
+            iterator = IteratorUtils.chainedIterator(iterator, Collections.emptyIterator());
+        }
+        int count = 0;
+        while (iterator.hasNext()) {
+            Assert.assertEquals(Integer.valueOf(1), iterator.next());
+            count++;
+        }
+        Assert.assertEquals(size, count);
+    }
+
     @Test
     public void polledAndPartiallyConsumedInputsKeepTheirActiveIterator() {
         Iterator<Integer> child = IteratorUtils.chainedIterator(List.of(1, 2).iterator(), List.of(3).iterator());
@@ -109,6 +124,57 @@ public class ConcatenatingIteratorTest {
     }
 
     @Test
+    public void alternatingParentsAndChildInvalidateCachedPaths() {
+        Iterator<Integer> child = IteratorUtils.chainedIterator(
+                List.of(1).iterator(), List.of(2).iterator(), List.of(3).iterator());
+        Iterator<Integer> first = IteratorUtils.chainedIterator(child, List.of(4).iterator());
+        Iterator<Integer> second = IteratorUtils.chainedIterator(child, List.of(5).iterator());
+        Assert.assertTrue(first.hasNext());
+        Assert.assertTrue(second.hasNext());
+        Assert.assertEquals(Integer.valueOf(1), child.next());
+        Assert.assertEquals(Integer.valueOf(2), first.next());
+        Assert.assertEquals(Integer.valueOf(3), second.next());
+        Assert.assertEquals(Integer.valueOf(4), first.next());
+        Assert.assertEquals(Integer.valueOf(5), second.next());
+        Assert.assertFalse(child.hasNext());
+        Assert.assertFalse(first.hasNext());
+        Assert.assertFalse(second.hasNext());
+    }
+
+    @Test
+    public void childRemovalTracksValuesReturnedThroughParent() {
+        List<Integer> values = new ArrayList<>(List.of(1, 2));
+        Iterator<Integer> child = IteratorUtils.chainedIterator(values.iterator(), Collections.emptyIterator());
+        Iterator<Integer> parent = IteratorUtils.chainedIterator(child, List.of(3).iterator());
+        Assert.assertEquals(Integer.valueOf(1), parent.next());
+        child.remove();
+        Assert.assertEquals(List.of(2), values);
+        Assert.assertEquals(Integer.valueOf(2), parent.next());
+        Assert.assertTrue(parent.hasNext());
+        child.remove();
+        Assert.assertEquals(List.of(), values);
+        Assert.assertThrows(IllegalStateException.class, child::remove);
+        Assert.assertEquals(Integer.valueOf(3), parent.next());
+    }
+
+    @Test
+    public void borrowingAnAlreadyTraversedNestedChildKeepsRemovalState() {
+        List<Integer> values = new ArrayList<>(List.of(1, 2, 3));
+        Iterator<Integer> leaf = IteratorUtils.chainedIterator(values.iterator(), Collections.emptyIterator());
+        Iterator<Integer> middle = IteratorUtils.chainedIterator(leaf, List.of(4).iterator());
+        Assert.assertEquals(Integer.valueOf(1), middle.next());
+        Iterator<Integer> parent = IteratorUtils.chainedIterator(middle, List.of(5).iterator());
+        Assert.assertTrue(parent.hasNext());
+        leaf.remove();
+        Assert.assertEquals(List.of(2, 3), values);
+        Assert.assertEquals(Integer.valueOf(2), parent.next());
+        Assert.assertEquals(Integer.valueOf(3), middle.next());
+        Assert.assertEquals(Integer.valueOf(4), parent.next());
+        Assert.assertEquals(Integer.valueOf(5), parent.next());
+        Assert.assertFalse(parent.hasNext());
+    }
+
+    @Test
     public void lazyOuterAndInnerSourcesOpenOnlyWhenNeeded() {
         AtomicInteger opened = new AtomicInteger();
         Iterable<Integer> second = () -> { opened.incrementAndGet(); return List.of(2).iterator(); };
@@ -119,6 +185,36 @@ public class ConcatenatingIteratorTest {
         Assert.assertEquals(0, opened.get());
         Assert.assertEquals(Integer.valueOf(2), iterator.next());
         Assert.assertEquals(1, opened.get());
+    }
+
+    @Test
+    public void flatteningDoesNotOpenNestedOuterSourcesEarly() {
+        AtomicInteger opened = new AtomicInteger();
+        Iterable<Iterable<Integer>> sources = () -> {
+            opened.incrementAndGet();
+            return List.<Iterable<Integer>>of(List.of(2)).iterator();
+        };
+        Iterable<Integer> nested = IterableUtils.chainedIterable(sources);
+        Iterator<Integer> iterator = IterableUtils.chainedIterable(List.of(1), nested).iterator();
+        Assert.assertEquals(0, opened.get());
+        Assert.assertEquals(Integer.valueOf(1), iterator.next());
+        Assert.assertEquals(0, opened.get());
+        Assert.assertEquals(Integer.valueOf(2), iterator.next());
+        Assert.assertEquals(1, opened.get());
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void wrappedChildIteratorsKeepTheirStateAcrossIterableFlattening() {
+        Iterator<Integer> child = IteratorUtils.chainedIterator(List.of(1).iterator(), List.of(2, 3).iterator());
+        Iterator<Integer> iterator = IterableUtils.chainedIterable(
+                List.<Integer>of(), IteratorUtils.toIterable(child), List.of(4)).iterator();
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals(Integer.valueOf(1), child.next());
+        Assert.assertEquals(Integer.valueOf(2), child.next());
+        Assert.assertEquals(Integer.valueOf(3), iterator.next());
+        Assert.assertEquals(Integer.valueOf(4), iterator.next());
+        Assert.assertFalse(iterator.hasNext());
     }
 
     @Test
@@ -169,32 +265,6 @@ public class ConcatenatingIteratorTest {
     }
 
     @Test
-    public void legacyIteratorKeepsLazyOpeningAndOrder() {
-        AtomicInteger opened = new AtomicInteger();
-        Iterator<Iterator<Integer>> sources = new Iterator<>() {
-            private int next;
-
-            @Override
-            public boolean hasNext() {
-                return next < 3;
-            }
-
-            @Override
-            public Iterator<Integer> next() {
-                opened.incrementAndGet();
-                return List.of(next++).iterator();
-            }
-        };
-        Iterator<Integer> iterator = ConcatenatingIterator.legacyIterator(sources);
-        Assert.assertEquals(0, opened.get());
-        Assert.assertEquals(Integer.valueOf(0), iterator.next());
-        Assert.assertEquals(1, opened.get());
-        List<Integer> remaining = new ArrayList<>();
-        iterator.forEachRemaining(remaining::add);
-        Assert.assertEquals(List.of(1, 2), remaining);
-        Assert.assertEquals(3, opened.get());
-    }
-    @Test
     public void nullSourcesAreRejectedWithoutOpeningEarlierInputs() {
         Iterable<Integer> unopened = () -> { throw new AssertionError("input opened during validation"); };
         for (Overload overload : List.of(Overload.TWO_ITERABLES, Overload.THREE_ITERABLES,
@@ -205,6 +275,29 @@ public class ConcatenatingIteratorTest {
                 () -> IterableUtils.chainedIterable((Iterable<Integer>[]) null));
         Assert.assertThrows(NullPointerException.class,
                 () -> IterableUtils.chainedIterable((Iterable<Iterable<Integer>>) null));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void iterableVarargsRemainAViewOfTheInputArray() {
+        Iterable<Integer>[] inputs = (Iterable<Integer>[]) new Iterable<?>[] {List.of(1), List.of(2)};
+        Iterable<Integer> chain = IterableUtils.chainedIterable(inputs);
+        inputs[0] = List.of(3);
+        List<Integer> actual = new ArrayList<>();
+        chain.forEach(actual::add);
+        Assert.assertEquals(List.of(3, 2), actual);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void iteratorVarargsKeepTheirExistingSnapshotBehavior() {
+        Iterator<Integer>[] inputs = (Iterator<Integer>[]) new Iterator<?>[] {
+                List.of(1).iterator(), List.of(2).iterator()};
+        Iterator<Integer> chain = IteratorUtils.chainedIterator(inputs);
+        inputs[0] = List.of(3).iterator();
+        List<Integer> actual = new ArrayList<>();
+        chain.forEachRemaining(actual::add);
+        Assert.assertEquals(List.of(1, 2), actual);
     }
 
     @Test(timeout = 10000)

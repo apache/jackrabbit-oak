@@ -23,67 +23,47 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import org.apache.commons.collections4.iterators.LazyIteratorChain;
-import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
-
 /**
- * Traverses nested Oak concatenations without recursive iterator calls.
- * Set {@code -DFT_OAK-12558=false} at startup to use the previous implementation.
+ * Reuses the active leaf and a lazily allocated path through nested chains.
+ * Child access invalidates its owner's path; ownership generations preserve
+ * removal targets without updating every ancestor after each element.
  */
 final class ConcatenatingIterator<E> implements Iterator<E> {
-    private static final boolean ENABLED = SystemPropertySupplier.create("FT_OAK-12558", true).get();
-
     private final Iterator<? extends Iterator<? extends E>> inputs;
-    private final Deque<ConcatenatingIterator<E>> path = new ArrayDeque<>();
+    private Deque<ConcatenatingIterator<E>> path;
+    // Borrowed children have no ready cache, so direct access detaches them first.
+    private Iterator<? extends E> ready;
     private Iterator<? extends E> current = Collections.emptyIterator();
     private Iterator<? extends E> lastReturned;
+    private ConcatenatingIterator<E> owner;
+    private long ownerGeneration;
+    private long generation;
+    private boolean invalidated;
 
-    private ConcatenatingIterator(Iterator<? extends Iterator<? extends E>> inputs) {
-        this.inputs = inputs;
-    }
-
-    static <E> Iterator<E> create(Iterator<? extends Iterator<? extends E>> inputs) {
-        Objects.requireNonNull(inputs);
-        return ENABLED ? new ConcatenatingIterator<>(inputs) : legacyIterator(inputs);
-    }
-
-    static <E> Iterator<E> legacyIterator(Iterator<? extends Iterator<? extends E>> inputs) {
-        return new LazyIteratorChain<>() {
-            @Override
-            protected Iterator<? extends E> nextIterator(int count) {
-                return inputs.hasNext() ? inputs.next() : null;
-            }
-        };
+    ConcatenatingIterator(Iterator<? extends Iterator<? extends E>> inputs) {
+        this.inputs = Objects.requireNonNull(inputs);
     }
 
     @Override
     public boolean hasNext() {
-        try {
-            return findNext() != null;
-        } finally {
-            path.clear();
-        }
+        return nextIterator() != null;
     }
 
     @Override
     public E next() {
-        try {
-            Iterator<? extends E> iterator = findNext();
-            if (iterator == null) {
-                throw new NoSuchElementException();
-            }
-            E value = iterator.next();
-            for (ConcatenatingIterator<E> chain : path) {
-                chain.lastReturned = iterator;
-            }
-            return value;
-        } finally {
-            path.clear();
+        Iterator<? extends E> iterator = nextIterator();
+        if (iterator == null) {
+            throw new NoSuchElementException();
         }
+        E value = iterator.next();
+        lastReturned = iterator;
+        generation++;
+        return value;
     }
 
     @Override
     public void remove() {
+        detach();
         if (lastReturned == null) {
             throw new IllegalStateException("next() must precede remove()");
         }
@@ -91,27 +71,91 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
         lastReturned = null;
     }
 
-    private Iterator<? extends E> findNext() {
-        path.addLast(this);
-        while (!path.isEmpty()) {
-            ConcatenatingIterator<E> chain = path.peekLast();
-            if (chain.current instanceof ConcatenatingIterator) {
-                @SuppressWarnings("unchecked")
-                ConcatenatingIterator<E> nested = (ConcatenatingIterator<E>) chain.current;
-                // Walk the child state in place: draining its pending inputs would
-                // discard elements when the caller continues using that child.
-                path.addLast(nested);
-            } else if (chain.current.hasNext()) {
-                return chain.current;
-            } else if (chain.inputs.hasNext()) {
-                chain.current = Objects.requireNonNull(chain.inputs.next());
-            } else {
-                path.removeLast();
-                if (!path.isEmpty()) {
-                    path.peekLast().current = Collections.emptyIterator();
+    private void detach() {
+        if (owner != null) {
+            owner.invalidated = true;
+            owner.ready = null;
+            release();
+        }
+    }
+
+    private void release() {
+        if (owner.generation != ownerGeneration) {
+            lastReturned = owner.lastReturned;
+        }
+        owner = null;
+    }
+
+    private void clearPath() {
+        ready = null;
+        if (path != null) {
+            while (!path.isEmpty()) {
+                ConcatenatingIterator<E> child = path.removeLast();
+                if (child.owner == this) {
+                    child.release();
                 }
             }
         }
-        return null;
+    }
+
+    private Iterator<? extends E> nextIterator() {
+        Iterator<? extends E> iterator = ready;
+        if (iterator != null) {
+            if (iterator.hasNext()) {
+                return iterator;
+            }
+            if (ready == iterator) {
+                ConcatenatingIterator<E> chain = path == null || path.isEmpty() ? this : path.peekLast();
+                chain.current = Collections.emptyIterator();
+            }
+        }
+        return findNext();
+    }
+
+    private Iterator<? extends E> findNext() {
+        ready = null;
+        detach();
+        if (invalidated) {
+            clearPath();
+            invalidated = false;
+        }
+        ConcatenatingIterator<E> chain = path == null || path.isEmpty() ? this : path.peekLast();
+        while (true) {
+            if (chain.current instanceof ConcatenatingIterator) {
+                @SuppressWarnings("unchecked")
+                ConcatenatingIterator<E> nested = (ConcatenatingIterator<E>) chain.current;
+                nested.detach();
+                nested.clearPath();
+                nested.invalidated = false;
+                nested.owner = this;
+                nested.ownerGeneration = generation;
+                if (path == null) {
+                    path = new ArrayDeque<>();
+                }
+                if (path.isEmpty()) {
+                    path.addLast(this);
+                }
+                path.addLast(nested);
+                chain = nested;
+            } else if (chain.current.hasNext()) {
+                if (!invalidated) {
+                    ready = chain.current;
+                }
+                return chain.current;
+            } else if (chain.inputs.hasNext()) {
+                chain.current = Objects.requireNonNull(chain.inputs.next());
+            } else if (chain == this) {
+                return null;
+            } else {
+                path.removeLast();
+                if (chain.owner == this) {
+                    // Preserve removal targets on leaving a child, rather than
+                    // updating every ancestor after each returned element.
+                    chain.release();
+                }
+                chain = path.peekLast();
+                chain.current = Collections.emptyIterator();
+            }
+        }
     }
 }
