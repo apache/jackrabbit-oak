@@ -39,9 +39,13 @@ public class SegmentWriteQueue implements Closeable {
 
     private static final int QUEUE_SIZE = Integer.getInteger("oak.segment.remote.queue.size", 20);
 
+    private static final long FLUSH_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(10);
+
     private static final Logger log = LoggerFactory.getLogger(SegmentWriteQueue.class);
 
     private final BlockingDeque<SegmentWriteAction> queue;
+
+    private final BlockingDeque<SegmentWriteAction> retryQueue;
 
     private final Map<UUID, SegmentWriteAction> segmentsByUUID;
 
@@ -51,22 +55,31 @@ public class SegmentWriteQueue implements Closeable {
 
     private final SegmentConsumer writer;
 
+    private final long flushTimeoutNanos;
+
     private volatile boolean shutdown;
 
-    private final Object brokenMonitor = new Object();
-
-    private volatile boolean broken;
+    private final Object retryMonitor = new Object();
 
     public SegmentWriteQueue(SegmentConsumer writer) {
         this(writer, QUEUE_SIZE, THREADS);
     }
 
     SegmentWriteQueue(SegmentConsumer writer, int queueSize, int threadNo) {
+        this(writer, queueSize, threadNo, FLUSH_TIMEOUT_MILLIS);
+    }
+
+    SegmentWriteQueue(SegmentConsumer writer, int queueSize, int threadNo, long flushTimeoutMillis) {
+        if (flushTimeoutMillis <= 0) {
+            throw new IllegalArgumentException("Flush timeout must be positive");
+        }
         this.writer = writer;
+        flushTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(flushTimeoutMillis);
         segmentsByUUID = new ConcurrentHashMap<>();
         flushLock = new ReentrantReadWriteLock();
 
         queue = new LinkedBlockingDeque<>(queueSize);
+        retryQueue = new LinkedBlockingDeque<>(queueSize);
         executor = Executors.newFixedThreadPool(threadNo + 1);
         for (int i = 0; i < threadNo; i++) {
             executor.submit(this::mainLoop);
@@ -81,48 +94,60 @@ public class SegmentWriteQueue implements Closeable {
                 if (shutdown) {
                     break;
                 }
-                consume();
+                consume(queue);
             } catch (SegmentConsumeException e) {
                 SegmentWriteAction segment = e.segment;
                 log.error("Can't persist the segment {}", segment.getUuid(), e.getCause());
-                try {
-                    queue.put(segment);
-                } catch (InterruptedException e1) {
-                    log.error("Can't re-add the segment {} to the queue. It'll be dropped.", segment.getUuid(), e1);
-
-                    synchronized (segmentsByUUID) {
-                        segmentsByUUID.remove(segment.getUuid());
-                        segmentsByUUID.notifyAll();
-                    }
-                }
+                enqueueForRetry(segment);
             }
         }
     }
 
-    private void consume() throws SegmentConsumeException {
+    private void enqueueForRetry(SegmentWriteAction segment) {
+        boolean interrupted = false;
+        while (true) {
+            try {
+                retryQueue.putLast(segment);
+                synchronized (retryMonitor) {
+                    retryMonitor.notifyAll();
+                }
+                break;
+            } catch (InterruptedException e) {
+                interrupted = true;
+                log.warn("Interrupted while re-adding the segment {} to the retry queue", segment.getUuid(), e);
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void consume(BlockingDeque<SegmentWriteAction> source) throws SegmentConsumeException {
         SegmentWriteAction segment = null;
         try {
-            segment = queue.poll(100, TimeUnit.MILLISECONDS);
+            segment = source.poll(100, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             log.error("Poll from queue interrupted", e);
         }
         if (segment != null) {
-            consume(segment);
+            persist(segment);
+            complete(segment);
         }
     }
 
-    private void consume(SegmentWriteAction segment) throws SegmentConsumeException {
+    private void persist(SegmentWriteAction segment) throws SegmentConsumeException {
         try {
             segment.passTo(writer);
         } catch (IOException | RuntimeException e) {
-            setBroken(true);
             throw new SegmentConsumeException(segment, e);
         }
+    }
+
+    private void complete(SegmentWriteAction segment) {
         synchronized (segmentsByUUID) {
             segmentsByUUID.remove(segment.getUuid());
             segmentsByUUID.notifyAll();
         }
-        setBroken(false);
     }
 
     private void emergencyLoop() {
@@ -132,29 +157,28 @@ public class SegmentWriteQueue implements Closeable {
                 break;
             }
 
-            boolean success = false;
-            SegmentWriteAction segmentToRetry = null;
-            do {
-                try {
-                    if (segmentToRetry == null) {
-                        consume();
-                    } else {
-                        consume(segmentToRetry);
-                    }
-                    success = true;
-                } catch (SegmentConsumeException e) {
-                    segmentToRetry = e.segment;
-                    log.error("Can't persist the segment {}", segmentToRetry.getUuid(), e.getCause());
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e1) {
-                        log.warn("Interrupted", e);
-                    }
-                    if (shutdown) {
-                        log.error("Shutdown initiated. The segment {} will be dropped.", segmentToRetry.getUuid());
-                    }
+            SegmentWriteAction segment = retryQueue.peekFirst();
+            if (segment == null) {
+                continue;
+            }
+            try {
+                persist(segment);
+                retryQueue.removeFirst();
+                synchronized (retryMonitor) {
+                    retryMonitor.notifyAll();
                 }
-            } while (!success && !shutdown);
+                complete(segment);
+            } catch (SegmentConsumeException e) {
+                log.error("Can't persist the segment {}", segment.getUuid(), e.getCause());
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e1) {
+                    log.warn("Interrupted", e);
+                }
+                if (shutdown) {
+                    log.error("Shutdown initiated. The segment {} will be dropped.", segment.getUuid());
+                }
+            }
         }
     }
 
@@ -184,12 +208,19 @@ public class SegmentWriteQueue implements Closeable {
         flushLock.writeLock().lock();
         try {
             synchronized (segmentsByUUID) {
-                long start = System.currentTimeMillis();
+                int lastPendingCount = segmentsByUUID.size();
+                long lastProgress = System.nanoTime();
                 while (!segmentsByUUID.isEmpty()) {
                     segmentsByUUID.wait(100);
-                    if (System.currentTimeMillis() - start > TimeUnit.MINUTES.toMillis(1)) {
-                        log.error("Can't flush the queue in 1 minute. Queue: {}. Segment map: {}", queue, segmentsByUUID);
-                        start = System.currentTimeMillis();
+                    int pendingCount = segmentsByUUID.size();
+                    if (pendingCount < lastPendingCount) {
+                        lastPendingCount = pendingCount;
+                        lastProgress = System.nanoTime();
+                    } else if (System.nanoTime() - lastProgress >= flushTimeoutNanos) {
+                        throw new IOException("No segment write completed for "
+                                + TimeUnit.NANOSECONDS.toMillis(flushTimeoutNanos)
+                                + " ms. Queue: " + queue + ". Retry queue: " + retryQueue
+                                + ". Segment map: " + segmentsByUUID);
                     }
                 }
             }
@@ -222,28 +253,18 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     boolean isBroken() {
-        return broken;
+        return !retryQueue.isEmpty();
     }
 
     int getSize() {
-        return queue.size();
-    }
-
-    private void setBroken(boolean broken) {
-        synchronized (brokenMonitor) {
-            this.broken = broken;
-            brokenMonitor.notifyAll();
-        }
+        return queue.size() + retryQueue.size();
     }
 
     private void waitWhileBroken() {
-        if (!broken) {
-            return;
-        }
-        synchronized (brokenMonitor) {
-            while (broken && !shutdown) {
+        synchronized (retryMonitor) {
+            while (isBroken() && !shutdown) {
                 try {
-                    brokenMonitor.wait(100);
+                    retryMonitor.wait(100);
                 } catch (InterruptedException e) {
                     log.warn("Interrupted", e);
                 }
@@ -252,13 +273,10 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     private void waitUntilBroken() {
-        if (broken) {
-            return;
-        }
-        synchronized (brokenMonitor) {
-            while (!broken && !shutdown) {
+        synchronized (retryMonitor) {
+            while (!isBroken() && !shutdown) {
                 try {
-                    brokenMonitor.wait(100);
+                    retryMonitor.wait(100);
                 } catch (InterruptedException e) {
                     log.warn("Interrupted", e);
                 }
