@@ -206,7 +206,7 @@ public class Template {
         int lo = 0;
         int hi = properties.length;
         while (lo < hi) {
-            int mid = (lo + hi) >>> 1;
+            int mid = (lo + hi) / 2;
             if (properties[mid].getName().hashCode() < hash) {
                 lo = mid + 1;
             } else {
