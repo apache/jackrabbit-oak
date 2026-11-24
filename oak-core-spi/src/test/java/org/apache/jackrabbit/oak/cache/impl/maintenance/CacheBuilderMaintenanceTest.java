@@ -441,29 +441,24 @@ public class CacheBuilderMaintenanceTest {
     /** Refresh must not block callers even when SYNC is requested. */
     @Test
     public void refreshRunsOffCallerThreadWithSynchronousMaintenance() throws InterruptedException {
+        AtomicLong ticker = new AtomicLong();
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
         CountDownLatch reloaded = new CountDownLatch(1);
-        CountDownLatch firstLoadDone = new CountDownLatch(1);
 
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
                 .asyncMaintenance(false)
-                .refreshAfterWrite(Duration.ofMillis(1))
+                .refreshAfterWrite(Duration.ofMinutes(1))
+                .ticker(ticker::get)
                 .build(key -> {
-                    if (firstLoadDone.getCount() == 0) {
-                        reloadThread.set(Thread.currentThread());
-                        reloaded.countDown();
-                    }
-                    return "v";
+                    reloadThread.set(Thread.currentThread());
+                    reloaded.countDown();
+                    return "refreshed";
                 });
 
+        cache.put("k", "initial");
+        ticker.set(TimeUnit.MINUTES.toNanos(2));
         cache.get("k");
-        firstLoadDone.countDown();
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
-            Thread.sleep(5);
-            cache.get("k");
-        }
 
         Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         Assert.assertNotSame("refresh must not run on the thread that triggered it",
