@@ -85,6 +85,26 @@ public class UserMonitorImplTest {
     }
 
     @Test
+    public void testDoneGetMembersTimers() {
+        TimerStats membersTimer = mock(TimerStats.class);
+        TimerStats declaredMembersTimer = mock(TimerStats.class);
+        when(statisticsProvider.getTimer("security.user.get_members.timer", StatsOptions.METRICS_ONLY))
+                .thenReturn(membersTimer);
+        when(statisticsProvider.getTimer("security.user.get_declared_members.timer", StatsOptions.METRICS_ONLY))
+                .thenReturn(declaredMembersTimer);
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.doneGetMembers(20, true);
+        verify(declaredMembersTimer).update(20, NANOSECONDS);
+        verifyNoInteractions(membersTimer);
+
+        m.doneGetMembers(40, false);
+        verify(membersTimer).update(40, NANOSECONDS);
+        verifyNoMoreInteractions(membersTimer, declaredMembersTimer);
+        verifyNoInteractions(timer, meter);
+    }
+
+    @Test
     public void testDoneMemberOf() {
         monitor.doneMemberOf(35, true);
         monitor.doneMemberOf(64, false);

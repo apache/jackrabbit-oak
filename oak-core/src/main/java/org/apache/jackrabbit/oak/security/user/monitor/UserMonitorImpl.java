@@ -100,9 +100,9 @@ public class UserMonitorImpl implements UserMonitor {
     @Override
     public void doneGetMembers(long timeTakenNanos, boolean declaredOnly) {
         if (declaredOnly) {
-            getMembersTimer.update(timeTakenNanos, NANOSECONDS);
-        } else {
             getDeclaredMembersTimer.update(timeTakenNanos, NANOSECONDS);
+        } else {
+            getMembersTimer.update(timeTakenNanos, NANOSECONDS);
         }
     }
 
