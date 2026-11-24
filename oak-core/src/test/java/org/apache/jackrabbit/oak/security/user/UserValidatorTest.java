@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -81,7 +82,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @NotNull
     private UserValidatorProvider createValidatorProvider() {
-        return new UserValidatorProvider(getConfig(), getRootProvider(), getTreeProvider());
+        return new UserValidatorProvider(getConfig(), getRootProvider(), getTreeProvider(), UserMonitor.NOOP);
     }
 
     @NotNull
@@ -248,7 +249,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         Tree beforeTree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)).getMock();
         Tree afterTree = root.getTree(userPath);
 
-        UserValidator uv = new UserValidator(beforeTree, afterTree, new UserValidatorProvider(ConfigurationParameters.EMPTY, getRootProvider(), getTreeProvider()));
+        UserValidator uv = new UserValidator(beforeTree, afterTree, new UserValidatorProvider(ConfigurationParameters.EMPTY, getRootProvider(), getTreeProvider(), UserMonitor.NOOP));
         PropertyState plainTextAfter = PropertyStates.createProperty(REP_PASSWORD, "pw");
         uv.propertyChanged(afterTree.getProperty(REP_PASSWORD), plainTextAfter);
     }
