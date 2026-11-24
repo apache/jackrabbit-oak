@@ -30,6 +30,7 @@ import java.util.Objects;
  */
 final class ConcatenatingIterator<E> implements Iterator<E> {
     private final Iterator<? extends Iterator<? extends E>> inputs;
+    private Iterator<? extends E> tail;
     private Deque<ConcatenatingIterator<E>> path;
     // Borrowed children have no ready cache, so direct access detaches them first.
     private Iterator<? extends E> ready;
@@ -42,6 +43,12 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
 
     ConcatenatingIterator(Iterator<? extends Iterator<? extends E>> inputs) {
         this.inputs = Objects.requireNonNull(inputs);
+    }
+
+    ConcatenatingIterator(Iterator<? extends E> first, Iterator<? extends E> second) {
+        inputs = null;
+        current = Objects.requireNonNull(first);
+        tail = Objects.requireNonNull(second);
     }
 
     @Override
@@ -142,7 +149,10 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
                     ready = chain.current;
                 }
                 return chain.current;
-            } else if (chain.inputs.hasNext()) {
+            } else if (chain.tail != null) {
+                chain.current = chain.tail;
+                chain.tail = null;
+            } else if (chain.inputs != null && chain.inputs.hasNext()) {
                 chain.current = Objects.requireNonNull(chain.inputs.next());
             } else if (chain == this) {
                 return null;

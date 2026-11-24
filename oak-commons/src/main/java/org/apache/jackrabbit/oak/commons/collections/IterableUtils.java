@@ -58,7 +58,7 @@ public class IterableUtils {
      */
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E> a,
                                                   final Iterable<? extends E> b) {
-        return new ConcatenatingIterable<>(List.of(a, b));
+        return ConcatenatingIterable.pair(a, b);
     }
 
     /**
@@ -81,7 +81,7 @@ public class IterableUtils {
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E> a,
                                                   final Iterable<? extends E> b,
                                                   final Iterable<? extends E> c) {
-        return new ConcatenatingIterable<>(List.of(a, b, c));
+        return ConcatenatingIterable.of(List.of(a, b, c));
     }
 
     /**
@@ -106,7 +106,7 @@ public class IterableUtils {
                                                   final Iterable<? extends E> b,
                                                   final Iterable<? extends E> c,
                                                   final Iterable<? extends E> d) {
-        return new ConcatenatingIterable<>(List.of(a, b, c, d));
+        return ConcatenatingIterable.of(List.of(a, b, c, d));
     }
 
     /**
@@ -130,7 +130,7 @@ public class IterableUtils {
         for (Iterable<? extends E> iterable : iterables) {
             Objects.requireNonNull(iterable);
         }
-        return new ConcatenatingIterable<>(Arrays.asList(iterables));
+        return ConcatenatingIterable.of(Arrays.asList(iterables));
     }
 
     /**
@@ -146,7 +146,7 @@ public class IterableUtils {
      */
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends Iterable<? extends E>> iterables) {
         Objects.requireNonNull(iterables);
-        return new ConcatenatingIterable<>(iterables);
+        return ConcatenatingIterable.of(iterables);
     }
 
     /**

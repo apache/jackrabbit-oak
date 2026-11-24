@@ -22,17 +22,84 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-/** Opens nested Oak iterable views directly, without creating intermediate chains. */
-final class ConcatenatingIterable<E> implements Iterable<E> {
-    private final Iterable<? extends Iterable<? extends E>> sources;
-
-    ConcatenatingIterable(Iterable<? extends Iterable<? extends E>> sources) {
-        this.sources = Objects.requireNonNull(sources);
+/** Lazy concatenation views with direct traversal of two-input chains. */
+final class ConcatenatingIterable {
+    private ConcatenatingIterable() {
     }
 
-    @Override
-    public Iterator<E> iterator() {
-        return new ConcatenatingIterator<>(new SourceIterator<>(sources.iterator()));
+    static <E> Iterable<E> of(Iterable<? extends Iterable<? extends E>> sources) {
+        return new Sources<>(sources);
+    }
+
+    static <E> Iterable<E> pair(Iterable<? extends E> first, Iterable<? extends E> second) {
+        return new Pair<>(first, second);
+    }
+
+    private static final class Sources<E> implements Iterable<E> {
+        private final Iterable<? extends Iterable<? extends E>> sources;
+
+        private Sources(Iterable<? extends Iterable<? extends E>> sources) {
+            this.sources = Objects.requireNonNull(sources);
+        }
+
+        @Override
+        public Iterator<E> iterator() {
+            return new ConcatenatingIterator<>(new SourceIterator<>(sources.iterator()));
+        }
+    }
+
+    private static final class Pair<E> implements Iterable<E> {
+        private final Iterable<? extends E> first;
+        private final Iterable<? extends E> second;
+
+        private Pair(Iterable<? extends E> first, Iterable<? extends E> second) {
+            this.first = Objects.requireNonNull(first);
+            this.second = Objects.requireNonNull(second);
+        }
+
+        @Override
+        public Iterator<E> iterator() {
+            return new ConcatenatingIterator<>(new PairIterator<>(first, second));
+        }
+    }
+
+    private static final class PairIterator<E> implements Iterator<Iterator<? extends E>> {
+        private Iterable<? extends E> current;
+        private Iterable<? extends E> tail;
+        private Deque<Iterable<? extends E>> parents;
+
+        private PairIterator(Iterable<? extends E> first, Iterable<? extends E> second) {
+            current = first;
+            tail = second;
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (current instanceof Pair) {
+                @SuppressWarnings("unchecked")
+                Pair<E> nested = (Pair<E>) current;
+                if (tail != null) {
+                    if (parents == null) {
+                        parents = new ArrayDeque<>();
+                    }
+                    parents.addLast(tail);
+                }
+                current = nested.first;
+                tail = nested.second;
+            }
+            return current != null;
+        }
+
+        @Override
+        public Iterator<? extends E> next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            Iterable<? extends E> iterable = current;
+            current = tail;
+            tail = parents == null || parents.isEmpty() ? null : parents.removeLast();
+            return iterable.iterator();
+        }
     }
 
     private static final class SourceIterator<E> implements Iterator<Iterator<? extends E>> {
@@ -49,9 +116,9 @@ final class ConcatenatingIterable<E> implements Iterable<E> {
             while (next == null) {
                 if (current.hasNext()) {
                     Iterable<? extends E> iterable = Objects.requireNonNull(current.next());
-                    if (iterable instanceof ConcatenatingIterable) {
+                    if (iterable instanceof Sources) {
                         @SuppressWarnings("unchecked")
-                        ConcatenatingIterable<E> nested = (ConcatenatingIterable<E>) iterable;
+                        Sources<E> nested = (Sources<E>) iterable;
                         if (parents == null) {
                             parents = new ArrayDeque<>();
                         }

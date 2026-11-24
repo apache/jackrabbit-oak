@@ -314,25 +314,7 @@ public class IteratorUtils {
      */
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends E> iterator1,
                                                   final Iterator<? extends E> iterator2) {
-        Objects.requireNonNull(iterator1);
-        Objects.requireNonNull(iterator2);
-        return new ConcatenatingIterator<>(new Iterator<>() {
-            private int index;
-
-            @Override
-            public boolean hasNext() {
-                return index < 2;
-            }
-
-            @Override
-            public Iterator<? extends E> next() {
-                return switch (index++) {
-                    case 0 -> iterator1;
-                    case 1 -> iterator2;
-                    default -> throw new NoSuchElementException();
-                };
-            }
-        });
+        return new ConcatenatingIterator<>(iterator1, iterator2);
     }
 
     /**

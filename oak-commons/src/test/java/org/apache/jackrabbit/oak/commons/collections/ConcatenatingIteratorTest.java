@@ -67,6 +67,43 @@ public class ConcatenatingIteratorTest {
         }
     }
 
+    @Test(timeout = 30000)
+    public void mixedPairAndGeneralViewsRemainStackSafe() {
+        AtomicInteger calls = new AtomicInteger();
+        Iterable<Integer> chain = counted(calls);
+        for (int i = 0; i < 100000; i++) {
+            chain = i % 2 == 0 ? IterableUtils.chainedIterable(chain, List.of())
+                    : IterableUtils.chainedIterable(List.of(), chain, List.of());
+        }
+        Iterator<Integer> iterator = chain.iterator();
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals(1, calls.get());
+        Assert.assertEquals(Integer.valueOf(1), iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void mixedPairAndGeneralViewsKeepOrderAndRemovalTargets() {
+        List<Integer> first = new ArrayList<>(List.of(1));
+        List<Integer> second = new ArrayList<>(List.of(2));
+        List<Integer> third = new ArrayList<>(List.of(3));
+        Iterable<Integer> pair = IterableUtils.chainedIterable(first, second);
+        Iterable<Integer> general = IterableUtils.chainedIterable(List.of(), pair, third);
+        Iterator<Integer> iterator = IterableUtils.chainedIterable(List.<Integer>of(), general).iterator();
+        Assert.assertEquals(Integer.valueOf(1), iterator.next());
+        Assert.assertTrue(iterator.hasNext());
+        iterator.remove();
+        Assert.assertTrue(first.isEmpty());
+        Assert.assertEquals(Integer.valueOf(2), iterator.next());
+        Assert.assertTrue(iterator.hasNext());
+        iterator.remove();
+        Assert.assertTrue(second.isEmpty());
+        Assert.assertEquals(Integer.valueOf(3), iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+        iterator.remove();
+        Assert.assertTrue(third.isEmpty());
+    }
+
     @Test(timeout = 10000)
     public void hundredsOfAppendedInputsRemainConsumable() {
         for (Overload overload : Overload.values()) {
