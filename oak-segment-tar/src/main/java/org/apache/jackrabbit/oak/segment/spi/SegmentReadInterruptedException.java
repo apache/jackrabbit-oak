@@ -16,7 +16,19 @@
  */
 package org.apache.jackrabbit.oak.segment.spi;
 
-/** Signals that a segment read was cancelled, not that the segment is missing. */
+/**
+ * Indicates that a segment read was cancelled because the reading thread was interrupted.
+ *
+ * <p>Propagate this exception until the enclosing operation can handle cancellation.
+ * Do not treat it as a cache miss, fall back to another segment source, or report
+ * the segment as missing or corrupt. For example, a consistency check should abort,
+ * and a standby reader should decline the interrupted request.
+ *
+ * <p>The persistent disk cache clears the thread's interrupt flag before throwing
+ * this exception so that a later read on the same thread can proceed. Callers must
+ * therefore use this exception, not the thread's interrupt status, to detect that
+ * the read was cancelled.
+ */
 public class SegmentReadInterruptedException extends RuntimeException {
 
     public SegmentReadInterruptedException(String message, Throwable cause) {
