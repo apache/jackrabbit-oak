@@ -1491,10 +1491,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             throws RepositoryException {
         final String oakName = getOakName(requireNonNull(jcrName));
         return perform(new ItemWriteOperation<Property>("internalRemoveProperty") {
+            private PropertyDelegate property;
+            private boolean resolved;
+
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                PropertyDelegate property = dlg.getPropertyOrNull(oakName);
+                property = dlg.getPropertyOrNull(oakName);
+                resolved = true;
                 if (property != null &&
                         !internalIsCheckedOut() &&
                         getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
@@ -1505,7 +1509,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public Property perform() throws RepositoryException {
-                PropertyDelegate property = dlg.getPropertyOrNull(oakName);
+                if (!resolved) {
+                    property = dlg.getPropertyOrNull(oakName);
+                }
                 if (property != null) {
                     property.remove();
                 } else {
