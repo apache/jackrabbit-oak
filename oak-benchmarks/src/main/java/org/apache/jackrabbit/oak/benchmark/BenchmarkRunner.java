@@ -104,6 +104,7 @@ public class BenchmarkRunner {
         RepositoryFixture[] allFixtures = new RepositoryFixture[]{
                 new JackrabbitRepositoryFixture(benchmarkOptions.getBase().value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
+                OakRepositoryFixture.getMemoryNSWithAudit(cacheSize * MB),
                 OakRepositoryFixture.getMongo(uri, benchmarkOptions.getDropDBAfterTest().value(options),
                         cacheSize * MB, benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoWithDS(uri,
@@ -471,6 +472,8 @@ public class BenchmarkRunner {
                         new PersistentCacheTest(statsProvider),
                         new StringWriteTest(),
                         new BasicWriteTest(),
+                        new AuditEmptyCommitOverheadTest(),
+                        new AuditCaptureSiteOverheadTest(),
                         new CanReadNonExisting(),
                         new IsNodeTypeTest(benchmarkOptions.getRunAsAdmin().value(options)),
                         new SetPropertyTransientTest(),
