@@ -55,6 +55,7 @@ public final class AvailableModes {
         builder.put(FrozenNodeRefsByScanningCommand.NAME, new FrozenNodeRefsByScanningCommand());
         builder.put(FrozenNodeRefsUsingIndexCommand.NAME, new FrozenNodeRefsUsingIndexCommand());
         builder.put("garbage", new GarbageCommand());
+        builder.put("gc-journal", new GcJournalCommand());
         builder.put("help", new HelpCommand());
         builder.put("history", new HistoryCommand());
         builder.put("index-diff", new IndexDiffCommand());
