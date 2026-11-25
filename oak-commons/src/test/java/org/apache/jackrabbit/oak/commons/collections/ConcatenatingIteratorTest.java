@@ -302,6 +302,93 @@ public class ConcatenatingIteratorTest {
     }
 
     @Test
+    public void exhaustedChainDoesNotPollClosedSourceAgain() {
+        Iterable<Iterable<Integer>> sources = () -> new Iterator<>() {
+            private final Iterator<Iterable<Integer>> delegate = List.<Iterable<Integer>>of(List.of(1)).iterator();
+            private boolean closed;
+
+            @Override
+            public boolean hasNext() {
+                if (closed) {
+                    throw new IllegalStateException("Source is closed");
+                }
+                closed = !delegate.hasNext();
+                return !closed;
+            }
+
+            @Override
+            public Iterable<Integer> next() {
+                return delegate.next();
+            }
+        };
+        Iterator<Integer> iterator = IterableUtils.chainedIterable(sources).iterator();
+        Assert.assertEquals(Integer.valueOf(1), iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
+    }
+
+    @Test
+    public void fixedArityAndVarargsIterableChainsRenderTheirContents() {
+        for (Overload overload : List.of(Overload.TWO_ITERABLES, Overload.THREE_ITERABLES,
+                Overload.FOUR_ITERABLES, Overload.VARARGS_ITERABLES)) {
+            Iterable<Integer> chain = concatenate(overload, List.of(1), Arrays.asList(null, 2));
+            Assert.assertEquals(overload.name(), "[1, null, 2]", chain.toString());
+        }
+        Iterable<Iterable<Integer>> unopened = () -> {
+            throw new AssertionError("Rendering a chain of sources opened the source iterator");
+        };
+        IterableUtils.chainedIterable(unopened).toString();
+    }
+
+    @Test
+    public void nestedIteratorCanResumeAfterLeafPollingThrows() {
+        IllegalStateException failure = new IllegalStateException("Leaf could not be polled");
+        Iterator<Integer> leaf = new Iterator<>() {
+            private final Iterator<Integer> delegate = List.of(1, 2).iterator();
+            private boolean failOnNextPoll;
+
+            @Override
+            public boolean hasNext() {
+                if (failOnNextPoll) {
+                    failOnNextPoll = false;
+                    throw failure;
+                }
+                return delegate.hasNext();
+            }
+
+            @Override
+            public Integer next() {
+                failOnNextPoll = true;
+                return delegate.next();
+            }
+        };
+        Iterator<Integer> chain = IteratorUtils.chainedIterator(leaf, List.of(3).iterator());
+        chain = IteratorUtils.chainedIterator(chain, List.of(4).iterator());
+        Iterator<Integer> outer = IteratorUtils.chainedIterator(chain, List.of(5).iterator());
+        Assert.assertEquals(Integer.valueOf(1), outer.next());
+        Assert.assertSame(failure, Assert.assertThrows(IllegalStateException.class, outer::hasNext));
+        List<Integer> remaining = new ArrayList<>();
+        Assert.assertEquals(Integer.valueOf(2), outer.next());
+        Assert.assertSame(failure, Assert.assertThrows(IllegalStateException.class, outer::hasNext));
+        outer.forEachRemaining(remaining::add);
+        Assert.assertEquals(List.of(3, 4, 5), remaining);
+    }
+
+    @Test
+    public void repeatedIterableReopensItsInputsButRepeatedIteratorIsConsumedOnce() {
+        Iterable<Integer> view = IterableUtils.chainedIterable(List.of(1), List.of(2));
+        List<Integer> values = new ArrayList<>();
+        IterableUtils.chainedIterable(view, view).forEach(values::add);
+        Assert.assertEquals(List.of(1, 2, 1, 2), values);
+
+        Iterator<Integer> child = view.iterator();
+        values.clear();
+        IteratorUtils.chainedIterator(child, child).forEachRemaining(values::add);
+        Assert.assertEquals(List.of(1, 2), values);
+    }
+
+    @Test
     public void nullSourcesAreRejectedWithoutOpeningEarlierInputs() {
         Iterable<Integer> unopened = () -> { throw new AssertionError("input opened during validation"); };
         for (Overload overload : List.of(Overload.TWO_ITERABLES, Overload.THREE_ITERABLES,

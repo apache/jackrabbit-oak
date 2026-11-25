@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -31,11 +32,20 @@ final class ConcatenatingIterable {
         return new Sources<>(sources);
     }
 
+    static <E> Iterable<E> ofList(List<? extends Iterable<? extends E>> sources) {
+        return new Sources<E>(sources) {
+            @Override
+            public String toString() {
+                return IterableUtils.toString(this);
+            }
+        };
+    }
+
     static <E> Iterable<E> pair(Iterable<? extends E> first, Iterable<? extends E> second) {
         return new Pair<>(first, second);
     }
 
-    private static final class Sources<E> implements Iterable<E> {
+    private static class Sources<E> implements Iterable<E> {
         private final Iterable<? extends Iterable<? extends E>> sources;
 
         private Sources(Iterable<? extends Iterable<? extends E>> sources) {
@@ -60,6 +70,11 @@ final class ConcatenatingIterable {
         @Override
         public Iterator<E> iterator() {
             return new ConcatenatingIterator<>(new PairIterator<>(first, second));
+        }
+
+        @Override
+        public String toString() {
+            return IterableUtils.toString(this);
         }
     }
 

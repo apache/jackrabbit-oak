@@ -29,7 +29,7 @@ import java.util.Objects;
  * removal targets without updating every ancestor after each element.
  */
 final class ConcatenatingIterator<E> implements Iterator<E> {
-    private final Iterator<? extends Iterator<? extends E>> inputs;
+    private Iterator<? extends Iterator<? extends E>> inputs;
     private Iterator<? extends E> tail;
     private Deque<ConcatenatingIterator<E>> path;
     // Borrowed children have no ready cache, so direct access detaches them first.
@@ -154,9 +154,11 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
                 chain.tail = null;
             } else if (chain.inputs != null && chain.inputs.hasNext()) {
                 chain.current = Objects.requireNonNull(chain.inputs.next());
-            } else if (chain == this) {
-                return null;
             } else {
+                chain.inputs = null;
+                if (chain == this) {
+                    return null;
+                }
                 path.removeLast();
                 if (chain.owner == this) {
                     // Preserve removal targets on leaving a child, rather than
