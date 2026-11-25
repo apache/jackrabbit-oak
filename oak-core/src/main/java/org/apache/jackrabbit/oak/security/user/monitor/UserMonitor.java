@@ -55,6 +55,51 @@ public interface UserMonitor extends Monitor<UserMonitor> {
      */
     default void doneUpdateMembers(long timeTakenNanos, long totalProcessed, long failed, boolean isRemove) {}
 
+    /**
+     * Called to record a password based login attempt of an existing user, including attempts of disabled users
+     * (which always fail).
+     *
+     * @param success {@code true} if the credentials were accepted by the user authentication; {@code false}
+     *                otherwise. This does not reflect the outcome of the overall login (e.g. other login modules).
+     * @param isAdmin {@code true} if the user is the admin user as identified by the configured admin id (not any
+     *                principal with administrative privileges).
+     */
+    default void login(boolean success, boolean isAdmin) {}
+
+    /**
+     * Called to record an attempt to impersonate an existing user, including attempts of disabled users (which
+     * always fail).
+     *
+     * @param success {@code true} if the impersonation was accepted by the user authentication; {@code false}
+     *                otherwise. This does not reflect the outcome of the overall login (e.g. other login modules).
+     * @param isAdmin {@code true} if the impersonated user is the admin user as identified by the configured admin
+     *                id (not any principal with administrative privileges).
+     */
+    default void impersonated(boolean success, boolean isAdmin) {}
+
+    /**
+     * Called to record a change of the password of an existing user observed during commit validation. This is
+     * best-effort monitoring: the commit may still fail afterwards, and retried commits may be recorded more than once.
+     *
+     * @param added {@code true} if the user did not have a password before; {@code false} if an existing
+     *              password was changed.
+     * @param isAdmin {@code true} if the user is the admin user as identified by the configured admin id (not any
+     *                principal with administrative privileges).
+     */
+    default void passwordChanged(boolean added, boolean isAdmin) {}
+
+    /**
+     * Called to record changes to the set of principals allowed to impersonate an existing user observed during
+     * commit validation. This is best-effort monitoring: the commit may still fail afterwards, and retried commits
+     * may be recorded more than once.
+     *
+     * @param granted The number of principals granted impersonation.
+     * @param revoked The number of principals revoked impersonation.
+     * @param isAdmin {@code true} if the user is the admin user as identified by the configured admin id (not any
+     *                principal with administrative privileges).
+     */
+    default void impersonatorsChanged(long granted, long revoked, boolean isAdmin) {}
+
     default @NotNull Class<UserMonitor> getMonitorClass() {
         return UserMonitor.class;
     }

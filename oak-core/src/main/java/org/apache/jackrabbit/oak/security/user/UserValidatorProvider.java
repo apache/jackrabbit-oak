@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -33,13 +34,16 @@ class UserValidatorProvider extends ValidatorProvider {
     private final ConfigurationParameters config;
     private final RootProvider rootProvider;
     private final TreeProvider treeProvider;
+    private final UserMonitor monitor;
 
     private MembershipProvider membershipProvider;
 
-    UserValidatorProvider(@NotNull ConfigurationParameters config, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+    UserValidatorProvider(@NotNull ConfigurationParameters config, @NotNull RootProvider rootProvider,
+                          @NotNull TreeProvider treeProvider, @NotNull UserMonitor monitor) {
         this.config = config;
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
+        this.monitor = monitor;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -60,5 +64,10 @@ class UserValidatorProvider extends ValidatorProvider {
     @NotNull
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
+    }
+
+    @NotNull
+    UserMonitor getMonitor() {
+        return monitor;
     }
 }

@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An execution plan for one selector in a query. The conditions of the given
@@ -34,12 +35,15 @@ public class SelectorExecutionPlan implements ExecutionPlan {
     private final double estimatedCost;
     private final QueryIndex index;
     private final IndexPlan plan;
+    private final FilterImpl fulltextFilterWithoutIndex;
 
-    public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, IndexPlan plan, double estimatedCost) {
+    public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, IndexPlan plan, double estimatedCost,
+            @Nullable FilterImpl fulltextFilterWithoutIndex) {
         this.selector = selector;
         this.index = index;
         this.estimatedCost = estimatedCost;
         this.plan = plan;
+        this.fulltextFilterWithoutIndex = fulltextFilterWithoutIndex;
     }
     
     @Override
@@ -57,6 +61,16 @@ public class SelectorExecutionPlan implements ExecutionPlan {
     
     public IndexPlan getIndexPlan() {
         return plan;
+    }
+
+    /**
+     * Get the filter if it contains fulltext conditions, but no index was found for it.
+     *
+     * @return the filter, or null
+     */
+    @Nullable
+    public FilterImpl getFulltextFilterWithoutIndex() {
+        return fulltextFilterWithoutIndex;
     }
     
     /**

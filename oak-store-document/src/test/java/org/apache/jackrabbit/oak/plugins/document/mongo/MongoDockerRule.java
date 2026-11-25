@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.images.RemoteDockerImage;
 import org.testcontainers.utility.DockerImageName;
 
@@ -76,8 +77,8 @@ public class MongoDockerRule extends ExternalResource {
         }
         mongoContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
                 .withExposedPorts(DEFAULT_MONGO_PORT)
-                .withStartupTimeout(Duration.ofMinutes(1));
-
+                .withStartupTimeout(Duration.ofMinutes(1))
+                .withLogConsumer(new Slf4jLogConsumer(LOG).withSeparateOutputStreams());
         try {
             long startTime = Instant.now().toEpochMilli();
             mongoContainer.start();

@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -69,7 +70,7 @@ public class UserMonitorImplTest {
 
     @Test
     public void testConstructor() {
-        verify(statisticsProvider, times(4)).getMeter(anyString(), any(StatsOptions.class));
+        verify(statisticsProvider, times(12)).getMeter(anyString(), any(StatsOptions.class));
         verify(statisticsProvider, times(6)).getTimer(anyString(), any(StatsOptions.class));
         verifyNoMoreInteractions(statisticsProvider);
         verifyNoInteractions(meter);
@@ -81,6 +82,26 @@ public class UserMonitorImplTest {
         monitor.doneGetMembers(20, true);
         monitor.doneGetMembers(40, false);
         assertTimerOnly(20, 40, timer, meter);
+    }
+
+    @Test
+    public void testDoneGetMembersTimers() {
+        TimerStats membersTimer = mock(TimerStats.class);
+        TimerStats declaredMembersTimer = mock(TimerStats.class);
+        when(statisticsProvider.getTimer("security.user.get_members.timer", StatsOptions.METRICS_ONLY))
+                .thenReturn(membersTimer);
+        when(statisticsProvider.getTimer("security.user.get_declared_members.timer", StatsOptions.METRICS_ONLY))
+                .thenReturn(declaredMembersTimer);
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.doneGetMembers(20, true);
+        verify(declaredMembersTimer).update(20, NANOSECONDS);
+        verifyNoInteractions(membersTimer);
+
+        m.doneGetMembers(40, false);
+        verify(membersTimer).update(40, NANOSECONDS);
+        verifyNoMoreInteractions(membersTimer, declaredMembersTimer);
+        verifyNoInteractions(timer, meter);
     }
 
     @Test
@@ -117,6 +138,92 @@ public class UserMonitorImplTest {
         verify(meter, times(1)).mark(succeeded);
         verify(meter, times(1)).mark(failed);
         verify(timer, times(1)).update(time, NANOSECONDS);
+    }
+
+    @Test
+    public void testLogin() {
+        MeterStats succeeded = mockMeter("security.user.admin.login.succeeded");
+        MeterStats failed = mockMeter("security.user.admin.login.failed");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.login(true, true);
+        m.login(true, true);
+        m.login(false, true);
+        m.login(true, false);
+        m.login(false, false);
+
+        verify(succeeded, times(2)).mark();
+        verify(failed, times(1)).mark();
+        verifyNoMoreInteractions(succeeded, failed);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testImpersonated() {
+        MeterStats succeeded = mockMeter("security.user.admin.impersonation.succeeded");
+        MeterStats failed = mockMeter("security.user.admin.impersonation.failed");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.impersonated(false, true);
+        m.impersonated(false, true);
+        m.impersonated(true, true);
+        m.impersonated(true, false);
+        m.impersonated(false, false);
+
+        verify(succeeded, times(1)).mark();
+        verify(failed, times(2)).mark();
+        verifyNoMoreInteractions(succeeded, failed);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testPasswordChanged() {
+        MeterStats added = mockMeter("security.user.admin.password.added");
+        MeterStats changed = mockMeter("security.user.admin.password.changed");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.passwordChanged(false, true);
+        m.passwordChanged(false, true);
+        m.passwordChanged(true, true);
+        m.passwordChanged(true, false);
+        m.passwordChanged(false, false);
+
+        verify(changed, times(2)).mark();
+        verify(added, times(1)).mark();
+        verifyNoMoreInteractions(added, changed);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testImpersonatorsChanged() {
+        MeterStats granted = mockMeter("security.user.admin.impersonators.granted");
+        MeterStats revoked = mockMeter("security.user.admin.impersonators.revoked");
+        UserMonitorImpl m = new UserMonitorImpl(statisticsProvider);
+
+        m.impersonatorsChanged(3, 1, true);
+        m.impersonatorsChanged(2, 2, false);
+
+        verify(granted, times(1)).mark(3);
+        verify(revoked, times(1)).mark(1);
+        verifyNoMoreInteractions(granted, revoked);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @Test
+    public void testNoopAdminMethods() {
+        UserMonitor noop = UserMonitor.NOOP;
+        noop.login(true, true);
+        noop.impersonated(true, true);
+        noop.passwordChanged(true, true);
+        noop.impersonatorsChanged(1, 1, true);
+        verifyNoInteractions(meter, timer);
+    }
+
+    @NotNull
+    private MeterStats mockMeter(@NotNull String name) {
+        MeterStats m = mock(MeterStats.class);
+        when(statisticsProvider.getMeter(eq(name), any(StatsOptions.class))).thenReturn(m);
+        return m;
     }
 
     @Test

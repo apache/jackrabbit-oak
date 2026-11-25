@@ -21,7 +21,10 @@ import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -38,6 +41,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class S3MockRule extends ExternalResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(S3MockRule.class);
+
     private static final DockerImageName DOCKER_IMAGE = DockerImageName.parse("adobe/s3mock:5.0.0");
     static final int HTTP_PORT = 9090;
     private final AtomicReference<Exception> startupException = new AtomicReference<>();
@@ -49,7 +54,8 @@ public class S3MockRule extends ExternalResource {
         startupException.set(null);
         container = new GenericContainer<>(DOCKER_IMAGE)
                 .withExposedPorts(HTTP_PORT)
-                .withStartupTimeout(Duration.ofSeconds(60));
+                .withStartupTimeout(Duration.ofSeconds(60))
+                .withLogConsumer(new Slf4jLogConsumer(LOG).withSeparateOutputStreams());
         try {
             container.start();
         } catch (Exception e) {

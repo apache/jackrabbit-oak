@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -84,6 +85,7 @@ class UserAuthentication implements Authentication, UserConstants {
     private final UserConfiguration config;
     private final Root root;
     private final String loginId;
+    private final UserMonitor monitor;
 
     private String userId;
     private Principal principal;
@@ -92,6 +94,7 @@ class UserAuthentication implements Authentication, UserConstants {
         this.config = config;
         this.root = root;
         this.loginId = loginId;
+        this.monitor = (config instanceof UserConfigurationImpl) ? ((UserConfigurationImpl) config).getMonitor() : UserMonitor.NOOP;
     }
 
     //-----------------------------------------------------< Authentication >---
@@ -102,11 +105,13 @@ class UserAuthentication implements Authentication, UserConstants {
         }
 
         boolean success = false;
+        User user = null;
         try {
-            User user = getValidUser(config.getUserManager(root, NamePathMapper.DEFAULT), loginId);
+            user = getValidUser(config.getUserManager(root, NamePathMapper.DEFAULT), loginId);
             if (user == null) {
                 return false;
             }
+            checkNotDisabled(user, loginId);
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
@@ -117,6 +122,7 @@ class UserAuthentication implements Authentication, UserConstants {
 
                 // change the password if the credentials object has the UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD attribute set
                 if (isPasswordExpired(user) && !changePassword(user, creds)) {
+                    success = false;
                     throw new CredentialExpiredException("User password has expired");
                 }
             } else if (credentials instanceof ImpersonationCredentials) {
@@ -131,9 +137,11 @@ class UserAuthentication implements Authentication, UserConstants {
             userId = user.getID();
             principal = user.getPrincipal();
         } catch (RepositoryException e) {
+            success = false;
             throw new LoginException(e.getMessage());
         } finally {
             removeNewPwAttribute(credentials);
+            monitorAuthenticate(credentials, success, user);
         }
         return success;
     }
@@ -159,7 +167,7 @@ class UserAuthentication implements Authentication, UserConstants {
 
     //--------------------------------------------------------------------------
     @Nullable
-    private static User getValidUser(@NotNull UserManager userManager, @NotNull String loginId) throws RepositoryException, AccountNotFoundException, AccountLockedException {
+    private static User getValidUser(@NotNull UserManager userManager, @NotNull String loginId) throws RepositoryException, AccountNotFoundException {
         Authorizable authorizable = userManager.getAuthorizable(loginId);
         if (authorizable == null) {
             // best effort prevent user enumeration timing attacks
@@ -174,11 +182,13 @@ class UserAuthentication implements Authentication, UserConstants {
         if (authorizable.isGroup()) {
             throw new AccountNotFoundException("Not a user " + loginId);
         }
-        User user = (User) authorizable;
+        return (User) authorizable;
+    }
+
+    private static void checkNotDisabled(@NotNull User user, @NotNull String loginId) throws RepositoryException, AccountLockedException {
         if (user.isDisabled()) {
             throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
         }
-        return user;
     }
 
     private static void checkSuccess(boolean success, @NotNull String msg) throws LoginException {
@@ -272,5 +282,17 @@ class UserAuthentication implements Authentication, UserConstants {
             expired = (null == passwordLastModified);
         }
         return expired;
+    }
+
+    private void monitorAuthenticate(@NotNull Credentials credentials, boolean success, @Nullable User user) {
+        if (user == null) {
+            // loginId does not resolve to a user (unknown id or group): not monitored.
+            return;
+        }
+        if (credentials instanceof SimpleCredentials) {
+            monitor.login(success, user.isAdmin());
+        } else if (credentials instanceof ImpersonationCredentials) {
+            monitor.impersonated(success, user.isAdmin());
+        } // else: guest login or pre-authenticated login: not monitored at this point.
     }
 }

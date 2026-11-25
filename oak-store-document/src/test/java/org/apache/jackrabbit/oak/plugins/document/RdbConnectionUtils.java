@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.images.RemoteDockerImage;
 import org.testcontainers.utility.DockerImageName;
 
@@ -74,7 +75,8 @@ public class RdbConnectionUtils {
                     .withPrivilegedMode(true)
                     .withEnv(ENV)
                     .withExposedPorts(exposedPort)
-                    .withStartupTimeout(Duration.ofMinutes(15));
+                    .withStartupTimeout(Duration.ofMinutes(15))
+                    .withLogConsumer(new Slf4jLogConsumer(LOG).withSeparateOutputStreams());
             try {
                 long startTime = Instant.now().toEpochMilli();
                 rdbContainer.start();
