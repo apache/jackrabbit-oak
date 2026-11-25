@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.HashSet;
 import java.util.List;
 
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.file.MockReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.ConsistencyCheckResult;
+import org.apache.jackrabbit.oak.segment.spi.SegmentReadInterruptedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -51,6 +53,8 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -244,6 +248,20 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         assertTrue(hasAnyHeadRevision(result));
         assertTrue(hasAnyCheckpointRevision(result));
+    }
+
+    @Test
+    public void interruptedReadAbortsConsistencyCheck() throws Exception {
+        addMoreSegments();
+        File path = temporaryFolder.getRoot();
+        File journal = new File(path, "journal.log");
+        SegmentReadInterruptedException interruption = new SegmentReadInterruptedException(
+                "Cancelled test read", new ClosedByInterruptException());
+        try (MockReadOnlyFileStore store = MockReadOnlyFileStore.buildMock(path, journal)) {
+            store.failAfterReadSegmentCount(2, interruption);
+            assertSame(interruption, assertThrows(SegmentReadInterruptedException.class,
+                    () -> checkConsistencyLenient(store, journal)));
+        }
     }
 
     @NotNull
