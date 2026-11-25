@@ -233,10 +233,18 @@ public abstract class AstVisitorBase implements AstVisitor {
     }
 
     /**
-     * Calls accept on the dynamic operand in the lower-case node.
+     * Calls accept on the dynamic operand in the upper-case node.
      */
     @Override
     public boolean visit(UpperCaseImpl node) {
+        return node.getOperand().accept(this);
+    }
+
+    /**
+     * Calls accept on the dynamic operand in the normalize node.
+     */
+    @Override
+    public boolean visit(NormalizeImpl node) {
         return node.getOperand().accept(this);
     }
 

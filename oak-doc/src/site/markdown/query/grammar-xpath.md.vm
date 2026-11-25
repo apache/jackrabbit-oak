@@ -324,10 +324,10 @@ Examples:
     fn:path()
     jcr:score ()
     fn:lower-case(@lastName)
+    rep:normalize(@lastName)
     fn:coalesce(@lastName, @name)
     jcr:if(jcr:exists(@alias), fn:path(), jcr:null())
     jcr:exists(@alias)
-
 
 ---
 
