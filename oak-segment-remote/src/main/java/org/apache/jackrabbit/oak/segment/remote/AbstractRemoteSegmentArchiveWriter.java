@@ -126,10 +126,26 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
 
     @Override
     public void close() throws IOException {
+        IOException failure = null;
         if (queue.isPresent()) { // required to handle IOException
             SegmentWriteQueue q = queue.get();
-            q.flush();
-            q.close();
+            try {
+                q.flush();
+            } catch (IOException e) {
+                failure = e;
+            }
+            try {
+                q.close();
+            } catch (IOException e) {
+                if (failure == null) {
+                    failure = e;
+                } else {
+                    failure.addSuppressed(e);
+                }
+            }
+        }
+        if (failure != null) {
+            throw failure;
         }
 
         afterQueueClosed();

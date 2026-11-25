@@ -235,7 +235,8 @@ public class SegmentWriteQueueTest {
         }
 
         semaphore.release(Integer.MAX_VALUE);
-        assertTrue("All failed writes should be in the retry queue", awaitCondition(() -> queue.getSize() == 10));
+        assertTrue("All failed writes should be in the retry queue",
+                awaitCondition(() -> queue.isBroken() && queue.getSize() == 10));
         assertTrue(queue.isBroken());
         assertEquals(10, queue.getSize()); // the retrying segment remains in the retry queue
 
@@ -380,6 +381,69 @@ public class SegmentWriteQueueTest {
         assertTrue("Pending retries should drain once the writer recovers", awaitCondition(queue::isEmpty));
         queue.flush();
         assertEquals(parallelConsumers + 1, persisted.size());
+    }
+
+    @Test(timeout = 10000)
+    public void testFlushTimeoutResetsAfterSuccessfulWrites() throws Exception {
+        int segmentCount = 4;
+        Semaphore writePermits = new Semaphore(0);
+        CountDownLatch[] writesStarted = new CountDownLatch[segmentCount];
+        for (int i = 0; i < segmentCount; i++) {
+            writesStarted[i] = new CountDownLatch(1);
+        }
+
+        queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {
+            int segment = (int) tarEntry.getLsb();
+            writesStarted[segment].countDown();
+            try {
+                writePermits.acquire();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            }
+        }, segmentCount, 1, 250);
+
+        CountDownLatch flushStarted = new CountDownLatch(1);
+        FutureTask<Void> flushTask = new FutureTask<>(() -> {
+            flushStarted.countDown();
+            queue.flush();
+            return null;
+        });
+        try {
+            for (int i = 0; i < segmentCount; i++) {
+                queue.addToQueue(tarEntry(i), EMPTY_DATA, 0, 0);
+            }
+            assertTrue("First segment should be in progress", writesStarted[0].await(5, TimeUnit.SECONDS));
+
+            Thread flusher = new Thread(flushTask, "segment-write-queue-progress-test");
+            flusher.setDaemon(true);
+            flusher.start();
+            assertTrue("Flush should start", flushStarted.await(5, TimeUnit.SECONDS));
+            Thread.sleep(50);
+
+            for (int i = 0; i < segmentCount - 1; i++) {
+                writePermits.release();
+                assertTrue("Next segment should start after a successful write",
+                        writesStarted[i + 1].await(5, TimeUnit.SECONDS));
+                Thread.sleep(120);
+                assertFalse("Recent progress should keep flush active", flushTask.isDone());
+            }
+
+            try {
+                flushTask.get(2, TimeUnit.SECONDS);
+                fail("flush should time out after the final segment stops making progress");
+            } catch (ExecutionException e) {
+                assertTrue("flush should report an IOException", e.getCause() instanceof IOException);
+                assertTrue(e.getCause().getMessage().contains("No segment write completed"));
+            } catch (TimeoutException e) {
+                fail("flush should enforce the timeout after the last successful write");
+            }
+        } finally {
+            writePermits.release(segmentCount);
+        }
+
+        assertTrue("All writes should finish after permits are released", awaitCondition(queue::isEmpty));
+        queue.flush();
     }
 
     private static void awaitLatch(CountDownLatch latch) throws IOException {
