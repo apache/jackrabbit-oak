@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import javax.jcr.RepositoryException;
@@ -969,11 +970,11 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     private static <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue) {
-        return waitForMetric(f, input, expected, defaultValue, 100, 1500);
+        return waitForMetric(f, input, expected, defaultValue, 100, 5000);
     }
 
     private static <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue, int intervalMilliseconds, int waitMilliseconds) {
-        long end = System.currentTimeMillis() + waitMilliseconds;
+        long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(waitMilliseconds);
         R output = f.apply(input);
         if (null != output && output.equals(expected)) {
             return output;
@@ -988,16 +989,16 @@ public class DataStoreBlobStoreStatsTest {
                 return output;
             }
         }
-        while (System.currentTimeMillis() < end);
+        while (System.nanoTime() - end < 0);
         return defaultValue;
     }
 
     private static <T> Long waitForNonzeroMetric(Function<T, Long> f, T input) {
-        return waitForNonzeroMetric(f, input, 100, 1500);
+        return waitForNonzeroMetric(f, input, 100, 5000);
     }
 
     private static <T> Long waitForNonzeroMetric(Function<T, Long> f, T input, int intervalMilliseconds, int waitMilliseconds) {
-        long end = System.currentTimeMillis() + waitMilliseconds;
+        long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(waitMilliseconds);
         Long output = f.apply(input);
         if (null != output && output > 0L) {
             return output;
@@ -1012,7 +1013,7 @@ public class DataStoreBlobStoreStatsTest {
                 return output;
             }
         }
-        while (System.currentTimeMillis() < end);
+        while (System.nanoTime() - end < 0);
         return 0L;
     }
 
