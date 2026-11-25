@@ -34,4 +34,5 @@
     <appender-ref ref="file"/>
 </root>
 
+<logger name="org.apache.jackrabbit.oak.spi.toggle.Feature" level="INFO"/>
 </configuration>
