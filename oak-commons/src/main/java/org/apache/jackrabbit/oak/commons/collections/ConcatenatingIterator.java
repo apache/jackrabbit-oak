@@ -49,7 +49,6 @@ class ConcatenatingIterator<E> implements Iterator<E> {
     }
 
     ConcatenatingIterator(Iterator<? extends E> first, Iterator<? extends E> second) {
-        inputs = null;
         current = Objects.requireNonNull(first);
         tail = Objects.requireNonNull(second);
     }
@@ -106,6 +105,7 @@ class ConcatenatingIterator<E> implements Iterator<E> {
                 }
             }
         }
+        invalidated = false;
     }
 
     private Iterator<? extends E> nextIterator() {
@@ -135,7 +135,6 @@ class ConcatenatingIterator<E> implements Iterator<E> {
         detach();
         if (invalidated) {
             clearPath();
-            invalidated = false;
         }
         ConcatenatingIterator<E> chain = path == null || path.isEmpty() ? this : path.peekLast();
         while (true) {
@@ -144,7 +143,6 @@ class ConcatenatingIterator<E> implements Iterator<E> {
                 ConcatenatingIterator<E> nested = (ConcatenatingIterator<E>) chain.current;
                 nested.detach();
                 nested.clearPath();
-                nested.invalidated = false;
                 nested.owner = this;
                 nested.ownerGeneration = generation;
                 if (path == null) {

@@ -145,7 +145,6 @@ public class IterableUtils {
      * @throws NullPointerException if the input {@code Iterable} or any of its elements are null
      */
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends Iterable<? extends E>> iterables) {
-        Objects.requireNonNull(iterables);
         return ConcatenatingIterable.of(iterables);
     }
 
