@@ -114,9 +114,9 @@ class ConcatenatingIterator<E> implements Iterator<E> {
             if (iterator.hasNext()) {
                 return iterator;
             }
+            // Polling the leaf can detach a child and invalidate this path.
             if (ready == iterator) {
-                ConcatenatingIterator<E> chain = path == null || path.isEmpty() ? this : path.peekLast();
-                chain.current = Collections.emptyIterator();
+                activeChain().current = Collections.emptyIterator();
             }
         }
         return findNext();
@@ -136,22 +136,12 @@ class ConcatenatingIterator<E> implements Iterator<E> {
         if (invalidated) {
             clearPath();
         }
-        ConcatenatingIterator<E> chain = path == null || path.isEmpty() ? this : path.peekLast();
+        ConcatenatingIterator<E> chain = activeChain();
         while (true) {
             if (chain.current instanceof ConcatenatingIterator) {
                 @SuppressWarnings("unchecked")
                 ConcatenatingIterator<E> nested = (ConcatenatingIterator<E>) chain.current;
-                nested.detach();
-                nested.clearPath();
-                nested.owner = this;
-                nested.ownerGeneration = generation;
-                if (path == null) {
-                    path = new ArrayDeque<>();
-                }
-                if (path.isEmpty()) {
-                    path.addLast(this);
-                }
-                path.addLast(nested);
+                enterNested(nested);
                 chain = nested;
             } else if (chain.current.hasNext()) {
                 if (!invalidated) {
@@ -165,20 +155,41 @@ class ConcatenatingIterator<E> implements Iterator<E> {
                 Iterator<? extends E> input = chain.nextInput();
                 if (input != null) {
                     chain.current = input;
-                    continue;
-                }
-                if (chain == this) {
+                } else if (chain == this) {
                     return null;
+                } else {
+                    chain = leaveNested(chain);
                 }
-                path.removeLast();
-                if (chain.owner == this) {
-                    // Preserve removal targets on leaving a child, rather than
-                    // updating every ancestor after each returned element.
-                    chain.release();
-                }
-                chain = path.peekLast();
-                chain.current = Collections.emptyIterator();
             }
         }
+    }
+
+    private ConcatenatingIterator<E> activeChain() {
+        return path == null || path.isEmpty() ? this : path.peekLast();
+    }
+
+    private void enterNested(ConcatenatingIterator<E> nested) {
+        nested.detach();
+        nested.clearPath();
+        nested.owner = this;
+        nested.ownerGeneration = generation;
+        if (path == null) {
+            path = new ArrayDeque<>();
+        }
+        if (path.isEmpty()) {
+            path.addLast(this);
+        }
+        path.addLast(nested);
+    }
+
+    private ConcatenatingIterator<E> leaveNested(ConcatenatingIterator<E> child) {
+        path.removeLast();
+        if (child.owner == this) {
+            // Preserve the child's removal target before releasing ownership.
+            child.release();
+        }
+        ConcatenatingIterator<E> parent = path.peekLast();
+        parent.current = Collections.emptyIterator();
+        return parent;
     }
 }

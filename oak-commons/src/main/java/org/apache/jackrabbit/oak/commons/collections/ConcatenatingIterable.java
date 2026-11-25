@@ -46,15 +46,15 @@ final class ConcatenatingIterable {
     }
 
     private static class Sources<E> implements Iterable<E> {
-        private final Iterable<? extends Iterable<? extends E>> sources;
+        private final Iterable<? extends Iterable<? extends E>> iterables;
 
-        private Sources(Iterable<? extends Iterable<? extends E>> sources) {
-            this.sources = Objects.requireNonNull(sources);
+        private Sources(Iterable<? extends Iterable<? extends E>> iterables) {
+            this.iterables = Objects.requireNonNull(iterables);
         }
 
         @Override
         public Iterator<E> iterator() {
-            return new SourceIterator<>(sources.iterator());
+            return new SourceIterator<>(iterables.iterator());
         }
     }
 
@@ -134,7 +134,7 @@ final class ConcatenatingIterable {
                         @SuppressWarnings("unchecked")
                         Sources<E> nested = (Sources<E>) iterable;
                         // Open the child before saving the parent so a failed open leaves the path intact.
-                        Iterator<? extends Iterable<? extends E>> child = Objects.requireNonNull(nested.sources.iterator());
+                        Iterator<? extends Iterable<? extends E>> child = Objects.requireNonNull(nested.iterables.iterator());
                         if (parents == null) {
                             parents = new ArrayDeque<>();
                         }
