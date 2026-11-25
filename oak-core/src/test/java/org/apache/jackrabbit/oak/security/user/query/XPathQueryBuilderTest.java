@@ -181,6 +181,17 @@ public class XPathQueryBuilderTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testGetIndexTag() {
+        assertNull(builder.getIndexTag());
+    }
+
+    @Test
+    public void testSetIndexTag() {
+        builder.setIndexTag("myIndexTag");
+        assertEquals("myIndexTag", builder.getIndexTag());
+    }
+
+    @Test
     public void testNameMatches() {
         Condition c = builder.nameMatches("pattern");
 
