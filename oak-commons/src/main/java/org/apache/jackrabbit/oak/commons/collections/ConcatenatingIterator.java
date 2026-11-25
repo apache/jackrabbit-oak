@@ -28,7 +28,7 @@ import java.util.Objects;
  * Child access invalidates its owner's path; ownership generations preserve
  * removal targets without updating every ancestor after each element.
  */
-final class ConcatenatingIterator<E> implements Iterator<E> {
+class ConcatenatingIterator<E> implements Iterator<E> {
     private Iterator<? extends Iterator<? extends E>> inputs;
     private Iterator<? extends E> tail;
     private Deque<ConcatenatingIterator<E>> path;
@@ -40,6 +40,9 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
     private long ownerGeneration;
     private long generation;
     private boolean invalidated;
+
+    ConcatenatingIterator() {
+    }
 
     ConcatenatingIterator(Iterator<? extends Iterator<? extends E>> inputs) {
         this.inputs = Objects.requireNonNull(inputs);
@@ -119,6 +122,14 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
         return findNext();
     }
 
+    Iterator<? extends E> nextInput() {
+        if (inputs != null && inputs.hasNext()) {
+            return Objects.requireNonNull(inputs.next());
+        }
+        inputs = null;
+        return null;
+    }
+
     private Iterator<? extends E> findNext() {
         ready = null;
         detach();
@@ -152,10 +163,12 @@ final class ConcatenatingIterator<E> implements Iterator<E> {
             } else if (chain.tail != null) {
                 chain.current = chain.tail;
                 chain.tail = null;
-            } else if (chain.inputs != null && chain.inputs.hasNext()) {
-                chain.current = Objects.requireNonNull(chain.inputs.next());
             } else {
-                chain.inputs = null;
+                Iterator<? extends E> input = chain.nextInput();
+                if (input != null) {
+                    chain.current = input;
+                    continue;
+                }
                 if (chain == this) {
                     return null;
                 }

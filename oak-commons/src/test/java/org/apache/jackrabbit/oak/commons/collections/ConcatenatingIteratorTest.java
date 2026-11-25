@@ -303,8 +303,34 @@ public class ConcatenatingIteratorTest {
 
     @Test
     public void exhaustedChainDoesNotPollClosedSourceAgain() {
-        Iterable<Iterable<Integer>> sources = () -> new Iterator<>() {
-            private final Iterator<Iterable<Integer>> delegate = List.<Iterable<Integer>>of(List.of(1)).iterator();
+        Iterator<Integer> iterator = IterableUtils.chainedIterable(closingSources(List.of(List.of(1)))).iterator();
+        Assert.assertEquals(Integer.valueOf(1), iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
+    }
+
+    @Test
+    public void nestedSourceOpeningFailureDoesNotQueueTheParent() {
+        IllegalStateException failure = new IllegalStateException("Nested source could not be opened");
+        Iterable<Iterable<Integer>> unavailable = () -> {
+            throw failure;
+        };
+        Iterable<Integer> nested = IterableUtils.chainedIterable(unavailable);
+        Iterator<Integer> iterator = IterableUtils.chainedIterable(
+                closingSources(List.of(List.of(1), nested, List.of(2)))).iterator();
+
+        Assert.assertEquals(Integer.valueOf(1), iterator.next());
+        Assert.assertSame(failure, Assert.assertThrows(IllegalStateException.class, iterator::hasNext));
+        Assert.assertEquals(Integer.valueOf(2), iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
+    }
+
+    private static Iterable<Iterable<Integer>> closingSources(List<Iterable<Integer>> sources) {
+        return () -> new Iterator<>() {
+            private final Iterator<Iterable<Integer>> delegate = sources.iterator();
             private boolean closed;
 
             @Override
@@ -321,11 +347,6 @@ public class ConcatenatingIteratorTest {
                 return delegate.next();
             }
         };
-        Iterator<Integer> iterator = IterableUtils.chainedIterable(sources).iterator();
-        Assert.assertEquals(Integer.valueOf(1), iterator.next());
-        Assert.assertFalse(iterator.hasNext());
-        Assert.assertFalse(iterator.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, iterator::next);
     }
 
     @Test

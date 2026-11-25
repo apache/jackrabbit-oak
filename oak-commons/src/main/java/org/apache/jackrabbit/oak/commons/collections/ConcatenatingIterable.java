@@ -54,7 +54,7 @@ final class ConcatenatingIterable {
 
         @Override
         public Iterator<E> iterator() {
-            return new ConcatenatingIterator<>(new SourceIterator<>(sources.iterator()));
+            return new SourceIterator<>(sources.iterator());
         }
     }
 
@@ -117,48 +117,37 @@ final class ConcatenatingIterable {
         }
     }
 
-    private static final class SourceIterator<E> implements Iterator<Iterator<? extends E>> {
-        private Iterator<? extends Iterable<? extends E>> current;
+    private static final class SourceIterator<E> extends ConcatenatingIterator<E> {
+        private Iterator<? extends Iterable<? extends E>> source;
         private Deque<Iterator<? extends Iterable<? extends E>>> parents;
-        private Iterable<? extends E> next;
 
-        private SourceIterator(Iterator<? extends Iterable<? extends E>> current) {
-            this.current = current;
+        private SourceIterator(Iterator<? extends Iterable<? extends E>> source) {
+            this.source = source;
         }
 
         @Override
-        public boolean hasNext() {
-            while (next == null) {
-                if (current.hasNext()) {
-                    Iterable<? extends E> iterable = Objects.requireNonNull(current.next());
+        Iterator<? extends E> nextInput() {
+            while (source != null) {
+                if (source.hasNext()) {
+                    Iterable<? extends E> iterable = Objects.requireNonNull(source.next());
                     if (iterable instanceof Sources) {
                         @SuppressWarnings("unchecked")
                         Sources<E> nested = (Sources<E>) iterable;
+                        // Open the child before saving the parent so a failed open leaves the path intact.
+                        Iterator<? extends Iterable<? extends E>> child = Objects.requireNonNull(nested.sources.iterator());
                         if (parents == null) {
                             parents = new ArrayDeque<>();
                         }
-                        parents.addLast(current);
-                        current = nested.sources.iterator();
+                        parents.addLast(source);
+                        source = child;
                     } else {
-                        next = iterable;
+                        return Objects.requireNonNull(iterable.iterator());
                     }
-                } else if (parents != null && !parents.isEmpty()) {
-                    current = parents.removeLast();
                 } else {
-                    return false;
+                    source = parents == null || parents.isEmpty() ? null : parents.removeLast();
                 }
             }
-            return true;
-        }
-
-        @Override
-        public Iterator<? extends E> next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            Iterable<? extends E> iterable = next;
-            next = null;
-            return iterable.iterator();
+            return null;
         }
     }
 }
