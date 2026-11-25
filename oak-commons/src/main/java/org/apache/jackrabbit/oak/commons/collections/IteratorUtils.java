@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.collections4.iterators.UnmodifiableIterator;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -315,7 +314,7 @@ public class IteratorUtils {
      */
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends E> iterator1,
                                                   final Iterator<? extends E> iterator2) {
-        return lazyChainedIterator(List.of(iterator1, iterator2).iterator());
+        return new ConcatenatingIterator<>(iterator1, iterator2);
     }
 
     /**
@@ -380,14 +379,7 @@ public class IteratorUtils {
         Objects.requireNonNull(iterators);
         final List<Iterator<? extends E>> chainedIterators = new ArrayList<>();
         iterators.forEachRemaining(iterator -> chainedIterators.add(Objects.requireNonNull(iterator)));
-        return new LazyIteratorChain<>() {
-            private final Iterator<? extends Iterator<? extends E>> chainedIterator = chainedIterators.iterator();
-
-            @Override
-            protected Iterator<? extends E> nextIterator(final int count) {
-                return chainedIterator.hasNext() ? chainedIterator.next() : null;
-            }
-        };
+        return new ConcatenatingIterator<>(chainedIterators.iterator());
     }
 
     /**

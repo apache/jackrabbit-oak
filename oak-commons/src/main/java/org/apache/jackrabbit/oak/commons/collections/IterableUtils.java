@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -58,7 +58,7 @@ public class IterableUtils {
      */
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E> a,
                                                   final Iterable<? extends E> b) {
-        return org.apache.commons.collections4.IterableUtils.chainedIterable(a, b);
+        return ConcatenatingIterable.pair(a, b);
     }
 
     /**
@@ -81,7 +81,7 @@ public class IterableUtils {
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E> a,
                                                   final Iterable<? extends E> b,
                                                   final Iterable<? extends E> c) {
-        return org.apache.commons.collections4.IterableUtils.chainedIterable(a, b, c);
+        return ConcatenatingIterable.ofList(List.of(a, b, c));
     }
 
     /**
@@ -106,7 +106,7 @@ public class IterableUtils {
                                                   final Iterable<? extends E> b,
                                                   final Iterable<? extends E> c,
                                                   final Iterable<? extends E> d) {
-        return org.apache.commons.collections4.IterableUtils.chainedIterable(a, b, c, d);
+        return ConcatenatingIterable.ofList(List.of(a, b, c, d));
     }
 
     /**
@@ -127,7 +127,10 @@ public class IterableUtils {
     @SafeVarargs
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E>... iterables) {
         Objects.requireNonNull(iterables);
-        return org.apache.commons.collections4.IterableUtils.chainedIterable(iterables);
+        for (Iterable<? extends E> iterable : iterables) {
+            Objects.requireNonNull(iterable);
+        }
+        return ConcatenatingIterable.ofList(Arrays.asList(iterables));
     }
 
     /**
@@ -142,14 +145,7 @@ public class IterableUtils {
      * @throws NullPointerException if the input {@code Iterable} or any of its elements are null
      */
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends Iterable<? extends E>> iterables) {
-        Objects.requireNonNull(iterables);
-        return () -> new LazyIteratorChain<>() {
-            private final Iterator<? extends Iterable<? extends E>> iterator = iterables.iterator();
-
-            protected Iterator<? extends E> nextIterator(int count) {
-                return iterator.hasNext() ? iterator.next().iterator() : null;
-            }
-        };
+        return ConcatenatingIterable.of(iterables);
     }
 
     /**
