@@ -60,6 +60,11 @@ public final class BundlorUtils {
                 continue;
             }
 
+            // OAK-11806 : property match must include "/" after matchedPath
+            if (depth > 0 && !matcher.getMatchedPath().isBlank() && !propertyPath.startsWith(matcher.getMatchedPath() + "/")){
+                continue;
+            }
+
             //Extract property name from relative property path
             final String newKey = PathUtils.getName(propertyPath);
             PropertyState value = e.getValue();
