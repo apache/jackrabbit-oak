@@ -61,6 +61,8 @@ public class SegmentWriteQueue implements Closeable {
 
     private final Object retryMonitor = new Object();
 
+    private volatile boolean retryPending;
+
     public SegmentWriteQueue(SegmentConsumer writer) {
         this(writer, QUEUE_SIZE, THREADS);
     }
@@ -104,11 +106,13 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     private void enqueueForRetry(SegmentWriteAction segment) {
+        retryPending = true;
         boolean interrupted = false;
         while (true) {
             try {
                 retryQueue.putLast(segment);
                 synchronized (retryMonitor) {
+                    retryPending = !retryQueue.isEmpty();
                     retryMonitor.notifyAll();
                 }
                 break;
@@ -165,6 +169,7 @@ public class SegmentWriteQueue implements Closeable {
                 persist(segment);
                 retryQueue.removeFirst();
                 synchronized (retryMonitor) {
+                    retryPending = !retryQueue.isEmpty();
                     retryMonitor.notifyAll();
                 }
                 complete(segment);
@@ -253,7 +258,7 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     boolean isBroken() {
-        return !retryQueue.isEmpty();
+        return retryPending;
     }
 
     int getSize() {
@@ -261,6 +266,9 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     private void waitWhileBroken() {
+        if (!retryPending) {
+            return;
+        }
         synchronized (retryMonitor) {
             while (isBroken() && !shutdown) {
                 try {
@@ -273,6 +281,9 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     private void waitUntilBroken() {
+        if (retryPending) {
+            return;
+        }
         synchronized (retryMonitor) {
             while (!isBroken() && !shutdown) {
                 try {
