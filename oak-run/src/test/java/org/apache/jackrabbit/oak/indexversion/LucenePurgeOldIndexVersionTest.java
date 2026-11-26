@@ -26,9 +26,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
@@ -131,18 +131,20 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         }
 
         NodeState audit = fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode(":audit");
-        Map<String, String> operations = new HashMap<>();
+        // all purge entries per index, so that a duplicate or an additional entry is noticed
+        Map<String, List<String>> operations = new TreeMap<>();
         for (NodeState history : List.of(
                 audit.getChildNode(":deleted").getChildNode("oak:index").getChildNode("fooIndex"),
                 audit.getChildNode("oak:index").getChildNode("fooIndex-4"))) {
             for (ChildNodeEntry entry : history.getChildNodeEntries()) {
                 NodeState state = entry.getNodeState();
                 if ("PurgeOldIndexVersion".equals(state.getString("origin"))) {
-                    operations.put(state.getString("path"), state.getString("operation"));
+                    operations.computeIfAbsent(state.getString("path"), p -> new ArrayList<>()).add(state.getString("operation"));
                 }
             }
         }
-        Assert.assertEquals(Map.of("/oak:index/fooIndex", "DELETED", "/oak:index/fooIndex-4", "DISABLED"), operations);
+        Assert.assertEquals(Map.of("/oak:index/fooIndex", List.of("DELETED"), "/oak:index/fooIndex-4", List.of("DISABLED")),
+                operations);
     }
 
     @Test

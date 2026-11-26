@@ -22,9 +22,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ORIGINAL_TY
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit.DISABLED_BY;
-import static org.apache.jackrabbit.oak.plugins.index.IndexManagerMBeanImpl.DISABLED_AT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexManager.DISABLED_AT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit.DISABLED_REASON;
-import static org.apache.jackrabbit.oak.plugins.index.IndexManagerMBeanImpl.ORIGINAL_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexManager.ORIGINAL_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,6 +37,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.Set;
 
 import javax.management.MBeanServer;
@@ -87,8 +90,11 @@ public class IndexManagerMBeanImplTest {
 
     private FeatureToggle toggle;
 
+    private String auditProperty;
+
     @Before
     public void setUp() throws Exception {
+        auditProperty = System.getProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
         System.setProperty(IndexDefinitionAudit.ENABLED_PROPERTY, "true");
         try {
             hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
@@ -105,7 +111,11 @@ public class IndexManagerMBeanImplTest {
 
     @After
     public void tearDown() {
-        System.clearProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
+        if (auditProperty == null) {
+            System.clearProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
+        } else {
+            System.setProperty(IndexDefinitionAudit.ENABLED_PROPERTY, auditProperty);
+        }
         feature.close();
     }
 
@@ -136,6 +146,8 @@ public class IndexManagerMBeanImplTest {
                 removed.getCompositeType().keySet());
         assertEquals(2, removed.get("4. entries"));
         assertEquals("DELETED", removed.get("2. lastOperation"));
+        // only the entries of the given index
+        assertEquals(List.of("CREATED"), column(rows(mbean.getAuditTrail("fooIndex")), "1. operation"));
     }
 
     @Test
@@ -210,7 +222,7 @@ public class IndexManagerMBeanImplTest {
         assertEquals("sky-idx:bob", entry.get("3. user"));
         assertEquals("old version", entry.get("4. reason"));
         assertEquals("IndexManager.disableIndex", entry.get("5. thread"));
-        assertEquals(IndexManagerMBeanImpl.ORIGIN, lastAuditEntry("fooIndex").getString(IndexDefinitionAudit.PROP_ORIGIN));
+        assertEquals(IndexManager.ORIGIN, lastAuditEntry("fooIndex").getString(IndexDefinitionAudit.PROP_ORIGIN));
 
         assertEquals("/oak:index/fooIndex is already disabled", mbean.disableIndex("fooIndex", "bob", null, false));
         assertEquals(3, mbean.getAuditTrail("fooIndex").size());
@@ -297,6 +309,8 @@ public class IndexManagerMBeanImplTest {
         for (int i = 0; i < 2500; i++) {
             data.child("n" + i).setProperty("x", i);
         }
+        // part of the definition, removed with it
+        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").child("rule").setProperty("x", 1L);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         mbean.disableIndex("fooIndex", "bob", "old version", false);
 
@@ -346,7 +360,8 @@ public class IndexManagerMBeanImplTest {
         builder.getChildNode(INDEX_DEFINITIONS_NAME).child("untyped");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        for (String path : new String[] {null, "/", "/oak:index", "missing", "untyped", "/content/typed"}) {
+        for (String path : new String[] {null, "/", "/oak:index", "missing", "untyped", "/content/typed",
+                "uuid/", "/oak:index//uuid", "../oak:index/uuid", "x/../uuid", "/oak:index/../oak:index/uuid"}) {
             assertThrows(path, IllegalArgumentException.class, () -> mbean.disableIndex(path, "bob", null, false));
             assertThrows(path, IllegalArgumentException.class, () -> mbean.enableIndex(path, "bob", false));
             assertThrows(path, IllegalArgumentException.class, () -> mbean.deleteIndex(path, "bob", null, false));
@@ -416,7 +431,7 @@ public class IndexManagerMBeanImplTest {
             @Override
             public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
                     @NotNull CommitInfo info) throws CommitFailedException {
-                if (IndexManagerMBeanImpl.ORIGIN.equals(info.getSessionId()) && enableBeforeNextChange.getAndSet(false)) {
+                if (IndexManager.ORIGIN.equals(info.getSessionId()) && enableBeforeNextChange.getAndSet(false)) {
                     // a concurrent change enables the index again
                     NodeBuilder other = getRoot().builder();
                     other.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").setProperty(TYPE_PROPERTY_NAME, "property");
@@ -435,10 +450,13 @@ public class IndexManagerMBeanImplTest {
         mbean.disableIndex("fooIndex", "bob", null, false);
         enableBeforeNextChange.set(true);
 
-        assertThrows(IllegalStateException.class, () -> mbean.deleteIndex("fooIndex", "bob", null, false));
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> mbean.deleteIndex("fooIndex", "bob", null, false));
 
         assertEquals("property", fooIndex().getString(TYPE_PROPERTY_NAME));
         assertEquals(withIndexData, fooIndex().getChildNode(":data").hasChildNode("n"));
+        // nothing was removed
+        assertFalse(e.getMessage(), e.getMessage().contains("partly removed"));
     }
 
     @Test
@@ -493,6 +511,271 @@ public class IndexManagerMBeanImplTest {
 
         assertEquals("jmx-admin", fooIndex().getString(IndexDefinitionAudit.DISABLED_BY));
         assertEquals("jmx-admin", rows(mbean.getAuditTrail("fooIndex")).get(0).get("3. user"));
+
+        // a JMX caller without principals is unknown
+        Java23Subject.doAs(new Subject(), (PrivilegedAction<String>) () -> mbean.enableIndex("fooIndex", null, false));
+        assertEquals(IndexManagerMBeanImpl.UNKNOWN_CALLER, rows(mbean.getAuditTrail("fooIndex")).get(0).get("3. user"));
+    }
+
+    @Test
+    public void valuesAreLimited() throws Exception {
+        addIndex("/", "fooIndex");
+        String tooLong = "x".repeat(IndexDefinitionAudit.MAX_VALUE_LENGTH + 1);
+        String longest = "x".repeat(IndexDefinitionAudit.MAX_VALUE_LENGTH);
+
+        assertThrows(IllegalArgumentException.class, () -> mbean.disableIndex("fooIndex", tooLong, null, false));
+        assertThrows(IllegalArgumentException.class, () -> mbean.disableIndex("fooIndex", "bob", tooLong, false));
+        assertThrows(IllegalArgumentException.class, () -> mbean.enableIndex("fooIndex", tooLong, false));
+        assertThrows(IllegalArgumentException.class, () -> mbean.deleteIndex("fooIndex", tooLong, null, false));
+        assertThrows(IllegalArgumentException.class, () -> mbean.deleteIndex("fooIndex", "bob", tooLong, false));
+        assertEquals("property", fooIndex().getString(TYPE_PROPERTY_NAME));
+        assertEquals(1, mbean.getAuditTrail("fooIndex").size());
+
+        mbean.disableIndex("fooIndex", longest, longest, false);
+        CompositeData entry = rows(mbean.getAuditTrail("fooIndex")).get(0);
+        assertEquals(longest, entry.get("3. user"));
+        assertEquals(longest, entry.get("4. reason"));
+    }
+
+    @Test
+    public void brokenAuditEntriesCanBeRead() throws Exception {
+        addIndex("/", "fooIndex");
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder history = builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(IndexDefinitionAudit.AUDIT_NODE_NAME)
+                .getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+        // edited by hand: a sequence number that does not fit into a long (not an entry), wrong types
+        history.child("20260101T0000Z.0").setProperty(IndexDefinitionAudit.PROP_OPERATION, "CHANGED");
+        history.child("20260101T0000Z.99999999999999999999").setProperty(IndexDefinitionAudit.PROP_OPERATION, "X");
+        history.child("20260101T0000Z.1").setProperty(IndexDefinitionAudit.PROP_TIME, "yesterday")
+                .setProperty(IndexDefinitionAudit.PROP_USER, 42L)
+                .setProperty(IndexDefinitionAudit.PROP_OPERATION, List.of("A", "B"), org.apache.jackrabbit.oak.api.Type.STRINGS);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        List<CompositeData> trail = rows(mbean.getAuditTrail("fooIndex"));
+        assertEquals(List.of("CREATED", "", "CHANGED"), column(trail, "1. operation"));
+        assertEquals("yesterday", trail.get(1).get("2. time"));
+        assertEquals("42", trail.get(1).get("3. user"));
+        assertEquals(3, rows(mbean.getIndexes()).get(0).get("4. entries"));
+        // the index can still be changed
+        mbean.disableIndex("fooIndex", "bob", null, false);
+        assertEquals(4, mbean.getAuditTrail("fooIndex").size());
+    }
+
+    @Test
+    public void indexReplacedWhileItIsDeletedIsNotDeleted() throws Exception {
+        AtomicBoolean replaceBeforeNextChange = new AtomicBoolean();
+        store = new MemoryNodeStore(INITIAL_CONTENT) {
+            @Override
+            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                    @NotNull CommitInfo info) throws CommitFailedException {
+                if (IndexManager.ORIGIN.equals(info.getSessionId()) && replaceBeforeNextChange.getAndSet(false)) {
+                    // a concurrent change replaces the definition (also disabled)
+                    NodeBuilder other = getRoot().builder();
+                    other.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").setProperty("propertyNames", "bar");
+                    super.merge(other, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+                return super.merge(builder, commitHook, info);
+            }
+        };
+        mbean = new IndexManagerMBeanImpl(store, EDITORS, feature);
+        addIndex("/", "fooIndex");
+        mbean.disableIndex("fooIndex", "bob", null, false);
+        replaceBeforeNextChange.set(true);
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> mbean.deleteIndex("fooIndex", "bob", null, false));
+
+        assertTrue(e.getMessage(), e.getMessage().contains("changed meanwhile"));
+        assertEquals("bar", fooIndex().getString("propertyNames"));
+        assertEquals(List.of("DISABLED", "CREATED"), column(rows(mbean.getAuditTrail("fooIndex")), "1. operation"));
+    }
+
+    @Test
+    public void indexChangedOrNoLongerReindexedWhileItsDataIsDeletedIsNotDeleted() throws Exception {
+        assertDeleteStopsAfterFirstBatch("propertyNames", "bar", "changed meanwhile");
+        assertDeleteStopsAfterFirstBatch(IndexConstants.REINDEX_PROPERTY_NAME, false, "no longer marked for reindexing");
+    }
+
+    private void assertDeleteStopsAfterFirstBatch(String property, Object value, String message) throws Exception {
+        AtomicInteger merges = new AtomicInteger();
+        store = new MemoryNodeStore(INITIAL_CONTENT) {
+            @Override
+            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                    @NotNull CommitInfo info) throws CommitFailedException {
+                if (IndexManager.ORIGIN.equals(info.getSessionId()) && merges.incrementAndGet() == 4) {
+                    // after the first batch of index data is deleted, the definition is changed
+                    NodeBuilder other = getRoot().builder();
+                    NodeBuilder index = other.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+                    if (value instanceof Boolean) {
+                        index.setProperty(property, (Boolean) value);
+                    } else {
+                        index.setProperty(property, (String) value);
+                    }
+                    super.merge(other, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+                return super.merge(builder, commitHook, info);
+            }
+        };
+        mbean = new IndexManagerMBeanImpl(store, EDITORS, feature);
+        addIndex("/", "fooIndex");
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder index = builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+        index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, false);
+        for (int i = 0; i < 2500; i++) {
+            index.child(":data").child("n" + i).setProperty("x", i);
+        }
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        mbean.disableIndex("fooIndex", "bob", null, false);
+        merges.set(1);
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> mbean.deleteIndex("fooIndex", "bob", null, false));
+
+        assertTrue(e.getMessage(), e.getMessage().contains(message));
+        long remaining = fooIndex().getChildNode(":data").getChildNodeCount(10_000);
+        assertTrue(String.valueOf(remaining), remaining > 0 && remaining < 2500);
+        assertEquals(List.of("DISABLED", "CREATED"), column(rows(mbean.getAuditTrail("fooIndex")), "1. operation"));
+    }
+
+    @Test
+    public void indexChangedBeforeItsDefinitionIsRemovedIsNotDeleted() throws Exception {
+        store = new MemoryNodeStore(INITIAL_CONTENT) {
+            @Override
+            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                    @NotNull CommitInfo info) throws CommitFailedException {
+                if ("IndexManager.deleteIndex".equals(info.getInfo().get(IndexDefinitionAudit.COMMIT_INFO_THREAD))) {
+                    // after all index data is deleted, the reindex flag is reset
+                    NodeBuilder other = getRoot().builder();
+                    other.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex")
+                            .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, false);
+                    super.merge(other, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+                return super.merge(builder, commitHook, info);
+            }
+        };
+        mbean = new IndexManagerMBeanImpl(store, EDITORS, feature);
+        addIndex("/", "fooIndex");
+        NodeBuilder builder = store.getRoot().builder();
+        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").child(":data").child("n");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        mbean.disableIndex("fooIndex", "bob", null, false);
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> mbean.deleteIndex("fooIndex", "bob", null, false));
+
+        assertTrue(e.getMessage(), e.getMessage().contains("no longer marked for reindexing"));
+        assertTrue(e.getMessage(), e.getMessage().contains("index data was partly removed in 1 commits"));
+        assertTrue(fooIndex().exists());
+        assertFalse(fooIndex().hasChildNode(":data"));
+    }
+
+    @Test
+    public void disableAndEnableFailIfTheIndexIsChangedMeanwhile() throws Exception {
+        AtomicBoolean changeBeforeNextChange = new AtomicBoolean();
+        AtomicInteger changes = new AtomicInteger();
+        AtomicReference<BiConsumer<NodeBuilder, Integer>> concurrentChange = new AtomicReference<>(
+                (index, n) -> index.setProperty("info", "change " + n));
+        store = new MemoryNodeStore(INITIAL_CONTENT) {
+            @Override
+            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                    @NotNull CommitInfo info) throws CommitFailedException {
+                if (IndexManager.ORIGIN.equals(info.getSessionId()) && changeBeforeNextChange.getAndSet(false)) {
+                    // a concurrent change of the definition, between reading it and the commit
+                    NodeBuilder other = getRoot().builder();
+                    NodeBuilder index = other.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+                    concurrentChange.get().accept(index, changes.incrementAndGet());
+                    super.merge(other, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+                return super.merge(builder, commitHook, info);
+            }
+        };
+        mbean = new IndexManagerMBeanImpl(store, EDITORS, feature);
+        addIndex("/", "fooIndex");
+
+        changeBeforeNextChange.set(true);
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> mbean.disableIndex("fooIndex", "bob", null, false));
+        assertTrue(e.getMessage(), e.getMessage().contains("was changed meanwhile, it is not disabled"));
+        assertEquals("property", fooIndex().getString(TYPE_PROPERTY_NAME));
+
+        mbean.disableIndex("fooIndex", "bob", null, false);
+        changeBeforeNextChange.set(true);
+        e = assertThrows(IllegalStateException.class, () -> mbean.enableIndex("fooIndex", "bob", false));
+        assertTrue(e.getMessage(), e.getMessage().contains("was changed meanwhile, it is not enabled"));
+        assertEquals(TYPE_DISABLED, fooIndex().getString(TYPE_PROPERTY_NAME));
+        // the type set by the purge of old index versions is read by enable
+        changeBeforeNextChange.set(true);
+        concurrentChange.set((index, n) -> index.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, "lucene"));
+        e = assertThrows(IllegalStateException.class, () -> mbean.enableIndex("fooIndex", "bob", false));
+        assertTrue(e.getMessage(), e.getMessage().contains("was changed meanwhile, it is not enabled"));
+        // a reindex (by the indexing lane) meanwhile does not matter
+        changeBeforeNextChange.set(true);
+        concurrentChange.set((index, n) -> index.setProperty(IndexConstants.REINDEX_COUNT, (long) n));
+        mbean.enableIndex("fooIndex", "bob", false);
+        assertEquals("property", fooIndex().getString(TYPE_PROPERTY_NAME));
+        // the concurrent changes are not recorded (committed without the index update)
+        assertEquals(List.of("ENABLED", "DISABLED", "CREATED"), column(rows(mbean.getAuditTrail("fooIndex")), "1. operation"));
+    }
+
+    @Test
+    public void identicalEntriesAreShownOnce() throws Exception {
+        addIndex("/", "fooIndex");
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder history = builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(IndexDefinitionAudit.AUDIT_NODE_NAME)
+                .getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+        // for example copied when histories are merged
+        for (String name : List.of("20260101T0000Z.0", "20260101T0000Z.1")) {
+            history.child(name).setProperty(IndexDefinitionAudit.PROP_OPERATION, "CHANGED")
+                    .setProperty(IndexDefinitionAudit.PROP_USER, "bob");
+        }
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertEquals(List.of("CREATED", "CHANGED"), column(rows(mbean.getAuditTrail("fooIndex")), "1. operation"));
+        assertEquals(3, rows(mbean.getIndexes()).get(0).get("4. entries"));
+    }
+
+    @Test
+    public void indexEnabledOutsideWhileItsDataIsDeletedIsReindexed() throws Exception {
+        AtomicInteger merges = new AtomicInteger();
+        store = new MemoryNodeStore(INITIAL_CONTENT) {
+            @Override
+            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                    @NotNull CommitInfo info) throws CommitFailedException {
+                if (IndexManager.ORIGIN.equals(info.getSessionId()) && merges.incrementAndGet() == 4) {
+                    // after the first batch of index data is deleted, the index is enabled again
+                    // without the index manager (for example by deploying the definition)
+                    NodeBuilder other = getRoot().builder();
+                    other.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").setProperty(TYPE_PROPERTY_NAME, "property");
+                    super.merge(other, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+                return super.merge(builder, commitHook, info);
+            }
+        };
+        mbean = new IndexManagerMBeanImpl(store, EDITORS, feature);
+        addIndex("/", "fooIndex");
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder index = builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+        // as if built by the async lane
+        index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, false);
+        for (int i = 0; i < 2500; i++) {
+            index.child(":data").child("n" + i).setProperty("x", i);
+        }
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // merge 1
+        mbean.disableIndex("fooIndex", "bob", null, false);
+        merges.set(1);
+
+        // merge 2 sets the reindex flag, merge 3 is the first batch, the index is enabled before merge 4
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> mbean.deleteIndex("fooIndex", "bob", null, false));
+        assertTrue(e.getMessage(), e.getMessage().contains("index data was partly removed in 1 commits: if the index is used, it must be reindexed"));
+
+        NodeState foo = fooIndex();
+        assertEquals("property", foo.getString(TYPE_PROPERTY_NAME));
+        long remaining = foo.getChildNode(":data").getChildNodeCount(10_000);
+        assertTrue(String.valueOf(remaining), remaining > 0 && remaining < 2500);
+        // the partly deleted index is rebuilt
+        assertTrue(foo.getBoolean(IndexConstants.REINDEX_PROPERTY_NAME));
     }
 
     @Test

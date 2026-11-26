@@ -51,8 +51,12 @@ public class NodeStoreUtilsTest {
         };
 
         NodeStoreUtils.mergeWithConcurrentCheck(store, store.getRoot().builder());
-        NodeStoreUtils.mergeWithConcurrentCheck(store, store.getRoot().builder(), new PropertyIndexEditorProvider(), false);
+        NodeStoreUtils.mergeWithConcurrentCheck(store, store.getRoot().builder(), new PropertyIndexEditorProvider(), false,
+                IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER);
+        NodeStoreUtils.mergeWithConcurrentCheck(store, store.getRoot().builder(), new PropertyIndexEditorProvider(), false,
+                "other");
 
-        assertEquals(List.of(CommitInfo.OAK_UNKNOWN, IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER), sessionIds);
+        // the session id is given by the caller
+        assertEquals(List.of(CommitInfo.OAK_UNKNOWN, IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, "other"), sessionIds);
     }
 }

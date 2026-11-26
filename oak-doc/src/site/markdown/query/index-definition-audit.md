@@ -81,6 +81,8 @@ Each entry contains:
   The diff of a deleted index is empty: the definition is known from the earlier entries.
 * `reindexRequested`: if the commit also requested a reindex
 
+`user`, `reason` and `thread` are limited to 1024 characters.
+
 Not part of the diff are hidden properties and nodes (the index data),
 and properties that are internal bookkeeping:
 `reindexCount`, `seed`, `refresh`, `reindex` set to `false`, `deletedBy`,
@@ -116,6 +118,7 @@ The MBean of type `IndexManager` ("Index Manager") has the following operations:
   The index name alone (for example `fooIndex`) refers to `/oak:index/fooIndex`.
 * `disableIndex(indexPath, by, reason, force)`: sets the type to `disabled` and stores the previous type
   in `originalType`, as well as `disabledAt`, `disabledBy` and `disabledReason`.
+  Like the other operations, it fails if the index definition is changed between reading and changing it.
   Does nothing if the index is already disabled.
 * `enableIndex(indexPath, by, force)`: restores the type stored in `originalType`
   (or in `:originalType`, set by the purge of old index versions with oak-run),
@@ -128,7 +131,14 @@ The MBean of type `IndexManager` ("Index Manager") has the following operations:
   The index data (hidden child nodes) is removed in batches first, so that indexes of any size can be deleted,
   and then the index definition, in one commit with the index update
   (so that for example the node type index no longer lists the index definition).
-  If the index is enabled meanwhile, the operation fails, and the index definition is not removed.
+  If the index definition is changed meanwhile (for example enabled), the operation fails,
+  and the index definition is not removed.
+  Before its data is removed, the index is marked for reindexing (`reindex` = `true`),
+  so that it is rebuilt if it is enabled again, also in another way, after its data was partly removed
+  (unless the `reindex` flag is removed as well).
+  If the operation fails after part of the data was removed (also if the `reindex` flag was removed meanwhile),
+  the error message says so: if the index is used, it must then be reindexed.
+  Index data in read-only mounts (composite node store) is not removed.
   Index data stored outside of the repository (for example in Elasticsearch) is not removed.
 
 Notes:
@@ -140,7 +150,8 @@ Notes:
 * Synchronous indexes (without `async` property, for example `uuid`, `nodetype` and `reference`)
   are used by every commit. They are only disabled, enabled (which reindexes them in the same call)
   or deleted if `force` is `true`.
-* `by` and `reason` are optional. `by` defaults to the principals of the JMX caller, if known,
+* `by` and `reason` are optional, and at most 1024 characters long.
+  `by` defaults to the principals of the JMX caller, if known,
   else to `unknown`. The values are recorded as given by the caller, they are not verified.
 * The changes are recorded as described above, with the user `by` and the origin `IndexManager`.
 * The operations do not check whether an index is still needed

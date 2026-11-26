@@ -44,6 +44,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,15 +59,19 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -74,14 +81,22 @@ import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.slf4j.event.Level;
 
 /**
  * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
  */
 public class IndexDefinitionAuditTest {
+
+    /**
+     * Set by the index importer while an index is switched to a temporary lane (see AsyncLaneSwitcher).
+     */
+    private static final String ASYNC_PREVIOUS = "async-previous";
 
     private static final CommitInfo ALICE = new CommitInfo("session-1", "alice",
             Map.of("path", "/oak:index"));
@@ -256,7 +271,7 @@ public class IndexDefinitionAuditTest {
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", false, false, Set.of("foo"), null)
                 .setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "temp-async")
-                .setProperty(IndexDefinitionAudit.ASYNC_PREVIOUS, "async")
+                .setProperty(ASYNC_PREVIOUS, "async")
                 .setProperty(IndexImporter.INDEX_IMPORT_STATE_KEY, "IMPORT_INDEX_DATA");
         root = hook.processCommit(root, builder.getNodeState(),
                 new CommitInfo(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, null));
@@ -276,7 +291,7 @@ public class IndexDefinitionAuditTest {
 
         NodeBuilder builder = root.builder();
         fooIndex(builder).setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "temp-async")
-                .setProperty(IndexDefinitionAudit.ASYNC_PREVIOUS, "none")
+                .setProperty(ASYNC_PREVIOUS, "none")
                 .setProperty("entryCount", 100L);
         root = hook.processCommit(root, builder.getNodeState(),
                 new CommitInfo(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, null));
@@ -512,19 +527,60 @@ public class IndexDefinitionAuditTest {
 
     @Test
     public void entryNamesUseMinuteAndSequence() throws Exception {
-        addFooIndex();
-        NodeBuilder builder = root.builder();
-        fooIndex(builder).setProperty("entryCount", 100L);
-        commit(builder);
+        NodeBuilder rootBuilder = root.builder();
+        NodeBuilder definitions = rootBuilder.child(INDEX_DEFINITIONS_NAME);
+        NodeState before = definitions.getNodeState();
+        createIndexDefinition(definitions, "fooIndex", true, false, Set.of("foo"), null);
+        audit(rootBuilder, "2026-10-13T14:05:01Z").audit("/oak:index", before, definitions);
+        for (String time : List.of("2026-10-13T14:05:59Z", "2026-10-13T14:06:00Z")) {
+            before = definitions.getNodeState();
+            definitions.getChildNode("fooIndex").setProperty("time", time);
+            audit(rootBuilder, time).audit("/oak:index", before, definitions);
+        }
 
-        List<String> names = entryNames(history("/oak:index/fooIndex"));
-        assertEquals(2, names.size());
-        String first = names.get(0);
-        String second = names.get(1);
-        assertTrue(first, first.matches("\\d{8}T\\d{4}Z\\.0"));
-        String minute = first.substring(0, first.indexOf('.'));
-        // the second entry is in the same minute (sequence 1) or in a later minute (sequence 0)
-        assertTrue(second, second.equals(minute + ".1") || (second.endsWith(".0") && second.compareTo(first) > 0));
+        assertEquals(List.of("20261013T1405Z.0", "20261013T1405Z.1", "20261013T1406Z.0"), entryNames(
+                definitions.getChildNode(AUDIT_NODE_NAME).getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex")
+                        .getNodeState()));
+    }
+
+    @Test
+    public void entryNamesWithTooLongSequenceAreIgnored() throws Exception {
+        NodeBuilder rootBuilder = root.builder();
+        NodeBuilder definitions = rootBuilder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder history = definitions.child(AUDIT_NODE_NAME).child(INDEX_DEFINITIONS_NAME).child("fooIndex");
+        // edited by hand: the sequence number does not fit into a long
+        history.child("20261013T1405Z.99999999999999999999");
+        history.child("20261013T1405Z.4");
+        NodeState before = definitions.getNodeState();
+        createIndexDefinition(definitions, "fooIndex", true, false, Set.of("foo"), null);
+
+        audit(rootBuilder, "2026-10-13T14:05:01Z").audit("/oak:index", before, definitions);
+
+        assertTrue(history.hasChildNode("20261013T1405Z.5"));
+        assertFalse(IndexDefinitionAudit.isEntryName("20261013T1405Z.99999999999999999999"));
+        assertTrue(IndexDefinitionAudit.isEntryName("20261013T1405Z.999999999999999999"));
+    }
+
+    @Test
+    public void restoredHistoryWithTheSameEntryNames() throws Exception {
+        NodeBuilder rootBuilder = root.builder();
+        NodeBuilder definitions = rootBuilder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder audit = definitions.child(AUDIT_NODE_NAME);
+        // a history of a removed index, and a history of the index created again (while the audit was disabled)
+        audit.child(DELETED_NODE_NAME).child(INDEX_DEFINITIONS_NAME).child("fooIndex")
+                .setProperty(PROP_DELETED_AT, "2026-10-13T14:00:00.000Z", Type.DATE)
+                .child("20261013T1300Z.0").setProperty(PROP_OPERATION, "DELETED");
+        audit.child(INDEX_DEFINITIONS_NAME).child("fooIndex").child("20261013T1300Z.0").setProperty(PROP_OPERATION, "CREATED");
+        createIndexDefinition(definitions, "fooIndex", true, false, Set.of("foo"), null);
+        NodeState before = definitions.getNodeState();
+        definitions.getChildNode("fooIndex").setProperty("info", "changed");
+
+        audit(rootBuilder, "2026-10-13T14:05:00Z").audit("/oak:index", before, definitions);
+
+        NodeState history = audit.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").getNodeState();
+        assertEquals(List.of("20261013T1300Z.0", "20261013T1300Z.1", "20261013T1405Z.0"), entryNames(history));
+        assertEquals(List.of("CREATED", "DELETED", "CHANGED"), operations(entries(history)));
+        assertFalse(audit.hasChildNode(DELETED_NODE_NAME));
     }
 
     @Test
@@ -537,21 +593,52 @@ public class IndexDefinitionAuditTest {
     public void deletedHistoriesAreCapped() throws Exception {
         NodeBuilder rootBuilder = root.builder();
         NodeBuilder definitions = rootBuilder.child(INDEX_DEFINITIONS_NAME);
-        IndexDefinitionAudit audit = new IndexDefinitionAudit(ALICE, rootBuilder, 10, 2);
+        long time = Instant.parse("2026-10-13T14:05:00Z").toEpochMilli();
         for (String name : List.of("a", "b", "c")) {
+            // deletion times have millisecond precision
+            IndexDefinitionAudit audit = new IndexDefinitionAudit(ALICE, rootBuilder, 10, 2,
+                    Clock.fixed(Instant.ofEpochMilli(time++), ZoneOffset.UTC));
             NodeState before = definitions.getNodeState();
             createIndexDefinition(definitions, name, true, false, Set.of("foo"), null);
             audit.audit("/oak:index", before, definitions);
             before = definitions.getNodeState();
             definitions.getChildNode(name).remove();
             audit.audit("/oak:index", before, definitions);
-            // deletion times have millisecond precision
-            Thread.sleep(2);
         }
 
         NodeState deleted = definitions.getChildNode(AUDIT_NODE_NAME).getChildNode(DELETED_NODE_NAME)
                 .getChildNode(INDEX_DEFINITIONS_NAME).getNodeState();
         assertEquals(Set.of("b", "c"), SetUtils.toSet(deleted.getChildNodeNames()));
+    }
+
+    @Test
+    public void deletedHistoryWithBrokenDateIsRemovedFirst() throws Exception {
+        NodeBuilder rootBuilder = root.builder();
+        NodeBuilder definitions = rootBuilder.child(INDEX_DEFINITIONS_NAME);
+        // edited by hand: not a date, a wrong date of type DATE, several dates
+        NodeBuilder deletedDefinitions = definitions.child(AUDIT_NODE_NAME).child(DELETED_NODE_NAME).child(INDEX_DEFINITIONS_NAME);
+        deletedDefinitions.child("broken1").setProperty(PROP_DELETED_AT, "yesterday").child("20261013T1300Z.0");
+        deletedDefinitions.child("broken2").setProperty(PROP_DELETED_AT, "yesterday", Type.DATE).child("20261013T1300Z.0");
+        deletedDefinitions.child("broken3").setProperty(PROP_DELETED_AT,
+                List.of("2999-10-13T13:00:00.000Z", "2999-10-13T13:01:00.000Z"), Type.DATES).child("20261013T1300Z.0");
+        // a value that can not be read (for example from a broken store)
+        PropertyState unreadable = Mockito.mock(PropertyState.class);
+        Mockito.when(unreadable.getName()).thenReturn(PROP_DELETED_AT);
+        Mockito.when(unreadable.getType()).thenReturn((Type) Type.DATE);
+        Mockito.when(unreadable.getValue(Type.STRING)).thenThrow(new IllegalStateException("test"));
+        deletedDefinitions.child("broken4").setProperty(unreadable).child("20261013T1300Z.0");
+        NodeState before = definitions.getNodeState();
+        createIndexDefinition(definitions, "fooIndex", true, false, Set.of("foo"), null);
+        IndexDefinitionAudit audit = new IndexDefinitionAudit(ALICE, rootBuilder, 10, 1);
+        audit.audit("/oak:index", before, definitions);
+        before = definitions.getNodeState();
+        definitions.getChildNode("fooIndex").remove();
+
+        audit.audit("/oak:index", before, definitions);
+
+        NodeState deleted = definitions.getChildNode(AUDIT_NODE_NAME).getChildNode(DELETED_NODE_NAME)
+                .getChildNode(INDEX_DEFINITIONS_NAME).getNodeState();
+        assertEquals(Set.of("fooIndex"), SetUtils.toSet(deleted.getChildNodeNames()));
     }
 
     @Test
@@ -581,34 +668,107 @@ public class IndexDefinitionAuditTest {
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "barIndex", true, false, Set.of("bar"), null);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, Set.of("foo"), null);
         commit(builder);
-        // a broken entry name in the history of barIndex (recorded first)
-        builder = root.builder();
-        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(AUDIT_NODE_NAME).getChildNode(INDEX_DEFINITIONS_NAME)
-                .getChildNode("barIndex").child("20260101T0000Z.99999999999999999999");
-        root = builder.getNodeState();
+        NodeBuilder rootBuilder = root.builder();
+        NodeBuilder definitions = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME);
+        // recording the change of barIndex (recorded first) fails
+        NodeState before = Mockito.spy(definitions.getNodeState());
+        NodeState bar = Mockito.spy(before.getChildNode("barIndex"));
+        Mockito.doThrow(new IllegalStateException("test")).when(bar).hasProperty(TYPE_PROPERTY_NAME);
+        Mockito.doReturn(bar).when(before).getChildNode("barIndex");
+        definitions.getChildNode("barIndex").setProperty("info", "changed");
+        definitions.getChildNode("fooIndex").setProperty("info", "changed");
 
-        builder = root.builder();
-        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("barIndex").setProperty("info", "changed");
-        fooIndex(builder).setProperty("info", "changed");
-        commit(builder);
-
-        assertEquals(List.of("CREATED", "CHANGED"), operations(entries("fooIndex")));
+        LogCustomizer log = LogCustomizer.forLogger(IndexDefinitionAudit.class).enable(Level.WARN).create();
+        log.starting();
+        try {
+            new IndexDefinitionAudit(ALICE, rootBuilder, 10, 10).audit("/oak:index", before, definitions);
+            assertEquals(List.of("Failed to record the change of index definition /oak:index/barIndex"), log.getLogs());
+        } finally {
+            log.finished();
+        }
+        NodeState histories = definitions.getChildNode(AUDIT_NODE_NAME).getChildNode(INDEX_DEFINITIONS_NAME).getNodeState();
+        assertEquals(List.of("CREATED", "CHANGED"), operations(entries(histories.getChildNode("fooIndex"))));
+        assertEquals(List.of("CREATED"), operations(entries(histories.getChildNode("barIndex"))));
     }
 
     @Test
     public void auditFailureDoesNotFailTheCommit() throws Exception {
         addFooIndex();
-        // a broken entry name in the history (the sequence number does not fit into a long)
         NodeBuilder builder = root.builder();
-        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(AUDIT_NODE_NAME).getChildNode(INDEX_DEFINITIONS_NAME)
-                .getChildNode("fooIndex").child("20260101T0000Z.99999999999999999999");
-        root = builder.getNodeState();
-
+        builder.child("content").setProperty("bar", "x");
+        removeFooIndex();
         builder = root.builder();
-        fooIndex(builder).setProperty("info", "changed");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "barIndex", true, false, Set.of("bar"), null);
+        // reading the histories of removed indexes (to limit their number) fails
+        NodeBuilder audit = builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(AUDIT_NODE_NAME);
+        audit.setChildNode(DELETED_NODE_NAME, new FailingChildNodeEntries(audit.getChildNode(DELETED_NODE_NAME).getNodeState()));
+        root = builder.getNodeState();
+        builder = root.builder();
+        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("barIndex").remove();
+        builder.child("content").setProperty("info", "changed");
+
+        LogCustomizer log = LogCustomizer.forLogger(IndexUpdate.class).enable(Level.WARN).create();
+        log.starting();
+        try {
+            commit(builder);
+            assertEquals(List.of("Failed to record the index definition changes below /oak:index"), log.getLogs());
+        } finally {
+            log.finished();
+        }
+        // the commit is done
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode("barIndex"));
+        assertEquals("changed", root.getChildNode("content").getString("info"));
+    }
+
+    @Test
+    public void truncatedValuesDoNotSplitSurrogatePairs() throws Exception {
+        addFooIndex();
+        // U+1F600 (a surrogate pair) where the value is cut
+        String value = "x".repeat(IndexDefinitionAudit.MAX_VALUE_LENGTH - 4) + "\uD83D\uDE00" + "y".repeat(10);
+        NodeBuilder builder = root.builder();
+        fooIndex(builder).setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED)
+                .setProperty(IndexDefinitionAudit.DISABLED_BY, value)
+                .setProperty(IndexDefinitionAudit.DISABLED_REASON, value);
         commit(builder);
 
-        assertEquals("changed", fooIndex().getString("info"));
+        NodeState entry = lastEntry("fooIndex");
+        for (String recorded : List.of(entry.getString(PROP_USER), entry.getString(PROP_REASON))) {
+            assertTrue(recorded.length() <= IndexDefinitionAudit.MAX_VALUE_LENGTH);
+            assertTrue(recorded.endsWith("..."));
+            String kept = recorded.substring(0, recorded.length() - 3);
+            assertFalse(Character.isHighSurrogate(kept.charAt(kept.length() - 1)));
+        }
+    }
+
+    @Test
+    public void recordedValuesAreTruncated() throws Exception {
+        addFooIndex();
+        String tooLong = "x".repeat(IndexDefinitionAudit.MAX_VALUE_LENGTH + 1);
+        NodeBuilder builder = root.builder();
+        fooIndex(builder).setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED)
+                .setProperty(IndexDefinitionAudit.DISABLED_BY, tooLong)
+                .setProperty(IndexDefinitionAudit.DISABLED_REASON, tooLong);
+        commit(builder);
+
+        NodeState entry = lastEntry("fooIndex");
+        String truncated = tooLong.substring(0, IndexDefinitionAudit.MAX_VALUE_LENGTH - 3) + "...";
+        assertEquals(IndexDefinitionAudit.MAX_VALUE_LENGTH, truncated.length());
+        assertEquals(truncated, entry.getString(PROP_USER));
+        assertEquals(truncated, entry.getString(PROP_REASON));
+    }
+
+    @Test
+    public void reasonAndThreadFromCommitInfo() throws Exception {
+        assertEquals(Map.of(IndexDefinitionAudit.COMMIT_INFO_THREAD, "t"), IndexDefinitionAudit.commitInfo("t", null));
+        addFooIndex();
+        NodeBuilder builder = root.builder();
+        fooIndex(builder).setProperty("info", "changed");
+        root = hook.processCommit(root, builder.getNodeState(),
+                new CommitInfo("session-1", "alice", IndexDefinitionAudit.commitInfo("Tool.change", "because")));
+
+        NodeState entry = lastEntry("fooIndex");
+        assertEquals("Tool.change", entry.getString(PROP_THREAD));
+        assertEquals("because", entry.getString(PROP_REASON));
     }
 
     @Test
@@ -749,6 +909,12 @@ public class IndexDefinitionAuditTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode("acme.testIndex-1-custom-1"));
         assertEquals(List.of("MERGED", "DELETED"),
                 operations(entries(deletedHistory("/oak:index/acme.testIndex-1-custom-1"))));
+        // the audit trail (a hidden node) is not an ordered child of oak:index
+        Iterable<String> childOrder = root.getChildNode(INDEX_DEFINITIONS_NAME).getNames(":childOrder");
+        assertTrue(childOrder.iterator().hasNext());
+        for (String name : childOrder) {
+            assertFalse(name, NodeStateUtils.isHidden(name));
+        }
     }
 
     @Test
@@ -834,7 +1000,7 @@ public class IndexDefinitionAuditTest {
         commit(builder);
 
         String diff = singleEntry("fooIndex").getString(PROP_DIFF);
-        assertEquals(MAX_DIFF_LENGTH + "...".length(), diff.length());
+        assertEquals(MAX_DIFF_LENGTH, diff.length());
         assertTrue(diff.endsWith("..."));
     }
 
@@ -887,6 +1053,51 @@ public class IndexDefinitionAuditTest {
         NodeState history = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(AUDIT_NODE_NAME)
                 .getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
         assertEquals(List.of("CREATED"), operations(entries(history)));
+    }
+
+    /**
+     * A node state that fails to list its child nodes.
+     */
+    private static final class FailingChildNodeEntries extends AbstractNodeState {
+        private final NodeState state;
+
+        FailingChildNodeEntries(NodeState state) {
+            this.state = state;
+        }
+
+        @Override
+        public boolean exists() {
+            return state.exists();
+        }
+
+        @Override
+        public @NotNull Iterable<? extends PropertyState> getProperties() {
+            return state.getProperties();
+        }
+
+        @Override
+        public boolean hasChildNode(@NotNull String name) {
+            return state.hasChildNode(name);
+        }
+
+        @Override
+        public @NotNull NodeState getChildNode(@NotNull String name) {
+            return state.getChildNode(name);
+        }
+
+        @Override
+        public @NotNull Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+            throw new IllegalStateException("test");
+        }
+
+        @Override
+        public @NotNull NodeBuilder builder() {
+            return new MemoryNodeBuilder(this);
+        }
+    }
+
+    private IndexDefinitionAudit audit(NodeBuilder rootBuilder, String time) {
+        return new IndexDefinitionAudit(ALICE, rootBuilder, 10, 10, Clock.fixed(Instant.parse(time), ZoneOffset.UTC));
     }
 
     private void addFooIndex() throws CommitFailedException {
@@ -952,7 +1163,9 @@ public class IndexDefinitionAuditTest {
     private static List<String> entryNames(NodeState history) {
         List<String> names = new ArrayList<>();
         for (ChildNodeEntry e : history.getChildNodeEntries()) {
-            names.add(e.getName());
+            if (IndexDefinitionAudit.isEntryName(e.getName())) {
+                names.add(e.getName());
+            }
         }
         names.sort(IndexDefinitionAudit.ENTRY_ORDER);
         return names;

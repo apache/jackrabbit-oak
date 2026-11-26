@@ -35,7 +35,10 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
@@ -49,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -77,6 +81,8 @@ public class IndexerMBeanImplTest {
 
         assertTrue(mbean.importIndex(indexDir, true));
         assertImported();
+        // the audit toggle is not registered (or not enabled)
+        assertFalse(auditTrail().exists());
 
         MockOsgi.deactivate(mbean, context.bundleContext());
     }
@@ -95,6 +101,54 @@ public class IndexerMBeanImplTest {
         assertImported();
 
         MockOsgi.deactivate(mbean, context.bundleContext());
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
+     */
+    @Test
+    public void importIsAuditedWhenTheAuditToggleIsEnabled() throws Exception {
+        String indexDir = prepareImportDir();
+        IndexerMBeanImpl mbean = createAndActivateMBean();
+        // registered by the repository
+        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.bundleContext());
+        Feature audit = Feature.newFeature(IndexUpdateProvider.FT_OAK_12458, whiteboard);
+        try {
+            WhiteboardUtils.getServices(whiteboard, FeatureToggle.class).stream()
+                    .filter(t -> IndexUpdateProvider.FT_OAK_12458.equals(t.getName()))
+                    .forEach(t -> t.setEnabled(true));
+            assertTrue(mbean.importIndex(indexDir, true));
+
+            NodeState history = auditTrail().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+            assertEquals(1, history.getChildNodeCount(10));
+            NodeState entry = history.getChildNodeEntries().iterator().next().getNodeState();
+            // the index did not exist before the import
+            assertEquals("CREATED", entry.getString(IndexDefinitionAudit.PROP_OPERATION));
+            assertEquals(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER, entry.getString(IndexDefinitionAudit.PROP_ORIGIN));
+        } finally {
+            audit.close();
+            MockOsgi.deactivate(mbean, context.bundleContext());
+        }
+    }
+
+    @Test
+    public void importIsNotAuditedWhenTheAuditToggleIsDisabled() throws Exception {
+        String indexDir = prepareImportDir();
+        IndexerMBeanImpl mbean = createAndActivateMBean();
+        // registered by the repository, disabled (the default)
+        Feature audit = Feature.newFeature(IndexUpdateProvider.FT_OAK_12458, new OsgiWhiteboard(context.bundleContext()));
+        try {
+            assertTrue(mbean.importIndex(indexDir, true));
+            assertImported();
+            assertFalse(auditTrail().exists());
+        } finally {
+            audit.close();
+            MockOsgi.deactivate(mbean, context.bundleContext());
+        }
+    }
+
+    private NodeState auditTrail() {
+        return store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(IndexDefinitionAudit.AUDIT_NODE_NAME);
     }
 
     @Test

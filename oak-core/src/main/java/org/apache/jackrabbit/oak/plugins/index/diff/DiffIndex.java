@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.osgi.framework.BundleContext;
@@ -346,7 +347,10 @@ public class DiffIndex {
     private static void sortIndexes(NodeBuilder builder) {
         ArrayList<String> list = new ArrayList<>();
         for (String child : builder.getChildNodeNames()) {
-            list.add(child);
+            // hidden nodes (such as the index definition audit) are not ordered
+            if (!NodeStateUtils.isHidden(child)) {
+                list.add(child);
+            }
         }
         list.sort(Comparator.naturalOrder());
         builder.setProperty(TreeConstants.OAK_CHILD_ORDER, list, Type.NAMES);

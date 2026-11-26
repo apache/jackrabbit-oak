@@ -250,18 +250,11 @@ public class IndexUpdate implements Editor, PathSource {
      * supported for synchronous index updates, where the committing user is known.
      * Must be called on the root editor, before the diff is processed.
      */
-    public void setIndexDefinitionAuditEnabled(boolean enabled) {
+    void setIndexDefinitionAuditEnabled(boolean enabled) {
         IndexDefinitionAudit audit = null;
         if (enabled && !rootState.isAsync()) {
             audit = new IndexDefinitionAudit(rootState.commitInfo, builder,
                     IndexDefinitionAudit.MAX_ENTRIES, IndexDefinitionAudit.MAX_DELETED);
-            Map<String, Object> info = rootState.commitInfo == null ? Map.of() : rootState.commitInfo.getInfo();
-            if (info.get(IndexDefinitionAudit.COMMIT_INFO_REASON) instanceof String) {
-                audit.setReason((String) info.get(IndexDefinitionAudit.COMMIT_INFO_REASON));
-            }
-            if (info.get(IndexDefinitionAudit.COMMIT_INFO_THREAD) instanceof String) {
-                audit.setThread((String) info.get(IndexDefinitionAudit.COMMIT_INFO_THREAD));
-            }
         }
         rootState.indexDefinitionAudit = audit;
     }

@@ -16,25 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REFRESH_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.childBuilder;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getBuilder;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,14 +48,16 @@ import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndexMerger;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +114,11 @@ public final class IndexDefinitionAudit {
 
     static final int MAX_DIFF_LENGTH = 2048;
 
+    /**
+     * Maximum length of the recorded user, reason and thread.
+     */
+    static final int MAX_VALUE_LENGTH = 1024;
+
     static final String PROP_PATH = "path";
     static final String PROP_OPERATION = "operation";
     static final String PROP_USER = "user";
@@ -126,7 +135,8 @@ public final class IndexDefinitionAudit {
     private static final DateTimeFormatter MINUTE_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmm'Z'").withZone(ZoneOffset.UTC);
 
-    private static final Pattern ENTRY_NAME = Pattern.compile("(\\d{8}T\\d{4}Z)\\.(\\d+)");
+    // the sequence number fits into a long
+    private static final Pattern ENTRY_NAME = Pattern.compile("(\\d{8}T\\d{4}Z)\\.(\\d{1,18})");
 
     static final Comparator<String> ENTRY_ORDER = Comparator
             .comparing((String name) -> entryNameMatcher(name).group(1))
@@ -175,12 +185,6 @@ public final class IndexDefinitionAudit {
     private static final Set<String> IGNORED_NODES = Set.of(
             DiffIndexMerger.DIFF_INDEX, DiffIndexMerger.DIFF_INDEX_OPTIMIZER);
 
-    /**
-     * Property where the index importer keeps the original async lane while the index
-     * is switched to a temporary lane (see {@code AsyncLaneSwitcher}).
-     */
-    static final String ASYNC_PREVIOUS = "async-previous";
-
     private final CommitInfo commitInfo;
 
     private final NodeBuilder rootBuilder;
@@ -189,17 +193,48 @@ public final class IndexDefinitionAudit {
 
     private final int maxDeleted;
 
-    private String reason;
+    private final Clock clock;
+
+    private final String reason;
+
+    private final String thread;
 
     private boolean deletedHistoryAdded;
 
-    private String thread;
-
     IndexDefinitionAudit(CommitInfo commitInfo, NodeBuilder rootBuilder, int maxEntries, int maxDeleted) {
+        this(commitInfo, rootBuilder, maxEntries, maxDeleted, Clock.systemUTC());
+    }
+
+    IndexDefinitionAudit(CommitInfo commitInfo, NodeBuilder rootBuilder, int maxEntries, int maxDeleted, Clock clock) {
         this.commitInfo = commitInfo == null ? CommitInfo.EMPTY : commitInfo;
         this.rootBuilder = rootBuilder;
         this.maxEntries = Math.max(1, maxEntries);
         this.maxDeleted = Math.max(1, maxDeleted);
+        this.clock = clock;
+        this.reason = getInfo(this.commitInfo, COMMIT_INFO_REASON);
+        this.thread = getInfo(this.commitInfo, COMMIT_INFO_THREAD);
+    }
+
+    /**
+     * Returns the {@link CommitInfo#getInfo() commit info} entries that tell the audit
+     * what to record as the thread and why the index definitions are changed.
+     *
+     * @param thread what to record as the thread
+     * @param reason why the index definitions are changed, or null
+     * @return a new, modifiable map
+     */
+    static Map<String, Object> commitInfo(String thread, @Nullable String reason) {
+        Map<String, Object> info = new HashMap<>();
+        info.put(COMMIT_INFO_THREAD, thread);
+        if (reason != null) {
+            info.put(COMMIT_INFO_REASON, reason);
+        }
+        return info;
+    }
+
+    private static String getInfo(CommitInfo commitInfo, String key) {
+        Object value = commitInfo.getInfo().get(key);
+        return value instanceof String ? (String) value : null;
     }
 
     /**
@@ -297,13 +332,12 @@ public final class IndexDefinitionAudit {
             }
             op = getOperation(visibleBefore, visibleAfter, reindexRequested);
         }
-        if (diff.length() > MAX_DIFF_LENGTH) {
-            diff = diff.substring(0, MAX_DIFF_LENGTH) + "...";
-        }
-        String user = getUser(op, before, after);
-        String why = getReason(op, before, after);
+        diff = StringUtils.abbreviate(diff, MAX_DIFF_LENGTH);
+        String user = StringUtils.abbreviate(getUser(op, before, after), MAX_VALUE_LENGTH);
+        String why = StringUtils.abbreviate(getReason(op, before, after), MAX_VALUE_LENGTH);
         String origin = commitInfo.getSessionId();
-        String thread = this.thread != null ? this.thread : Thread.currentThread().getName();
+        String thread = StringUtils.abbreviate(this.thread != null ? this.thread : Thread.currentThread().getName(),
+                MAX_VALUE_LENGTH);
         boolean flagReindexRequested = reindexRequested && op != Operation.REINDEX;
         NodeBuilder globalDefinitions = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME);
         if (!globalDefinitions.exists()) {
@@ -311,7 +345,7 @@ public final class IndexDefinitionAudit {
             return;
         }
         NodeBuilder audit = globalDefinitions.child(AUDIT_NODE_NAME);
-        long now = System.currentTimeMillis();
+        long now = clock.millis();
         // the history of a removed index with the same path continues (also if the index was
         // created again while the audit was disabled)
         restoreDeletedHistory(audit, indexPath);
@@ -416,24 +450,9 @@ public final class IndexDefinitionAudit {
     }
 
     /**
-     * Sets what is recorded as the thread, for changes where the name of the current
-     * thread tells nothing.
-     */
-    void setThread(String thread) {
-        this.thread = thread;
-    }
-
-    /**
-     * Sets why the index definitions are changed.
-     */
-    void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    /**
-     * Returns why the index definition was changed: the reason given with
-     * {@link #setReason(String)}, else for a disable the {@code disabledReason} set in
-     * the same commit; null if unknown.
+     * Returns why the index definition was changed: the reason given in the commit info
+     * (see {@link #commitInfo(String, String)}), else for a disable the
+     * {@code disabledReason} set in the same commit; null if unknown.
      */
     private String getReason(Operation op, NodeState before, NodeState after) {
         if (reason != null) {
@@ -522,30 +541,43 @@ public final class IndexDefinitionAudit {
     }
 
     private void removeOldDeleted(NodeBuilder deleted) {
-        List<Map.Entry<String, String>> histories = new ArrayList<>();
+        List<Map.Entry<String, Long>> histories = new ArrayList<>();
         collectDeletedHistories(deleted.getNodeState(), "/", histories);
         if (histories.size() <= maxDeleted) {
             return;
         }
-        // ISO 8601 dates in UTC sort chronologically
         histories.sort(Map.Entry.comparingByValue());
-        for (Map.Entry<String, String> history : histories.subList(0, histories.size() - maxDeleted)) {
+        for (Map.Entry<String, Long> history : histories.subList(0, histories.size() - maxDeleted)) {
             getBuilder(deleted, history.getKey()).remove();
             removeEmptyNodes(deleted, PathUtils.getParentPath(history.getKey()));
         }
     }
 
-    private static void collectDeletedHistories(NodeState state, String path, List<Map.Entry<String, String>> histories) {
+    private static void collectDeletedHistories(NodeState state, String path, List<Map.Entry<String, Long>> histories) {
         PropertyState deletedAt = state.getProperty(PROP_DELETED_AT);
         if (deletedAt != null) {
             // a history: its child nodes are entries
-            histories.add(Map.entry(path, deletedAt.getValue(Type.DATE)));
+            histories.add(Map.entry(path, getDeletedAt(deletedAt)));
             return;
         }
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
             if (!ENTRY_NAME.matcher(child.getName()).matches()) {
                 collectDeletedHistories(child.getNodeState(), PathUtils.concat(path, child.getName()), histories);
             }
+        }
+    }
+
+    /**
+     * Returns when a history was deleted (milliseconds); an unreadable value counts as the
+     * oldest (so that a broken history is removed first, and does not stop removing the
+     * oldest histories).
+     */
+    private static long getDeletedAt(PropertyState deletedAt) {
+        try {
+            Calendar date = deletedAt.isArray() ? null : ISO8601.parse(deletedAt.getValue(Type.STRING));
+            return date == null ? Long.MIN_VALUE : date.getTimeInMillis();
+        } catch (RuntimeException e) {
+            return Long.MIN_VALUE;
         }
     }
 
@@ -583,19 +615,6 @@ public final class IndexDefinitionAudit {
         return matcher;
     }
 
-    private static NodeBuilder childBuilder(NodeBuilder builder, String path) {
-        for (String name : PathUtils.elements(path)) {
-            builder = builder.child(name);
-        }
-        return builder;
-    }
-
-    private static NodeBuilder getBuilder(NodeBuilder builder, String path) {
-        for (String name : PathUtils.elements(path)) {
-            builder = builder.getChildNode(name);
-        }
-        return builder;
-    }
 
     /**
      * Removes the node at the given path and its ancestors (up to, excluding, the
@@ -613,9 +632,7 @@ public final class IndexDefinitionAudit {
     }
 
     private static String formatDate(long millis) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTimeInMillis(millis);
-        return ISO8601.format(cal);
+        return Conversions.convert(millis).toDate();
     }
 
     /**
@@ -626,15 +643,9 @@ public final class IndexDefinitionAudit {
     private static NodeState cloneDefinition(NodeState state) {
         NodeBuilder builder = EMPTY_NODE.builder();
         copyVisible(state, builder);
-        PropertyState previousAsync = builder.getProperty(ASYNC_PREVIOUS);
-        if (previousAsync != null) {
-            if (AsyncLaneSwitcher.isNone(previousAsync)) {
-                builder.removeProperty(ASYNC_PROPERTY_NAME);
-            } else {
-                builder.setProperty(PropertyStates.createProperty(ASYNC_PROPERTY_NAME,
-                        previousAsync.getValue(previousAsync.getType()), previousAsync.getType()));
-            }
-            builder.removeProperty(ASYNC_PREVIOUS);
+        if (AsyncLaneSwitcher.isLaneSwitched(builder)) {
+            // also sets the refresh flag, which is ignored below
+            AsyncLaneSwitcher.revertSwitch(builder, "");
         }
         builder.removeProperty(IndexImporter.INDEX_IMPORT_STATE_KEY);
         IGNORED_PROPERTIES.forEach(builder::removeProperty);
@@ -646,7 +657,10 @@ public final class IndexDefinitionAudit {
         return builder.getNodeState();
     }
 
-    private static void copyVisible(NodeState state, NodeBuilder builder) {
+    /**
+     * Copies the properties and child nodes, except the hidden ones.
+     */
+    static void copyVisible(NodeState state, NodeBuilder builder) {
         for (PropertyState property : state.getProperties()) {
             if (!NodeStateUtils.isHidden(property.getName())) {
                 builder.setProperty(property);

@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -50,9 +49,15 @@ final class NodeStoreUtils {
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
 
+    /**
+     * @param indexDefinitionAudit whether the index definition audit is enabled (else it
+     *                             depends on the system property)
+     * @param sessionId            the session id of the commit (tells the audit who changes
+     *                             the index definitions)
+     */
     static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
                                          IndexEditorProvider indexEditorProvider,
-                                         boolean indexDefinitionAudit) throws CommitFailedException {
+                                         boolean indexDefinitionAudit, String sessionId) throws CommitFailedException {
         IndexUpdateProvider indexUpdate = new IndexUpdateProvider(indexEditorProvider, null, true);
         if (indexDefinitionAudit) {
             indexUpdate.setIndexDefinitionAuditEnabled(true);
@@ -63,8 +68,7 @@ final class NodeStoreUtils {
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider())
         );
-        // the session id tells the index definition audit that the change is an import
-        nodeStore.merge(builder, hooks, createCommitInfo(IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER));
+        nodeStore.merge(builder, hooks, createCommitInfo(sessionId));
     }
 
     static NodeBuilder childBuilder(NodeBuilder nb, String path) {
