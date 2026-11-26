@@ -72,4 +72,14 @@ public final class ElasticFeatureToggles {
      */
     public static final String FT_OAK_12539 = "FT_OAK-12539";
     public static final AtomicBoolean FT_OAK_12539_DISABLE = new AtomicBoolean(false);
+
+    /**
+     * Feature toggle for OAK-12549: honour {@code semantic = always} in Elasticsearch index definitions, so positive
+     * full-text conditions without an inference prefix use the default inference model. The behaviour is active by
+     * default (the flag is {@code false}), and only applies to indexes that set {@code semantic = always}. Set to
+     * {@code true} to revert to the previous behaviour, where {@code always} behaves like {@code default}.
+     * {@code semantic = off} is honoured regardless of this toggle.
+     */
+    public static final String FT_OAK_12549 = "FT_OAK-12549";
+    public static final AtomicBoolean FT_OAK_12549_DISABLE = new AtomicBoolean(false);
 }

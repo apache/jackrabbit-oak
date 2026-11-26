@@ -85,6 +85,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +103,7 @@ import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.DYNAMIC_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
@@ -624,60 +626,42 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-                String queryText;
                 BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+                String queryText = plainQueryText(text);
 
                 if (propertyName != null && FulltextIndex.isNodePath(propertyName) && !pr.isPathTransformed()) {
-                    queryText = text;
-                    //Get rid of /* as aggregated fulltext field name is the
-                    //node relative path
-                    String p = PathUtils.getParentPath(propertyName);
-                    bqBuilder.must(m -> m.nested(nf ->
-                            nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES)
-                                    .query(Query.of(q -> q.term(t -> t.field(ElasticIndexDefinition.DYNAMIC_PROPERTIES + ".name").value(p))))
-                    ));
-                    QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, ElasticIndexDefinition.DYNAMIC_PROPERTIES + ".value", pr, false);
-                    bqBuilder.must(m -> m.nested(nf -> nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES).query(Query.of(q -> q.queryString(qsqBuilder.build())))));
+                    // inference is not used for relative nodes; get rid of /* as the field name is the node relative path
+                    String nodeName = PathUtils.getParentPath(propertyName);
+                    bqBuilder.must(m -> m.nested(n -> n.path(DYNAMIC_PROPERTIES)
+                            .query(q -> q.term(t -> t.field(DYNAMIC_PROPERTIES + ".name").value(nodeName)))));
+                    QueryStringQuery qsq = fullTextQuery(queryText, DYNAMIC_PROPERTIES + ".value", pr, false).build();
+                    bqBuilder.must(m -> m.nested(n -> n.path(DYNAMIC_PROPERTIES).query(q -> q.queryString(qsq))));
                 } else {
                     // TODO: we include dynamic boosted values in the full-text query if there is at least one dynamic property with useInFullTextQuery set to true
                     // This might not be ideal when there are multiple dynamic properties with different useInFullTextQuery settings (very unlikely)
                     // A better approach would be to include the values at index time (requires a refactoring of the DocumentMaker to access the ElasticIndexDefinition)
-                    boolean includeDynamicBoostedValues = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty() &&
-                            elasticIndexDefinition.getDynamicBoostProperties().stream().anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
-
-                    String indexName = PathUtils.getName(indexPlan.getPlanName());
-
-                    // we always parse each query and extract out inferenceModelConfig and queryText.
-                    // In case index enabled with inferenceModelConfig is not active,
-                    // other indexes can still be used to answer fulltext query.
+                    boolean includeDynamicBoostedValues = elasticIndexDefinition.getDynamicBoostProperties().stream()
+                            .anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
                     VectorQuery vectorQuery = new VectorQuery(text);
-                    String queryConfig = vectorQuery.getQueryInferenceConfig();
-                    queryText = vectorQuery.getQueryText();
-                    VectorQueryConfig vectorQueryConfig = new VectorQueryConfig(queryConfig);
-                    String inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, vectorQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
-
-                    if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()
-                            && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig))) {
-
-                        bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, pr, includeDynamicBoostedValues, vectorQuery, vectorQueryConfig)));
+                    VectorQueryConfig config = inferenceConfig(vectorQuery, text, not);
+                    if (config != null && isInferenceUsed(PathUtils.getName(indexPlan.getPlanName()), config)) {
+                        BoolQuery inference = inferenceConfigQuery(new BoolQuery.Builder(), propertyName, pr,
+                                includeDynamicBoostedValues, queryText, vectorQuery, config).build();
+                        bqBuilder.must(m -> m.bool(inference));
                     } else {
-                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, includeDynamicBoostedValues);
-                        bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
+                        QueryStringQuery qsq = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr,
+                                includeDynamicBoostedValues).build();
+                        bqBuilder.must(m -> m.queryString(qsq));
                     }
                 }
 
                 if (boost != null) {
-                    bqBuilder.boost(Float.valueOf(boost));
+                    bqBuilder.boost(Float.parseFloat(boost));
                 }
+                dynamicScoreQueries(queryText).forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
 
-                Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(queryText);
-                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
-
-                if (not) {
-                    result.set(BoolQuery.of(b -> b.mustNot(mn -> mn.bool(bqBuilder.build()))));
-                } else {
-                    result.set(bqBuilder.build());
-                }
+                BoolQuery query = bqBuilder.build();
+                result.set(not ? BoolQuery.of(b -> b.mustNot(mn -> mn.bool(query))) : query);
                 return true;
             }
         });
@@ -685,18 +669,114 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.bool(result.get()));
     }
 
-    private ObjectBuilder<BoolQuery> inferenceConfigQuery(BoolQuery.Builder b, String propertyName, PlanResult pr, boolean dbEnabled, VectorQuery vectorQuery, VectorQueryConfig vectorQueryConfig) {
-        QueryStringQuery.Builder qsqBuilder = fullTextQuery(vectorQuery.getQueryText(), getElasticFulltextFieldName(propertyName), pr, dbEnabled);
+    /**
+     * Returns {@code true} if the text only contains negated terms (and "or"), which is how SQL {@code NOT CONTAINS}
+     * passes multiple terms (see {@code NotFullTextSearchImpl#getRawText}). Such texts never get an implicit
+     * inference prefix.
+     */
+    static boolean isNegationOnly(String text) {
+        return !text.isBlank()
+                && Arrays.stream(text.trim().split("\\s+"))
+                        .allMatch(term -> term.equalsIgnoreCase("or")
+                                || (term.length() > 1 && term.startsWith("-")));
+    }
+
+    /**
+     * Text for query_string / dynamic boost: inference prefix removed, otherwise normalised like {@link VectorQuery}.
+     */
+    static String plainQueryText(String text) {
+        String stripped = withoutInferencePrefix(text);
+        if (!stripped.equals(text)) {
+            return stripped;
+        }
+        String trimmed = text.trim();
+        // VectorQuery fails for a text that only consists of the prefix
+        return trimmed.equals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX) ? trimmed : new VectorQuery(text).getQueryText();
+    }
+
+    /**
+     * Returns null if semantic search must not be used for this term.
+     */
+    @Nullable
+    private VectorQueryConfig inferenceConfig(VectorQuery vectorQuery, String text, boolean not) {
+        String config = vectorQuery.getQueryInferenceConfig();
+        switch (elasticIndexDefinition.semanticMode) {
+            case OFF:
+                return null;
+            case ALWAYS:
+                return new VectorQueryConfig(queryConfig(config, text, not));
+            default:
+                return new VectorQueryConfig(config);
+        }
+    }
+
+    /**
+     * Returns the inference config with {@code semantic = always}: an implicit "?{}?" (the default model) only
+     * for positive terms without a prefix; NOT CONTAINS arrives either as {@code not} or as "-a -b".
+     */
+    static String queryConfig(String parsedConfig, String text, boolean not) {
+        if (parsedConfig.isEmpty() && !ElasticFeatureToggles.FT_OAK_12549_DISABLE.get() && !not && !isNegationOnly(text)) {
+            return "{}";
+        }
+        return parsedConfig;
+    }
+
+    private boolean isInferenceUsed(String indexName, VectorQueryConfig vectorQueryConfig) {
+        String inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, vectorQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
+        return indexPlan.getFilter().getQueryLimits().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()
+                && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig));
+    }
+
+    /**
+     * Removes the inference prefix (e.g. {@code ?{}?}) from the start of the text, as {@link VectorQuery} parses it.
+     * Also handles the form produced by SQL {@code NOT CONTAINS} with multiple terms ({@code -?{}?a -b}), but only
+     * if it contains a complete prefix; otherwise such texts are returned unchanged.
+     */
+    static String withoutInferencePrefix(String text) {
+        String trimmed = text.trim();
+        VectorQuery vectorQuery = parseInferencePrefix(trimmed);
+        if (vectorQuery != null) {
+            return vectorQuery.getQueryText();
+        }
+        if (trimmed.startsWith("-") && isNegationOnly(trimmed)) {
+            String negated = trimmed.substring(1);
+            vectorQuery = parseInferencePrefix(negated);
+            if (vectorQuery != null) {
+                String prefix = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX;
+                String remainder = vectorQuery.getQueryText();
+                if (negated.startsWith(prefix + vectorQuery.getQueryInferenceConfig() + prefix) && !remainder.isEmpty()
+                        && !Character.isWhitespace(remainder.charAt(0)) && !remainder.startsWith("-")) {
+                    return "-" + remainder;
+                }
+            }
+        }
+        return text;
+    }
+
+    @Nullable
+    private static VectorQuery parseInferencePrefix(String text) {
+        String prefix = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX;
+        // VectorQuery fails for a text that only consists of the prefix
+        if (text.length() <= prefix.length() || !text.startsWith(prefix)) {
+            return null;
+        }
+        VectorQuery vectorQuery = new VectorQuery(text);
+        return vectorQuery.getQueryInferenceConfig().isEmpty() ? null : vectorQuery;
+    }
+
+    private ObjectBuilder<BoolQuery> inferenceConfigQuery(BoolQuery.Builder b, String propertyName, PlanResult pr, boolean dbEnabled,
+                                                          String queryText, VectorQuery vectorQuery, VectorQueryConfig vectorQueryConfig) {
+        QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, dbEnabled);
 
         // the query can be null if no inference query is eligible for the given text or the min terms are not met
         // in this case, we fall back to the default full-text query
         if (vectorQuery.getQueryInferenceConfig() != null) {
 
-            LOG.info("Using inference query config: {}", vectorQuery.getQueryInferenceConfig());
             try {
                 String inferenceQueryModelName = vectorQueryConfig.getInferenceModelConfig();
                 String indexName = PathUtils.getName(elasticIndexDefinition.getIndexName());
                 InferenceModelConfig inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryModelName);
+                LOG.debug("Using inference model config: {}", inferenceModelConfig.getInferenceModelConfigName());
                 if (!inferenceModelConfig.isEnabled()
                         || inferenceModelConfig.getMinTerms() > vectorQuery.getQueryText().split("\\s+").length) {
                     LOG.debug("inferenceModelConfig isEnable: {}, Config minTerms:{}, query: {}, ", inferenceModelConfig.isEnabled(),
