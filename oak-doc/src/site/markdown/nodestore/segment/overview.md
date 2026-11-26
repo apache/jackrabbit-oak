@@ -845,6 +845,11 @@ The optional `--persistent-cache-path PERSISTENT_CACHE_PATH` argument allows to 
 The optional `--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>` argument allows to limit the maximum size of the persistent disk cache to `<PERSISTENT_CACHE_SIZE_GB>`. If not specified, the default size will be limited to `50` GB.
 
 
+For an Azure segment store, `--persistent-cache-type` selects `legacy` (the default),
+`v2-sync` (writes cache files on the calling thread), or `v2-async` (queues cache writes
+and serves pending segments from memory). Both V2 modes use weight-based eviction.
+A populated `--persistent-cache-path` must have been created by the selected implementation.
+
 ### <a name="compact"/> Compact
 
 ```
