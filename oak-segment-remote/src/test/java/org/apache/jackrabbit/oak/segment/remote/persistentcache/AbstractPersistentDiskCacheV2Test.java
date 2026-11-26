@@ -33,14 +33,17 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.mockito.MockedStatic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.Random;
@@ -54,6 +57,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -69,8 +73,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -744,6 +751,44 @@ public abstract class AbstractPersistentDiskCacheV2Test {
         assertNotEquals("write must atomically replace the file (different inode/fileKey)",
                 originalKey, newKey);
         assertEquals("final file should have the new buffer size", 1024L, Files.size(filePath));
+    }
+
+    @Test
+    public void testShortWritesPublishCompleteSegment() throws Exception {
+        UUID id = UUID.randomUUID();
+        Path path = segmentPath(cacheDir.toPath(), id);
+        Path tempPath = path.resolveSibling(id + ".tmp");
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[] {0, 1, 2, 3, 4, 5, 6, 7});
+        buffer.position(1);
+        buffer.limit(7);
+
+        try (FileChannel real = FileChannel.open(tempPath, StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+             MockedStatic<FileChannel> channels = mockStatic(FileChannel.class)) {
+            FileChannel channel = mock(FileChannel.class);
+            channels.when(() -> FileChannel.open(tempPath, StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)).thenReturn(channel);
+            when(channel.write(any(ByteBuffer.class))).thenAnswer(invocation -> {
+                assertFalse("segment must not be published during a write", Files.exists(path));
+                ByteBuffer source = invocation.getArgument(0);
+                int limit = source.limit();
+                source.limit(Math.min(limit, source.position() + 2));
+                try {
+                    return real.write(source);
+                } finally {
+                    source.limit(limit);
+                }
+            });
+            doAnswer(invocation -> { real.close(); return null; }).when(channel).close();
+
+            cache.writeSegmentInternal(id, buffer);
+
+            verify(channel, atLeast(3)).write(buffer);
+        }
+        assertArrayEquals(new byte[] {1, 2, 3, 4, 5, 6}, Files.readAllBytes(path));
+        assertFalse(Files.exists(tempPath));
+        assertEquals(0, buffer.position());
+        assertEquals(7, buffer.limit());
     }
 
     /**
