@@ -82,6 +82,13 @@ Optionally you can specify:
   to override the cost estimation (a high key count means a lower cost and
   a low key count means a high cost
   when searching for specific keys; has no effect when searching for "is not null").
+* `costPerEntry` (Double): a multiplier applied to the estimated number of entries
+  when computing the cost (default `1.0`). Same property name and purpose as the
+  `costPerEntry` property already supported by `lucene`/`elastic` index definitions
+  (see [Lucene index](lucene.md)) — lets an admin correct a misestimated cost without
+  changing the query (OAK-12348).
+* `costPerExecution` (Double): a fixed cost added once to the estimate (default `2.0`,
+  the same value as the built-in overhead described below) (OAK-12348).
 * `reindex` (Boolean): if set to `true`, the full content is re-indexed.
   This can take a long time, and is run synchronously with storing the index
   (except with an async index). See "Reindexing" below for details.
@@ -168,9 +175,14 @@ The algorithm to calculate the estimated cost is roughly as follows (a bit simpl
   if the path filtering (`includedPaths` / `excludedPaths`) does not match the query.
 * For the nodetype index, the cost is the sum of the cost for the `jcr:primaryType` lookup
   (if the primary type is known),
-  plus the cost for the `jcr:mixinTypes` lookup (if that is known).
-* Otherwise, the cost is based on the overhead (which is 2), 
-  plus the estimated number of entries.
+  plus the cost for the `jcr:mixinTypes` lookup (if that is known). The nodetype index has
+  no cost logic of its own — set `costPerEntry`/`costPerExecution` (see above) on the
+  property index definitions for `jcr:primaryType` and/or `jcr:mixinTypes` to influence
+  nodetype index cost as well.
+* Otherwise, the cost is based on the overhead (which is 2, or the configured
+  `costPerExecution`),
+  plus the estimated number of entries (scaled by the configured `costPerEntry`,
+  default `1.0`).
 * For an "x is not null" condition, 
   the estimated number of entries is
   either the configured `entryCount` or, if not set, the 
@@ -187,6 +199,11 @@ The algorithm to calculate the estimated cost is roughly as follows (a bit simpl
   the estimated count depending on the approximate number of nodes
   in that subtree versus the approximate number of entries
   in the repository, using approximation available via the `counter` index.
+
+`costPerEntry`/`costPerExecution` are read by default (feature toggle `FT_OAK-12348`,
+enabled out of the box, since with no properties set the formula above is unchanged) —
+disable it only as an escape hatch if the new formula is ever suspected of causing a
+regression; the pre-existing hardcoded formula remains fully intact and reachable.
 
 For example, for a query with path restriction "/content/products/t-shirts" and property restriction
 "color = 'red'", if there is an index for the property "color", then
