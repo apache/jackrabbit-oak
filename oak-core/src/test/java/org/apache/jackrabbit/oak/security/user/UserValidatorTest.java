@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
@@ -212,6 +213,37 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
             TreeUtil.addChild(tree, REP_PWD, NT_REP_PASSWORD);
             root.commit();
         } catch (CommitFailedException e) {
+            assertEquals(33, e.getCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void addSystemUserPassword() throws Exception {
+        User user = getUserManager(root).createSystemUser("withPw", null);
+        root.commit();
+
+        Tree tree = root.getTree(user.getPath());
+        tree.setProperty(REP_PASSWORD, PasswordUtil.buildPasswordHash("pw"), Type.STRING);
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+            assertEquals(32, e.getCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void addSystemUserPasswordNode() throws Exception {
+        User user = getUserManager(root).createSystemUser("withPwNode", null);
+        root.commit();
+
+        TreeUtil.addChild(root.getTree(user.getPath()), REP_PWD, NT_REP_PASSWORD);
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
             assertEquals(33, e.getCode());
             throw e;
         }
