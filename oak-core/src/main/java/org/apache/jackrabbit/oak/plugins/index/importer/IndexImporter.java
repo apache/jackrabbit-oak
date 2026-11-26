@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -99,6 +100,8 @@ public class IndexImporter {
     private final StatisticsProvider statisticsProvider;
     private final IndexingReporter indexingReporter;
     private final boolean useLegacyImportFlow;
+
+    private boolean indexDefinitionAuditEnabled;
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
@@ -211,6 +214,16 @@ public class IndexImporter {
         importers.put(importerProvider.getType(), importerProvider);
     }
 
+    /**
+     * Records the changes of the imported index definitions
+     * (see {@link IndexDefinitionAudit}), also when the
+     * system property {@code oak.indexDefinitionAudit} is not set,
+     * for example if the feature toggle is enabled.
+     */
+    public void setIndexDefinitionAuditEnabled(boolean indexDefinitionAuditEnabled) {
+        this.indexDefinitionAuditEnabled = indexDefinitionAuditEnabled;
+    }
+
     void switchLanes() throws CommitFailedException {
         try {
             NodeState root = nodeStore.getRoot();
@@ -297,7 +310,9 @@ public class IndexImporter {
                 indexDisabler.markDisableFlagIfRequired(indexInfo.indexPath, idxBuilder);
             }
             updateIndexImporterState(root.builder(), IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA, false);
-            mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
+            // the session id tells the index definition audit that the change is an import
+            mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider, indexDefinitionAuditEnabled,
+                    IndexDefinitionAudit.ORIGIN_INDEX_IMPORTER);
         } catch (CommitFailedException e) {
             LOG.error("Failed while performing importIndexData and updating indexImportState from  [{}] to  [{}]",
                     IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA);

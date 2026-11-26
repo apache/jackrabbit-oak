@@ -69,6 +69,8 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexManagerMBean;
+import org.apache.jackrabbit.oak.plugins.index.IndexManagerMBeanImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -799,6 +801,11 @@ public class Oak {
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
 
+        Feature indexDefinitionAudit = newFeature(IndexUpdateProvider.FT_OAK_12458, whiteboard);
+        closer.register(indexDefinitionAudit);
+        regs.add(registerMBean(whiteboard, IndexManagerMBean.class,
+                new IndexManagerMBeanImpl(store, indexEditors, indexDefinitionAudit), IndexManagerMBean.TYPE, "Index Manager"));
+
         regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
                 queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
 
@@ -806,7 +813,9 @@ public class Oak {
         queryEngineSettings.unwrap().getQueryOptimizer().init(store);
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        commitHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider)));
+        IndexUpdateProvider indexUpdateProvider = new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider);
+        indexUpdateProvider.setIndexDefinitionAuditFeature(indexDefinitionAudit);
+        commitHooks.add(new EditorHook(indexUpdateProvider));
 
         // Register observer last to prevent sending events while initialising
         for (Observer observer : observers) {

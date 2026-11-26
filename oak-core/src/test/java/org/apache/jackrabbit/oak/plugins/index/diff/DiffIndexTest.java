@@ -73,6 +73,19 @@ public class DiffIndexTest {
         assertFalse(indexDefs.getChildren().isEmpty());
     }
 
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
+     */
+    @Test
+    public void rootIndexDefinitionsSkipHiddenNodes() {
+        NodeBuilder definitions = INITIAL_CONTENT.builder().child(INDEX_DEFINITIONS_NAME);
+        definitions.child(":audit").child("oak:index").child("uuid").child("20261013T1405Z.0")
+                .setProperty("op", "CREATED");
+        JsonObject result = RootIndexesListService.getRootIndexDefinitions(definitions);
+        assertTrue(result.getChildren().containsKey("/oak:index/uuid"));
+        assertFalse(result.getChildren().containsKey("/oak:index/:audit"));
+    }
+
     @Test
     public void tryReadStringNull() {
         assertNull(DiffIndex.tryReadString(null));

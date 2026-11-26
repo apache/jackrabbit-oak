@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -326,5 +327,25 @@ public final class IndexUtils {
                 .filter(entry ->  entry.getValue().containsKey(keyForComparator))
                 .sorted(Comparator.comparingLong(entry -> Long.parseLong(entry.getValue().get(keyForComparator))))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o, n) -> n, LinkedHashMap::new));
+    }
+
+    /**
+     * Returns the builder at the given relative path, creating missing nodes.
+     */
+    static NodeBuilder childBuilder(NodeBuilder builder, String path) {
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.child(name);
+        }
+        return builder;
+    }
+
+    /**
+     * Returns the builder at the given relative path (which might not exist).
+     */
+    static NodeBuilder getBuilder(NodeBuilder builder, String path) {
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.getChildNode(name);
+        }
+        return builder;
     }
 }

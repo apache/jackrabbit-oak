@@ -1,0 +1,280 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.document;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Predicate;
+
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionAudit;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+/**
+ * Index definition audit on a cluster: concurrent changes of the same index on two
+ * cluster nodes within the same minute create the same audit entry name. The second
+ * commit conflicts, is retried on the new head, and gets the next sequence number.
+ * The background operations (which make the changes of the other cluster node visible)
+ * are run by the test, so that the second commit is based on the old head.
+ *
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-12458">OAK-12458</a>
+ */
+@RunWith(Parameterized.class)
+public class IndexDefinitionAuditClusterTest {
+
+    private final DocumentStoreFixture fixture;
+
+    private DocumentStore store1;
+    private DocumentStore store2;
+    private DocumentNodeStore ns1;
+    private DocumentNodeStore ns2;
+    private EditorHook hook;
+
+    public IndexDefinitionAuditClusterTest(DocumentStoreFixture fixture) {
+        this.fixture = fixture;
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static List<Object[]> fixtures() {
+        List<Object[]> fixtures = new ArrayList<>();
+        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[] {mongo});
+        }
+        return fixtures;
+    }
+
+    @Before
+    public void setUp() {
+        MongoUtils.dropCollections(MongoUtils.DB);
+        store1 = fixture.createDocumentStore(1);
+        // one document store for both cluster nodes (as in ClusterConflictTest), so that the
+        // test controls when the changes of a cluster node are visible to the other; it is
+        // disposed once, with the first cluster node
+        store2 = new DocumentStoreWrapper(store1) {
+            @Override
+            public void dispose() {
+            }
+        };
+        // a high async delay, and the background operations run by the test (a delay of zero
+        // prevents commits from suspending)
+        ns1 = new DocumentMK.Builder().setDocumentStore(store1).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setAsyncDelay(60_000).setClusterId(1).getNodeStore();
+        ns2 = new DocumentMK.Builder().setDocumentStore(store2).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setAsyncDelay(60_000).setClusterId(2).getNodeStore();
+        System.setProperty(IndexDefinitionAudit.ENABLED_PROPERTY, "true");
+        try {
+            hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        } finally {
+            System.clearProperty(IndexDefinitionAudit.ENABLED_PROPERTY);
+        }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        for (DocumentNodeStore ns : new DocumentNodeStore[] {ns2, ns1}) {
+            if (ns != null) {
+                ns.dispose();
+            }
+        }
+        if (store1 != null) {
+            store1.dispose();
+        }
+        fixture.dispose();
+    }
+
+    @Test
+    public void concurrentChangesOnTwoClusterNodes() throws Exception {
+        NodeBuilder builder = ns1.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, Set.of("foo"), null);
+        ns1.merge(builder, hook, new CommitInfo("session-1", "alice"));
+        waitUntilVisible(ns -> fooIndex(ns).exists());
+
+        // both cluster nodes change the index based on the same head, in the same minute
+        waitForStartOfMinute();
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        fooIndex(builder1).setProperty("a", 1L);
+        fooIndex(builder2).setProperty("b", 2L);
+        ns1.merge(builder1, hook, new CommitInfo("session-1", "alice"));
+        mergeWithConflict(builder2, new CommitInfo("session-2", "bob"));
+        waitUntilVisible(ns -> fooIndex(ns).hasProperty("a") && fooIndex(ns).hasProperty("b"));
+
+        for (DocumentNodeStore ns : List.of(ns1, ns2)) {
+            NodeState history = ns.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(":audit")
+                    .getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+            List<String> operations = new ArrayList<>();
+            List<String> users = new ArrayList<>();
+            for (ChildNodeEntry entry : history.getChildNodeEntries()) {
+                operations.add(entry.getNodeState().getString("operation"));
+                users.add(entry.getNodeState().getString("user"));
+            }
+            // no entry is lost, and the retried commit does not write a duplicate
+            assertEquals(3, operations.size());
+            assertEquals(1, operations.stream().filter("CREATED"::equals).count());
+            assertEquals(2, operations.stream().filter("CHANGED"::equals).count());
+            assertTrue(users.toString(), users.contains("bob"));
+            assertEquals(1L, fooIndex(ns).getLong("a"));
+            assertEquals(2L, fooIndex(ns).getLong("b"));
+            // the second commit got the next sequence number of the same minute
+            Map<String, String> changedBy = new TreeMap<>();
+            for (ChildNodeEntry entry : history.getChildNodeEntries()) {
+                if ("CHANGED".equals(entry.getNodeState().getString("operation"))) {
+                    changedBy.put(entry.getName(), entry.getNodeState().getString("user"));
+                }
+            }
+            List<String> names = new ArrayList<>(changedBy.keySet());
+            String minute = names.get(0).substring(0, names.get(0).indexOf('.'));
+            long sequence = Long.parseLong(names.get(0).substring(minute.length() + 1));
+            assertEquals(List.of(minute + "." + sequence, minute + "." + (sequence + 1)), names);
+            assertEquals(List.of("alice", "bob"), new ArrayList<>(changedBy.values()));
+        }
+    }
+
+    @Test
+    public void concurrentDeletesWhenTheDeletedHistoriesAreCapped() throws Exception {
+        int maxDeleted = Integer.getInteger("oak.indexDefinitionAudit.maxDeleted", 1000);
+        NodeBuilder builder = ns1.getRoot().builder();
+        NodeBuilder definitions = builder.child(INDEX_DEFINITIONS_NAME);
+        createIndexDefinition(definitions, "fooIndex", true, false, Set.of("foo"), null);
+        createIndexDefinition(definitions, "barIndex", true, false, Set.of("bar"), null);
+        // histories of removed indexes, as many as are kept
+        NodeBuilder deleted = definitions.child(":audit").child(":deleted").child(INDEX_DEFINITIONS_NAME);
+        for (int i = 0; i < maxDeleted; i++) {
+            deleted.child(String.format("old%04d", i))
+                    .setProperty("deletedAt", String.format("2026-01-01T00:00:%02d.%03dZ", i / 1000, i % 1000), Type.DATE)
+                    .child("20260101T0000Z.0").setProperty("operation", "DELETED");
+        }
+        ns1.merge(builder, hook, new CommitInfo("session-1", "alice"));
+        waitUntilVisible(ns -> fooIndex(ns).exists() && deletedHistories(ns).getChildNodeCount(maxDeleted + 1) == maxDeleted);
+
+        // both cluster nodes delete an index based on the same head: both remove the oldest history
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        builder1.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").remove();
+        builder2.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("barIndex").remove();
+        ns1.merge(builder1, hook, new CommitInfo("session-1", "alice"));
+        mergeWithConflict(builder2, new CommitInfo("session-2", "bob"));
+        waitUntilVisible(ns -> !fooIndex(ns).exists()
+                && !ns.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode("barIndex"));
+
+        for (DocumentNodeStore ns : List.of(ns1, ns2)) {
+            NodeState histories = deletedHistories(ns);
+            assertEquals(maxDeleted, histories.getChildNodeCount(maxDeleted + 1));
+            for (String name : List.of("fooIndex", "barIndex")) {
+                List<String> operations = new ArrayList<>();
+                for (ChildNodeEntry entry : histories.getChildNode(name).getChildNodeEntries()) {
+                    operations.add(entry.getNodeState().getString("operation"));
+                }
+                assertEquals(name, Set.of("CREATED", "DELETED"), Set.copyOf(operations));
+                assertEquals(name, 2, operations.size());
+            }
+            // the oldest histories were removed
+            assertFalse(histories.hasChildNode("old0000"));
+            assertFalse(histories.hasChildNode("old0001"));
+            assertTrue(histories.hasChildNode("old0002"));
+        }
+    }
+
+    private static NodeState deletedHistories(DocumentNodeStore ns) {
+        return ns.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(":audit").getChildNode(":deleted")
+                .getChildNode(INDEX_DEFINITIONS_NAME);
+    }
+
+    /**
+     * Waits if the current minute ends soon, so that the next commits are in the same minute.
+     */
+    private static void waitForStartOfMinute() throws InterruptedException {
+        long second = (System.currentTimeMillis() / 1000) % 60;
+        if (second >= 50) {
+            Thread.sleep((61 - second) * 1000);
+        }
+    }
+
+    /**
+     * Merges on the second cluster node, based on a head that does not contain the
+     * conflicting change of the first cluster node yet: the commit is suspended until that
+     * change is visible, and then retried.
+     */
+    private void mergeWithConflict(NodeBuilder builder, CommitInfo info) throws Exception {
+        List<Exception> exceptions = new ArrayList<>();
+        Thread merge = new Thread(() -> {
+            try {
+                ns2.merge(builder, hook, info);
+            } catch (Exception e) {
+                exceptions.add(e);
+            }
+        });
+        merge.start();
+        for (int i = 0; i < 500 && ns2.commitQueue.numSuspendedThreads() == 0; i++) {
+            Thread.sleep(10);
+        }
+        assertEquals("the commit conflicts", 1, ns2.commitQueue.numSuspendedThreads());
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+        merge.join(10_000);
+        assertFalse("the commit did not succeed", merge.isAlive());
+        for (Exception e : exceptions) {
+            throw e;
+        }
+    }
+
+    /**
+     * Makes the changes visible on both cluster nodes, and checks the condition.
+     */
+    private void waitUntilVisible(Predicate<DocumentNodeStore> condition) throws InterruptedException {
+        long timeout = System.currentTimeMillis() + 10_000;
+        while (true) {
+            ns1.runBackgroundOperations();
+            ns2.runBackgroundOperations();
+            if (condition.test(ns1) && condition.test(ns2)) {
+                return;
+            }
+            assertTrue("changes not visible on both cluster nodes", System.currentTimeMillis() < timeout);
+            Thread.sleep(50);
+        }
+    }
+
+    private static NodeState fooIndex(DocumentNodeStore ns) {
+        return ns.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+    }
+
+    private static NodeBuilder fooIndex(NodeBuilder builder) {
+        return builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex");
+    }
+}

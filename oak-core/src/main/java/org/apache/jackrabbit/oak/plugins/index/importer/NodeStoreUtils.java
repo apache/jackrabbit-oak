@@ -49,15 +49,26 @@ final class NodeStoreUtils {
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
 
+    /**
+     * @param indexDefinitionAudit whether the index definition audit is enabled (else it
+     *                             depends on the system property)
+     * @param sessionId            the session id of the commit (tells the audit who changes
+     *                             the index definitions)
+     */
     static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
-                                         IndexEditorProvider indexEditorProvider) throws CommitFailedException {
+                                         IndexEditorProvider indexEditorProvider,
+                                         boolean indexDefinitionAudit, String sessionId) throws CommitFailedException {
+        IndexUpdateProvider indexUpdate = new IndexUpdateProvider(indexEditorProvider, null, true);
+        if (indexDefinitionAudit) {
+            indexUpdate.setIndexDefinitionAuditEnabled(true);
+        }
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
-                new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
+                new EditorHook(indexUpdate),
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider())
         );
-        nodeStore.merge(builder, hooks, createCommitInfo());
+        nodeStore.merge(builder, hooks, createCommitInfo(sessionId));
     }
 
     static NodeBuilder childBuilder(NodeBuilder nb, String path) {
@@ -68,7 +79,11 @@ final class NodeStoreUtils {
     }
 
     private static CommitInfo createCommitInfo() {
+        return createCommitInfo(CommitInfo.OAK_UNKNOWN);
+    }
+
+    private static CommitInfo createCommitInfo(String sessionId) {
         Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
-        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
+        return new CommitInfo(sessionId, CommitInfo.OAK_UNKNOWN, info);
     }
 }

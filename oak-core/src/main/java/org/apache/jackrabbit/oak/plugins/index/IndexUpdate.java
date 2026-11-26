@@ -245,6 +245,20 @@ public class IndexUpdate implements Editor, PathSource {
         rootState.setIgnoreReindexFlags(ignoreReindexFlag);
     }
 
+    /**
+     * Enables recording of index definition changes (see OAK-12458). Only
+     * supported for synchronous index updates, where the committing user is known.
+     * Must be called on the root editor, before the diff is processed.
+     */
+    void setIndexDefinitionAuditEnabled(boolean enabled) {
+        IndexDefinitionAudit audit = null;
+        if (enabled && !rootState.isAsync()) {
+            audit = new IndexDefinitionAudit(rootState.commitInfo, builder,
+                    IndexDefinitionAudit.MAX_ENTRIES, IndexDefinitionAudit.MAX_DELETED);
+        }
+        rootState.indexDefinitionAudit = audit;
+    }
+
     private boolean shouldReindex(NodeBuilder definition, NodeState before, String name) {
         PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
 
@@ -309,6 +323,18 @@ public class IndexUpdate implements Editor, PathSource {
                 && "disabled".equals(definitions.child(DiffIndexMerger.DIFF_INDEX).getString("type"))
                 && rootState.async == null) {
             DiffIndex.applyDiffIndexChanges(store, definitions);
+        }
+        // audit before the changes done by the index update itself (reindex flag reset,
+        // disabling superseded indexes, ...): only changes done by the user are recorded
+        if (rootState.indexDefinitionAudit != null) {
+            String definitionsPath = concat(getPath(), INDEX_DEFINITIONS_NAME);
+            try {
+                rootState.indexDefinitionAudit.audit(definitionsPath,
+                        before.getChildNode(INDEX_DEFINITIONS_NAME), definitions);
+            } catch (RuntimeException e) {
+                // the audit must not prevent the change itself
+                log.warn("Failed to record the index definition changes below {}", definitionsPath, e);
+            }
         }
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
@@ -663,6 +689,7 @@ public class IndexUpdate implements Editor, PathSource {
         private int changedNodeCount;
         private int changedPropertyCount;
         private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
+        private IndexDefinitionAudit indexDefinitionAudit;
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
                                      NodeBuilder builder, IndexUpdateCallback updateCallback,
