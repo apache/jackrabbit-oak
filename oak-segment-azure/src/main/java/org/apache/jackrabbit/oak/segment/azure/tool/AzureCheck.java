@@ -21,15 +21,23 @@ import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.AbstractPersistentDiskCacheV2;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.DiskCacheIOMonitor;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.PersistentDiskCache;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.PersistentDiskCacheV2Async;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.PersistentDiskCacheV2Sync;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.CachingPersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.apache.jackrabbit.oak.segment.tool.check.CheckHelper;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,6 +48,10 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 public class AzureCheck {
+    public enum PersistentCacheType {
+        LEGACY, SYNC, ASYNC
+    }
+
     /**
      * Create a builder for the {@link Check} command.
      *
@@ -87,6 +99,8 @@ public class AzureCheck {
         private String persistentCachePath;
 
         private Integer persistentCacheSizeGb;
+
+        private PersistentCacheType persistentCacheType = PersistentCacheType.LEGACY;
 
         private BlobContainerClient blobContainerClient;
 
@@ -307,6 +321,11 @@ public class AzureCheck {
             return this;
         }
 
+        public Builder withPersistentCacheType(PersistentCacheType persistentCacheType) {
+            this.persistentCacheType = requireNonNull(persistentCacheType);
+            return this;
+        }
+
         /**
          * The Azure blob directory to connect to.
          * @param blobContainerClient
@@ -383,6 +402,8 @@ public class AzureCheck {
 
     private final Integer persistentCacheSizeGb;
 
+    private final PersistentCacheType persistentCacheType;
+
     private final BlobContainerClient blobContainerClient;
 
     private AzureCheck(Builder builder) {
@@ -403,6 +424,7 @@ public class AzureCheck {
         this.continueOnError = builder.continueOnError;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
+        this.persistentCacheType = builder.persistentCacheType;
         this.blobContainerClient = builder.blobContainerClient;
     }
 
@@ -411,7 +433,6 @@ public class AzureCheck {
     }
 
     public int run() {
-        StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
         SegmentNodeStorePersistence persistence;
 
         if (blobContainerClient != null) {
@@ -420,17 +441,33 @@ public class AzureCheck {
             persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
         }
 
-        if (persistentCachePath != null) {
-            persistence = ToolUtils.decorateWithCache(persistence, persistentCachePath, persistentCacheSizeGb);
-        }
-
-        FileStoreBuilder builder = null;
         try {
-            builder = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile()).withCustomPersistence(persistence);
-        } catch (IOException e) {
+            if (persistentCachePath == null) {
+                return runCheck(persistence);
+            }
+            int sizeMb = Math.multiplyExact(persistentCacheSizeGb, 1024);
+            DiskCacheIOMonitor monitor = new DiskCacheIOMonitor(StatisticsProvider.NOOP);
+            if (persistentCacheType == PersistentCacheType.LEGACY) {
+                try (PersistentDiskCache cache = new PersistentDiskCache(new File(persistentCachePath), sizeMb, monitor)) {
+                    return runCheck(new CachingPersistence(cache, persistence));
+                }
+            }
+            Path cachePath = Path.of(persistentCachePath);
+            try (AbstractPersistentDiskCacheV2 cache = persistentCacheType == PersistentCacheType.SYNC
+                    ? new PersistentDiskCacheV2Sync(cachePath, sizeMb, monitor)
+                    : new PersistentDiskCacheV2Async(cachePath, sizeMb, monitor)) {
+                return runCheck(new CachingPersistence(cache, persistence));
+            }
+        } catch (Exception e) {
             e.printStackTrace(err);
             return 1;
         }
+    }
+
+    private int runCheck(SegmentNodeStorePersistence persistence) throws Exception {
+        StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
+        FileStoreBuilder builder = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
+                .withCustomPersistence(persistence);
 
         if (ioStatistics) {
             builder.withIOMonitor(ioMonitor);
@@ -467,9 +504,6 @@ public class AzureCheck {
             }
 
             return result;
-        } catch (Exception e) {
-            e.printStackTrace(err);
-            return 1;
         }
     }
 

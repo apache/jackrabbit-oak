@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import joptsimple.OptionParser;
@@ -28,12 +29,17 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCheck;
+import org.apache.jackrabbit.oak.segment.azure.tool.AzureCheck.PersistentCacheType;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
 class CheckCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
+        System.exit(run(args));
+    }
+
+    int run(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Boolean> mmapArg = parser.accepts("mmap", "use memory mapping for the file store (default: true)")
             .withOptionalArg()
@@ -80,18 +86,26 @@ class CheckCommand implements Command {
                 .withRequiredArg()
                 .ofType(Integer.class)
                 .defaultsTo(50);
+        OptionSpec<String> persistentCacheType = parser.accepts("persistent-cache-type",
+                        "Azure disk cache type: legacy (default), sync or async")
+                .withRequiredArg()
+                .defaultsTo("legacy");
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(dir).isEmpty()) {
-            printUsageAndExit(parser, "Segment Store path not specified");
+            return usageError(parser, "Segment Store path not specified");
         }
 
         if (options.valuesOf(dir).size() > 1) {
-            printUsageAndExit(parser, "Too many Segment Store paths specified");
+            return usageError(parser, "Too many Segment Store paths specified");
         }
 
-        int code;
-        if (options.valueOf(dir).startsWith("az:")) {
+        boolean azure = options.valueOf(dir).startsWith("az:");
+        if (options.has(persistentCacheType) && (!azure || !options.has(persistentCachePath))) {
+            return usageError(parser, "--persistent-cache-type requires an Azure store and --persistent-cache-path");
+        }
+
+        if (azure) {
             AzureCheck.Builder builder = AzureCheck.builder()
                     .withPath(options.valueOf(dir))
                     .withDebugInterval(notify.value(options))
@@ -110,11 +124,18 @@ class CheckCommand implements Command {
             }
 
             if (options.has(persistentCachePath)) {
+                PersistentCacheType cacheType;
+                try {
+                    cacheType = PersistentCacheType.valueOf(persistentCacheType.value(options).toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    return usageError(parser, "--persistent-cache-type must be legacy, sync or async");
+                }
                 builder.withPersistentCachePath(persistentCachePath.value(options));
                 builder.withPersistentCacheSizeGb(persistentCacheSizeGb.value(options));
+                builder.withPersistentCacheType(cacheType);
             }
 
-            code = builder.build().run();
+            return builder.build().run();
         } else {
             Check.Builder builder = Check.builder()
                     .withPath(new File(options.valueOf(dir)))
@@ -138,19 +159,15 @@ class CheckCommand implements Command {
                 builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
             }
 
-            code = builder.build().run();
+            return builder.build().run();
         }
-
-        System.exit(code);
     }
 
-    private void printUsageAndExit(OptionParser parser, String... messages) throws IOException {
-        for (String message : messages) {
-            System.err.println(message);
-        }
+    private int usageError(OptionParser parser, String message) throws IOException {
+        System.err.println(message);
         System.err.println("usage: check path/to/segmentstore <options>");
         parser.printHelpOn(System.err);
-        System.exit(1);
+        return 1;
     }
 
     private static Set<String> toSet(OptionSet options, OptionSpec<String> option) {
