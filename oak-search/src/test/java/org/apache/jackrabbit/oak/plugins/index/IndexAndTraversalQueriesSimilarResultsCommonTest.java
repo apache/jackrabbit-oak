@@ -81,11 +81,11 @@ public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends A
             // Full-text queries
             "/jcr:root//*[jcr:contains(@propa, '*')]",
             "/jcr:root//*[jcr:contains(@propa, '123*')]",
-            "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
+            "/jcr:root//*[jcr:contains(@propa, 'fal*')]",
+            "/jcr:root//*[@propa]"
     );
 
     protected List<String> queriesWithDifferentResults = List.of(
-            "/jcr:root//*[@propa]",
             "/jcr:root//*[@propa > 0]",
             "/jcr:root//*[@propa > '0']",
             "/jcr:root//*[@propa = 1.11]",
