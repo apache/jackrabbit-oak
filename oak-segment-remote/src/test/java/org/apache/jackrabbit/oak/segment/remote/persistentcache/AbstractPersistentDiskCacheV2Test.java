@@ -858,6 +858,25 @@ public abstract class AbstractPersistentDiskCacheV2Test {
         assertEquals("caller's buffer limit must be unchanged", limitBefore, buffer.limit());
     }
 
+    @Test
+    public void testWriteSegmentCachesOnlyRemainingBytes() throws Exception {
+        long[] id = randomSegmentId();
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[] {1, 2, 3, 4, 5}, 1, 3);
+        ByteBuffer expected = ByteBuffer.wrap(new byte[] {2, 3, 4});
+
+        cache.writeSegment(id[0], id[1], buffer);
+
+        assertEquals("caller's buffer position must be unchanged", 1, buffer.position());
+        assertEquals("caller's buffer limit must be unchanged", 4, buffer.limit());
+        Path file = segmentPath(cacheDir.toPath(), id);
+        awaitFile(file, TimeUnit.SECONDS.toMillis(5));
+        assertBufferEquals(expected, ByteBuffer.wrap(Files.readAllBytes(file)));
+        assertEquals(expected.remaining(), cache.cacheSize());
+        assertBufferEquals(expected, cache.readSegment(id[0], id[1], () -> {
+            throw new AssertionError("a cached segment must not invoke the loader");
+        }));
+    }
+
     /**
      * {@code writeSegment} after {@code close()} must throw {@code IllegalStateException}, mirroring the
      * behaviour of the other public-API methods.

@@ -335,13 +335,11 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
         }
         try {
             cache.get(segmentId, key -> {
-                // asReadOnlyBuffer() gives an independent position/limit so neither the caller nor the writer
-                // (sync writeSegmentInternal, or async pending-segment readers) mutate each other's view.
-                // rewind() then makes sure we write the buffer from the start.
-                ByteBuffer copy = buffer.asReadOnlyBuffer();
-                copy.rewind();
-                int segmentSize = copy.remaining();
-                handleLoadedSegment(segmentId, copy);
+                // FileStore may pass a buffer with a nonzero position. Give writers a zero-based view
+                // of just the segment bytes so rewinding cannot expose bytes before that position.
+                ByteBuffer segment = buffer.slice().asReadOnlyBuffer();
+                int segmentSize = segment.remaining();
+                handleLoadedSegment(segmentId, segment);
                 long newSize = cacheSize.addAndGet(segmentSize);
                 diskCacheIOMonitor.updateCacheSize(newSize, segmentSize);
                 return segmentSize;
