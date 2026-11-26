@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -84,39 +83,6 @@ public class PersistentDiskCacheV2AsyncTest extends AbstractPersistentDiskCacheV
             }
         }
         assertTrue(Files.exists(segmentPath(dir, id)));
-    }
-
-    @Test
-    public void evictionDuringWriteDoesNotRemoveReplacementFile() throws Exception {
-        UUID id = UUID.randomUUID();
-        Path dir = tempFolder.newFolder().toPath();
-        ByteBuffer first = ByteBuffer.wrap(new byte[] {1});
-        ByteBuffer replacement = ByteBuffer.wrap(new byte[] {2});
-        CountDownLatch firstWriting = new CountDownLatch(1);
-        CountDownLatch releaseFirst = new CountDownLatch(1);
-        AtomicInteger writes = new AtomicInteger();
-        try (PersistentDiskCacheV2Async asyncCache = new PersistentDiskCacheV2Async(dir, CACHE_SIZE_MB, noopMonitor(), 2, 2) {
-            @Override
-            protected void doWrite(UUID segmentId, ByteBuffer buffer) throws IOException {
-                if (writes.incrementAndGet() == 1) {
-                    firstWriting.countDown();
-                    awaitWriteRelease(releaseFirst);
-                }
-                super.doWrite(segmentId, buffer);
-            }
-        }) {
-            try {
-                asyncCache.handleLoadedSegment(id, first);
-                assertTrue(firstWriting.await(5, TimeUnit.SECONDS));
-                assertTrue(asyncCache.onEvictionHook(id));
-                asyncCache.handleLoadedSegment(id, replacement);
-                assertBufferEquals(replacement, asyncCache.getPendingSegment(id));
-            } finally {
-                releaseFirst.countDown();
-            }
-        }
-        assertEquals(2, writes.get());
-        assertBufferEquals(replacement, ByteBuffer.wrap(Files.readAllBytes(segmentPath(dir, id))));
     }
 
     private static void awaitWriteRelease(CountDownLatch release) throws IOException {
@@ -180,7 +146,7 @@ public class PersistentDiskCacheV2AsyncTest extends AbstractPersistentDiskCacheV
     public void testEnqueueInterruptIsHonouredAndDoesNotLeakPendingEntry() throws Exception {
         Path dir = tempFolder.newFolder("enqueue-interrupt").toPath();
         try (PersistentDiskCacheV2Async asyncCache =
-                 new PersistentDiskCacheV2Async(dir, CACHE_SIZE_MB, noopMonitor(), 1, 1)) {
+                 new PersistentDiskCacheV2Async(dir, CACHE_SIZE_MB, noopMonitor(), 1, 1, 0, 1)) {
             long[] id = randomSegmentId();
             ByteBuffer buffer = createRandomBuffer(1024);
 

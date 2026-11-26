@@ -52,7 +52,7 @@ public class AzureCheckCacheTest {
     public void v2ModesUseConfiguredDirectoryAndCloseOnStartupFailure() throws Exception {
         Set<Thread> originalWriters = writerThreads();
 
-        for (PersistentCacheType type : new PersistentCacheType[] {PersistentCacheType.V2_SYNC, PersistentCacheType.V2_ASYNC}) {
+        for (PersistentCacheType type : new PersistentCacheType[] {PersistentCacheType.SYNC, PersistentCacheType.ASYNC}) {
             Path path = folder.getRoot().toPath().resolve(type.name());
             StringWriter errors = new StringWriter();
             assertEquals(1, failingCheck(path).withErrWriter(new PrintWriter(errors))

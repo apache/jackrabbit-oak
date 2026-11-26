@@ -49,7 +49,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 public class AzureCheck {
     public enum PersistentCacheType {
-        LEGACY, V2_SYNC, V2_ASYNC
+        LEGACY, SYNC, ASYNC
     }
 
     /**
@@ -453,7 +453,7 @@ public class AzureCheck {
                 }
             }
             Path cachePath = Path.of(persistentCachePath);
-            try (AbstractPersistentDiskCacheV2 cache = persistentCacheType == PersistentCacheType.V2_SYNC
+            try (AbstractPersistentDiskCacheV2 cache = persistentCacheType == PersistentCacheType.SYNC
                     ? new PersistentDiskCacheV2Sync(cachePath, sizeMb, monitor)
                     : new PersistentDiskCacheV2Async(cachePath, sizeMb, monitor)) {
                 return runCheck(new CachingPersistence(cache, persistence));

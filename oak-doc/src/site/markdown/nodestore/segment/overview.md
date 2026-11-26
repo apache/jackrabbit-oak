@@ -846,9 +846,17 @@ The optional `--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>` argument al
 
 
 For an Azure segment store, `--persistent-cache-type` selects `legacy` (the default),
-`v2-sync` (writes cache files on the calling thread), or `v2-async` (queues cache writes
+`sync` (writes cache files on the calling thread), or `async` (queues cache writes
 and serves pending segments from memory). Both V2 modes use weight-based eviction.
 A populated `--persistent-cache-path` must have been created by the selected implementation.
+Use a dedicated directory for V2: on startup it removes regular files whose names are
+not segment IDs, including files left by interrupted writes.
+
+By default, a queued segment becomes eligible for writing after 100 ms or when the
+queue reaches half its capacity, whichever comes first. The async writer drains the queue
+on close. Set `oak.segment.disk.cache.async.write.delay.millis` to `0` to disable the
+delay, or use `oak.segment.disk.cache.async.preemptive.flush.size` to set the number of
+queued entries that triggers early writes.
 
 ### <a name="compact"/> Compact
 

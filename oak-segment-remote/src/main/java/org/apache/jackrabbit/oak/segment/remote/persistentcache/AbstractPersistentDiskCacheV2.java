@@ -17,6 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
+import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -38,7 +39,6 @@ import java.io.Closeable;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileVisitResult;
@@ -85,13 +85,16 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
 
     private static final String TEMP_SUFFIX = ".tmp";
 
+    private static final long WRITE_LOG_INTERVAL = 5_000;
+    private static final long READ_LOG_INTERVAL = 50_000;
+
     /**
      * System property controlling idle-based eviction. When positive, an entry not read or written for that
      * long is evicted. Defaults to {@code 0}, disabled.
      */
     static final String IDLE_EVICTION_SECONDS_PROP = "oak.segment.disk.cache.idle.eviction.seconds";
 
-    private final DiskCacheIOMonitor diskCacheIOMonitor;
+    final DiskCacheIOMonitor diskCacheIOMonitor;
     private final Path directory;
     // Map from segment ID to the segment's size in bytes. The segment data itself is stored on disk at
     // in bucket directories; the cache tracks membership and drives weight-based eviction. Storing
@@ -102,6 +105,8 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
     private final AbstractCacheStats cacheStats;
     private final AtomicLong cacheSize = new AtomicLong(0);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final WriteStatsRecorder writeStats = new WriteStatsRecorder();
+    private final ReadStatsRecorder readStats = new ReadStatsRecorder();
 
     protected final LogSilencer logSilencer = new LogSilencer(10_000, 32);
 
@@ -199,6 +204,14 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
      */
     protected boolean onEvictionHook(UUID segmentId) {
         return false;
+    }
+
+    /**
+     * Optional suffix appended to the periodic write-stats log line emitted by {@link WriteStatsRecorder}.
+     * Default is empty; the async variant overrides this to append the current writer-queue depth.
+     */
+    protected String writeStatsContext() {
+        return "";
     }
 
     // ---------- public API ----------
@@ -359,9 +372,15 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
 
     /**
      * Re-populate the in-memory cache from existing files in {@link #directory}. Subclasses call this at the end of
-     * their own constructor. Rehydration inserts files in filesystem iteration order and applies the same
-     * weight limit as ordinary writes. Abandoned writes in cache buckets are removed; files outside the
-     * expected cache layout are ignored.
+     * their own constructor. Walks the directory tree (segments live one level deep in per-bucket subdirectories,
+     * see {@link #getSegmentPath}) and inserts each valid UUID-named file into the cache. Iteration order is
+     * filesystem-dependent, so the initial LRU order after rehydration is arbitrary — actual access patterns
+     * re-establish a meaningful LRU within the first wave of reads. If the on-disk total exceeds the configured
+     * weight (unusual — typically only happens if the cache size is reduced between restarts), the cache's
+     * weight-based eviction discards the excess during the put loop; {@link #onEviction} decrements cacheSize and
+     * deletes the file, so the end state is correct without explicit trimming. Regular files whose names are not
+     * valid segment IDs — including leftover {@value #TEMP_SUFFIX} files from a crashed write — are deleted
+     * (logged at info level), wherever they sit in the tree. Empty bucket directories are left in place.
      */
     protected final void rehydrateFromDisk() {
         long startNanos = System.nanoTime();
@@ -375,16 +394,13 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
                     }
                     String filename = path.getFileName().toString();
                     UUID segmentId = parseSegmentId(filename);
-                    if (segmentId == null || !path.equals(getSegmentPath(segmentId.toString()))) {
-                        UUID temporaryId = filename.endsWith(TEMP_SUFFIX)
-                                ? parseSegmentId(filename.substring(0, filename.length() - TEMP_SUFFIX.length())) : null;
-                        if (temporaryId != null && path.equals(getSegmentBucket(temporaryId.toString())
-                                .resolve(temporaryId + TEMP_SUFFIX))) {
-                            try {
-                                Files.deleteIfExists(path);
-                            } catch (IOException e) {
-                                LOG.debug("Failed to delete abandoned cache write {}", path, e);
+                    if (segmentId == null) {
+                        try {
+                            if (Files.deleteIfExists(path)) {
+                                LOG.info("Deleted file with non-segment-id name: {}", path);
                             }
+                        } catch (IOException e) {
+                            LOG.info("Failed to delete non-segment-id file {}", path, e);
                         }
                         return FileVisitResult.CONTINUE;
                     }
@@ -445,6 +461,7 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
                     StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             long elapsed = System.nanoTime() - start;
             diskCacheIOMonitor.afterSegmentWrite(segmentFile, msb, lsb, segmentBytes, elapsed);
+            writeStats.recordWrite(segmentId, segmentBytes, elapsed);
         } catch (IOException e) {
             try {
                 Files.deleteIfExists(tempPath);
@@ -533,6 +550,7 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
             buffer.flip();
             long elapsed = System.nanoTime() - start;
             diskCacheIOMonitor.afterSegmentRead(segmentFile, msb, lsb, size, elapsed);
+            readStats.recordRead(segmentId, size, elapsed);
             return buffer;
         } catch (ClosedByInterruptException e) {
             // The thread was interrupted during the NIO read, surfacing as ClosedByInterruptException.
@@ -560,6 +578,78 @@ public abstract class AbstractPersistentDiskCacheV2 implements PersistentCache, 
     private static final class LoaderException extends RuntimeException {
         LoaderException(Throwable cause) {
             super(cause);
+        }
+    }
+
+    /**
+     * Accumulates per-write counters across all writer threads and emits a periodic log line every
+     * {@link #WRITE_LOG_INTERVAL} segments. The sync variant calls {@link #writeSegmentInternal} on the
+     * caller threads (so multiple threads may write concurrently); the async variant calls it on the
+     * background writer threads.
+     */
+    private final class WriteStatsRecorder {
+        private final long startNanos = System.nanoTime();
+        private final AtomicLong segments = new AtomicLong();
+        private final AtomicLong bytes = new AtomicLong();
+        private final AtomicLong writeNanos = new AtomicLong();
+
+        void recordWrite(UUID segmentId, int segmentBytes, long durationNanos) {
+            long count = segments.incrementAndGet();
+            long bytesTotal = bytes.addAndGet(segmentBytes);
+            long timeTotal = writeNanos.addAndGet(durationNanos);
+            if (count % WRITE_LOG_INTERVAL == 0) {
+                // totalTimeWriting is summed across all writer threads while totalTime is wall clock;
+                // their ratio can exceed 100% under concurrent writes — a value of N% roughly means
+                // N/100 threads were busy writing on average.
+                long wallSec = (System.nanoTime() - startNanos) / 1_000_000_000L;
+                long writeSec = timeTotal / 1_000_000_000L;
+                LOG.info("Wrote segment {} to disk cache in {}us. segmentsWritten: {}, " +
+                                "avgWriteTime: {}us, avgSegmentSize: {}, " +
+                                "totalTimeWriting: {}s, totalTime: {}s{}",
+                        segmentId,
+                        durationNanos / 1_000L,
+                        count,
+                        (timeTotal / count) / 1_000L,
+                        IOUtils.humanReadableByteCountBin(bytesTotal / count),
+                        writeSec,
+                        wallSec,
+                        writeStatsContext());
+            }
+        }
+    }
+
+    /**
+     * Accumulates per-read counters across all reader threads and emits a periodic log line every
+     * {@link #READ_LOG_INTERVAL} segments. Reads happen on the caller's thread (whichever thread invoked
+     * {@link #readSegment}), so multiple threads may read concurrently.
+     */
+    private static final class ReadStatsRecorder {
+        private final long startNanos = System.nanoTime();
+        private final AtomicLong segments = new AtomicLong();
+        private final AtomicLong bytes = new AtomicLong();
+        private final AtomicLong readNanos = new AtomicLong();
+
+        void recordRead(UUID segmentId, int segmentBytes, long durationNanos) {
+            long count = segments.incrementAndGet();
+            long bytesTotal = bytes.addAndGet(segmentBytes);
+            long timeTotal = readNanos.addAndGet(durationNanos);
+            if (count % READ_LOG_INTERVAL == 0) {
+                // totalTimeReading is summed across all reader threads while totalTime is wall clock;
+                // their ratio can exceed 100% under concurrent reads — a value of N% roughly means
+                // N/100 threads were busy reading on average.
+                long wallSec = (System.nanoTime() - startNanos) / 1_000_000_000L;
+                long readSec = timeTotal / 1_000_000_000L;
+                LOG.info("Read segment {} from disk cache in {}us. segmentsRead: {}, " +
+                                "avgReadTime: {}us, avgSegmentSize: {}, " +
+                                "totalTimeReading: {}s, totalTime: {}s",
+                        segmentId,
+                        durationNanos / 1_000L,
+                        count,
+                        (timeTotal / count) / 1_000L,
+                        IOUtils.humanReadableByteCountBin(bytesTotal / count),
+                        readSec,
+                        wallSec);
+            }
         }
     }
 }

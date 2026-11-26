@@ -292,22 +292,29 @@ public abstract class AbstractPersistentDiskCacheV2Test {
         }
     }
 
+    /**
+     * Files whose names are not valid segment IDs are deleted during rehydration, wherever they sit in the
+     * tree: stray files at the root, stray files nested inside a bucket directory, and leftover {@code .tmp}
+     * files from a crashed write. Valid UUID-named files (stored in their bucket) are rehydrated. Zero-byte
+     * UUID-named files (likely failed writes from a crashed run) have valid names so they are preserved on
+     * disk; they are simply not rehydrated into the in-memory cache.
+     */
     @Test
-    public void testRehydrateOnlyUsesFilesInCacheLayout() throws IOException {
+    public void testRehydrateDeletesInvalidNamedFilesRecursively() throws IOException {
         Path dir = tempFolder.newFolder("rehydrate-mixed").toPath();
 
         UUID validId = UUID.randomUUID();
         Path validPath = writeSegmentFile(dir, validId, createRandomBytes(1024));
         Path bucket = validPath.getParent();
 
-        // Stray non-UUID files, at the root and nested inside a bucket directory: both preserved.
+        // Stray non-UUID files, at the root and nested inside a bucket directory: both deleted.
         Path strayRoot = dir.resolve("oldSegment.txt");
         Files.write(strayRoot, "stray data".getBytes());
         Path strayNested = bucket.resolve("nested.txt");
         Files.write(strayNested, "nested data".getBytes());
 
         // A leftover temp file from a crashed write (UUID prefix + .tmp suffix is not a valid UUID): deleted.
-        Path leftoverTemp = bucket.resolve(validId + ".tmp");
+        Path leftoverTemp = bucket.resolve(UUID.randomUUID() + ".tmp");
         Files.write(leftoverTemp, "partial".getBytes());
 
         // Zero-byte UUID-named file: valid name, preserved on disk but not rehydrated.
@@ -324,8 +331,8 @@ public abstract class AbstractPersistentDiskCacheV2Test {
             assertEquals(1024L, rehydrated.cacheSize());
 
             assertTrue("valid segment file should be preserved", Files.exists(validPath));
-            assertTrue("stray non-UUID file at root should be preserved", Files.exists(strayRoot));
-            assertTrue("stray non-UUID file nested in a bucket should be preserved", Files.exists(strayNested));
+            assertFalse("stray non-UUID file at root should be deleted", Files.exists(strayRoot));
+            assertFalse("stray non-UUID file nested in a bucket should be deleted", Files.exists(strayNested));
             assertFalse("leftover .tmp file should be deleted", Files.exists(leftoverTemp));
             assertTrue("zero-byte UUID file should be preserved (valid name)", Files.exists(zeroBytePath));
         }

@@ -32,17 +32,27 @@ public class CheckCommandTest {
     @Test
     public void selectsLegacyByDefaultAndAllowsBothV2Modes() throws Exception {
         assertCacheType(PersistentCacheType.LEGACY, "az:store", "--persistent-cache-path", "cache");
-        assertCacheType(PersistentCacheType.V2_SYNC, "az:store", "--persistent-cache-path", "cache",
-                "--persistent-cache-type", "v2-sync");
-        assertCacheType(PersistentCacheType.V2_ASYNC, "az:store", "--persistent-cache-path", "cache",
-                "--persistent-cache-type", "v2-async");
+        assertCacheType(PersistentCacheType.SYNC, "az:store", "--persistent-cache-path", "cache",
+                "--persistent-cache-type", "sync");
+        assertCacheType(PersistentCacheType.ASYNC, "az:store", "--persistent-cache-path", "cache",
+                "--persistent-cache-type", "async");
+    }
+
+    @Test
+    public void acceptsCacheTypesIgnoringCase() throws Exception {
+        assertCacheType(PersistentCacheType.LEGACY, "az:store", "--persistent-cache-path", "cache",
+                "--persistent-cache-type", "Legacy");
+        assertCacheType(PersistentCacheType.SYNC, "az:store", "--persistent-cache-path", "cache",
+                "--persistent-cache-type", "SYNC");
+        assertCacheType(PersistentCacheType.ASYNC, "az:store", "--persistent-cache-path", "cache",
+                "--persistent-cache-type", "aSyNc");
     }
 
     @Test
     public void rejectsInvalidCacheTypeUsage() throws Exception {
         CheckCommand command = new CheckCommand();
-        assertEquals(1, command.run("store", "--persistent-cache-path", "cache", "--persistent-cache-type", "v2-sync"));
-        assertEquals(1, command.run("az:store", "--persistent-cache-type", "v2-sync"));
+        assertEquals(1, command.run("store", "--persistent-cache-path", "cache", "--persistent-cache-type", "sync"));
+        assertEquals(1, command.run("az:store", "--persistent-cache-type", "sync"));
         assertEquals(1, command.run("az:store", "--persistent-cache-path", "cache", "--persistent-cache-type", "unknown"));
     }
 

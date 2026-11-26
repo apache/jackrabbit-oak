@@ -17,14 +17,21 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
 
 /**
- * V2 disk cache that writes each loaded segment on the calling thread before publishing the cache entry.
- * If the cache write fails, the caller still receives the segment loaded from the backend.
+ * Synchronous-writer variant of {@link AbstractPersistentDiskCacheV2}. Inside the cache-miss loader, the loaded
+ * buffer is written to disk synchronously before the loader returns. If the write succeeds, the file exists
+ * before the cache entry is published, so this variant has no pending-writes buffer or orphan-cleanup logic.
+ * If the write fails, the caller still receives the segment loaded from the backend.
+ * <p>
+ * The disk write happens inside {@code cache.get(key, loader)}, so the cache holds the loader lock for the
+ * duration of the write. For high-concurrency cold starts, {@link PersistentDiskCacheV2Async} moves that write
+ * to a background pool.
  */
 public class PersistentDiskCacheV2Sync extends AbstractPersistentDiskCacheV2 {
     public static final String NAME = "Segment Disk Cache (Sync)";

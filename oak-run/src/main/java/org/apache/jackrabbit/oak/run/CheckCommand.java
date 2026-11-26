@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import joptsimple.OptionParser;
@@ -86,7 +87,7 @@ class CheckCommand implements Command {
                 .ofType(Integer.class)
                 .defaultsTo(50);
         OptionSpec<String> persistentCacheType = parser.accepts("persistent-cache-type",
-                        "Azure disk cache type: legacy (default), v2-sync or v2-async")
+                        "Azure disk cache type: legacy (default), sync or async")
                 .withRequiredArg()
                 .defaultsTo("legacy");
         OptionSet options = parser.parse(args);
@@ -123,14 +124,11 @@ class CheckCommand implements Command {
             }
 
             if (options.has(persistentCachePath)) {
-                PersistentCacheType cacheType = switch (persistentCacheType.value(options)) {
-                    case "legacy" -> PersistentCacheType.LEGACY;
-                    case "v2-sync" -> PersistentCacheType.V2_SYNC;
-                    case "v2-async" -> PersistentCacheType.V2_ASYNC;
-                    default -> null;
-                };
-                if (cacheType == null) {
-                    return usageError(parser, "--persistent-cache-type must be legacy, v2-sync or v2-async");
+                PersistentCacheType cacheType;
+                try {
+                    cacheType = PersistentCacheType.valueOf(persistentCacheType.value(options).toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    return usageError(parser, "--persistent-cache-type must be legacy, sync or async");
                 }
                 builder.withPersistentCachePath(persistentCachePath.value(options));
                 builder.withPersistentCacheSizeGb(persistentCacheSizeGb.value(options));

@@ -56,6 +56,8 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
     public static final String OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CALCULATED = "oak.segment.cache.disk.cache-size-calculated";
     public static final String OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CHANGE = "oak.segment.cache.disk.cache-size-change";
 
+    private final StatisticsProvider statisticsProvider;
+    private AsyncDiskCacheStats asyncStats;
     private final MeterStats segmentReadBytes;
     private final MeterStats segmentWriteBytes;
     private final TimerStats segmentReadTime;
@@ -64,6 +66,7 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
     private final HistogramStats cacheSizeOnDisk;
 
     public DiskCacheIOMonitor(@NotNull StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
         segmentReadBytes = statisticsProvider.getMeter(
                 OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
         segmentWriteBytes = statisticsProvider.getMeter(
@@ -93,5 +96,12 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
     public void updateCacheSize(long calculated, long change) {
         cacheSizeCalculated.update(calculated);
         cacheSizeOnDisk.update(change);
+    }
+
+    synchronized AsyncDiskCacheStats asyncStats() {
+        if (asyncStats == null) {
+            asyncStats = new AsyncDiskCacheStats(statisticsProvider);
+        }
+        return asyncStats;
     }
 }
