@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "full",
+  "commit_sha": "598012d2895dbcb9584beb7400af3c4366d448c9",
+  "author": "anchela@adobe.com",
+  "timestamp": "2026-11-26T13:58:46+01:00",
+  "detection": {
+    "ai_assisted": true,
+    "method": "heuristic",
+    "tool": "copilot",
+    "model": "",
+    "confidence": 0.9
+  },
+  "stats": {
+    "total_additions": 37,
+    "total_deletions": 3,
+    "ai_additions": 37,
+    "ai_deletions": 3,
+    "human_additions": 0,
+    "human_deletions": 0
+  },
+  "files": {
+    "oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserValidator.java": {
+      "ai_additions": 5,
+      "human_additions": 0,
+      "ai_deletions": 3,
+      "human_deletions": 0
+    },
+    "oak-core/src/test/java/org/apache/jackrabbit/oak/security/user/UserValidatorTest.java": {
+      "ai_additions": 32,
+      "human_additions": 0,
+      "ai_deletions": 0,
+      "human_deletions": 0
+    }
+  }
+}
