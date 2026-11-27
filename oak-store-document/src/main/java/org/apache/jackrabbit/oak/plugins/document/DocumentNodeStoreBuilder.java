@@ -130,6 +130,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
+    private Feature legacyUnresolvedLastRevFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -487,6 +488,24 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getPrevNoPropCacheFeature() {
         return prevNoPropCacheFeature;
+    }
+
+    /**
+     * Sets the feature toggle that restores the legacy computation of the
+     * last revision of a node when the most recent change of a cluster node
+     * cannot be resolved to a committed revision (OAK-12557).
+     *
+     * @param legacyUnresolvedLastRev the feature toggle or {@code null}.
+     * @return this builder.
+     */
+    public T setLegacyUnresolvedLastRevFeature(@Nullable Feature legacyUnresolvedLastRev) {
+        this.legacyUnresolvedLastRevFeature = legacyUnresolvedLastRev;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getLegacyUnresolvedLastRevFeature() {
+        return legacyUnresolvedLastRevFeature;
     }
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
