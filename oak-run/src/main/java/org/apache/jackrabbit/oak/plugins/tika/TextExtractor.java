@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.tika.exception.WriteLimitReachedException;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.WriteOutContentHandler;
@@ -186,9 +188,9 @@ class TextExtractor implements Closeable {
 
         //TODO Handle case where same blob is being concurrently processed
         Metadata metadata = new Metadata();
-        metadata.set(Metadata.CONTENT_TYPE, type);
+        metadata.set(HttpHeaders.CONTENT_TYPE, type);
         if (source.getEncoding() != null) { // not mandatory
-            metadata.set(Metadata.CONTENT_ENCODING, source.getEncoding());
+            metadata.set(HttpHeaders.CONTENT_ENCODING, source.getEncoding());
         }
 
         String extractedContent = parseStringValue(source.getByteSource(), metadata, source.getPath());
@@ -258,8 +260,8 @@ class TextExtractor implements Closeable {
                 }
             };
             CountingInputStream stream = new CountingInputStream(new LazyInputStream(inputStreamSupplier));
-            try {
-                tika.getParser().parse(stream, handler, metadata, new ParseContext());
+            try (TikaInputStream tis = TikaInputStream.get(stream)) {
+                tika.getParser().parse(tis, handler, metadata, new ParseContext());
             } finally {
                 size = stream.getByteCount();
                 stream.close();

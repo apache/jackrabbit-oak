@@ -27,8 +27,8 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
@@ -54,6 +54,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
+import org.osgi.framework.wiring.BundleRevision;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -79,15 +80,21 @@ public class OSGiIT {
                 // Jackson dependency for object serialisation.
                 // (these only need to be defined here when the versions are different from the ones
                 // defined in the project -- otherwise -> "bundle symbolic name and version are not unique")
-                // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.22.0"),
-                // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.22"),
-                // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.22.0"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.22"),
+                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
 
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
                 mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
 
                 // required for slf4j 2.0.x
                 spyflyOptions(),
+
+                mavenBundle("org.slf4j", "slf4j-api", "2.0.20"),
+                mavenBundle("commons-io", "commons-io", "2.22.0"),
+                mavenBundle("org.apache.tika", "tika-core", "4.2.0"),
+                mavenBundle("org.apache.tika", "tika-serialization", "4.2.0"),
+
                 // Keep provider discovery inside OSGi rather than Maven's test classpath.
                 frameworkProperty("felix.bootdelegation.implicit").value("false"),
                 frameworkProperty("repository.home").value("target"),
@@ -160,9 +167,15 @@ public class OSGiIT {
     @Test
     public void bundleStates() {
         for (Bundle bundle : context.getBundles()) {
-            assertEquals(
-                String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
-                Bundle.ACTIVE, bundle.getState());
+            if ((bundle.adapt(BundleRevision.class).getTypes() & BundleRevision.TYPE_FRAGMENT) != 0) {
+                assertEquals(
+                        String.format("Bundle fragment %s not resolved. have a look at the logs", bundle.toString()), 
+                        Bundle.RESOLVED, bundle.getState());
+            } else {
+                assertEquals(
+                    String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
+                    Bundle.ACTIVE, bundle.getState());
+            }
         }
     }
 

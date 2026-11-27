@@ -33,9 +33,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
-import org.apache.tika.config.TikaConfig;
+import org.apache.tika.config.loader.TikaJsonConfig;
+import org.apache.tika.config.loader.TikaLoader;
+import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.WriteLimitReachedException;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -73,7 +77,6 @@ public class FulltextBinaryTextExtractor {
     private final IndexDefinition definition;
     private final boolean reindex;
     private Parser parser;
-    private TikaConfigHolder tikaConfig;
     /**
      * The media types supported by the parser used.
      */
@@ -99,37 +102,41 @@ public class FulltextBinaryTextExtractor {
         log.info("[{}] Text extraction statistics: {}", getIndexName(), textExtractionStats.formatStats());
     }
 
-    public List<String> newBinary(PropertyState property, NodeState state, String path) {
-        List<String> values = new ArrayList<>();
-        Metadata metadata = new Metadata();
+    public List<String> newBinary(PropertyState property, NodeState state, String path) throws IOException {
+        try {
+            List<String> values = new ArrayList<>();
+            Metadata metadata = new Metadata();
 
-        //jcr:mimeType is mandatory for a binary to be indexed
-        String type = state.getString(JcrConstants.JCR_MIMETYPE);
-        type = definition.getTikaMappedMimeType(type);
+            //jcr:mimeType is mandatory for a binary to be indexed
+            String type = state.getString(JcrConstants.JCR_MIMETYPE);
+            type = definition.getTikaMappedMimeType(type);
 
-        if (type == null || !isSupportedMediaType(type)) {
-            log.trace("[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
-                    getIndexName(), path, type);
+            if (type == null || !isSupportedMediaType(type)) {
+                log.trace("[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
+                        getIndexName(), path, type);
+                return values;
+            }
+
+            metadata.set(HttpHeaders.CONTENT_TYPE, type);
+            if (JCR_DATA.equals(property.getName())) {
+                String encoding = state.getString(JcrConstants.JCR_ENCODING);
+                if (encoding != null) { // not mandatory
+                    metadata.set(HttpHeaders.CONTENT_ENCODING, encoding);
+                }
+            }
+
+            for (Blob v : property.getValue(Type.BINARIES)) {
+                String value = parseStringValue(v, metadata, path, property.getName());
+                if (value == null) {
+                    continue;
+                }
+
+                values.add(value);
+            }
             return values;
+        } catch (TikaConfigException e) {
+            throw new IOException(e);
         }
-
-        metadata.set(Metadata.CONTENT_TYPE, type);
-        if (JCR_DATA.equals(property.getName())) {
-            String encoding = state.getString(JcrConstants.JCR_ENCODING);
-            if (encoding != null) { // not mandatory
-                metadata.set(Metadata.CONTENT_ENCODING, encoding);
-            }
-        }
-
-        for (Blob v : property.getValue(Type.BINARIES)) {
-            String value = parseStringValue(v, metadata, path, property.getName());
-            if (value == null) {
-                continue;
-            }
-
-            values.add(value);
-        }
-        return values;
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
@@ -165,11 +172,15 @@ public class FulltextBinaryTextExtractor {
                     // ExtractedTextCache#process, which may execute the extraction with a timeout (depends on configuration).
                     String threadName = "Extracting " + path + ", " + blobLength + " bytes";
                     extractedTextCache.process(threadName, () -> {
-                        getParser().parse(stream, handler, metadata, new ParseContext());
-                        return null;
+                        try (TikaInputStream tis = TikaInputStream.get(stream)) {
+                            getParser().parse(tis, handler, metadata, new ParseContext());
+                            return null;
+                        }
                     });
                 } else {
-                    getParser().parse(stream, handler, metadata, new ParseContext());
+                    try (TikaInputStream tis = TikaInputStream.get(stream)) {
+                        getParser().parse(tis, handler, metadata, new ParseContext());
+                    }
                 }
             } finally {
                 bytesRead = stream.getByteCount();
@@ -226,21 +237,14 @@ public class FulltextBinaryTextExtractor {
 
     //~-------------------------------------------< Tika >
 
-    public TikaConfig getTikaConfig() {
-        if (tikaConfig == null) {
-            tikaConfig = initializeTikaConfig(definition);
-        }
-        return tikaConfig.config;
-    }
-
-    private Parser getParser() {
+    private Parser getParser() throws TikaConfigException, IOException {
         if (parser == null) {
             parser = initializeTikaParser(definition);
         }
         return parser;
     }
 
-    boolean isSupportedMediaType(String type) {
+    boolean isSupportedMediaType(String type) throws TikaConfigException, IOException {
         // we need to initialize the fields separately
         // to prevent null pointer exceptions if the method
         // is called concurrently from multiple threads
@@ -262,8 +266,8 @@ public class FulltextBinaryTextExtractor {
                 configSource = String.format("Custom config at %s", definition.getIndexPath());
                 configStream = definition.getTikaConfig();
             } else {
-                URL configUrl = FulltextIndexEditorContext.class.getResource("tika-config.xml");
-                configSource = "Default : tika-config.xml";
+                URL configUrl = FulltextIndexEditorContext.class.getResource("tika-config.json");
+                configSource = "Default : tika-config.json";
                 if (configUrl != null) {
                     configStream = configUrl.openStream();
                 }
@@ -293,7 +297,7 @@ public class FulltextBinaryTextExtractor {
                 configSource = "Custom config at " + definition.getIndexPath();
                 configStream = definition.getTikaConfig();
             } else {
-                URL configUrl = FulltextIndexEditorContext.class.getResource("tika-config.xml");
+                URL configUrl = FulltextIndexEditorContext.class.getResource("tika-config.json");
                 if (configUrl != null) {
                     configSource = configUrl.toString();
                     configStream = configUrl.openStream();
@@ -301,51 +305,44 @@ public class FulltextBinaryTextExtractor {
             }
 
             if (configStream != null) {
-                return new TikaConfigHolder(new TikaConfig(configStream), configSource);
+                return new TikaConfigHolder(TikaJsonConfig.load(configStream), configSource);
             }
-        } catch (TikaException | IOException | SAXException e) {
+        } catch (TikaException | IOException e) {
             log.warn("Tika configuration not available : {}", configSource, e);
         } finally {
             IOUtils.closeQuietly(configStream);
             Thread.currentThread().setContextClassLoader(current);
         }
-        return new TikaConfigHolder(TikaConfig.getDefaultConfig(), "Default Config");
+        return new TikaConfigHolder(TikaJsonConfig.loadDefault(), "Default Config");
     }
 
-    private Parser initializeTikaParser(IndexDefinition definition) {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
-        try {
-            if (definition.hasCustomTikaConfig()) {
-                Thread.currentThread().setContextClassLoader(FulltextIndexEditorContext.class.getClassLoader());
-                return new AutoDetectParser(getTikaConfig());
-            }
-        } finally {
-            Thread.currentThread().setContextClassLoader(current);
+    private Parser initializeTikaParser(IndexDefinition definition) throws TikaConfigException, IOException {
+        if (definition.hasCustomTikaConfig()) {
+            TikaJsonConfig jsonConfig = TikaJsonConfig.load(definition.getTikaConfig());
+            TikaLoader loader = TikaLoader.load(jsonConfig, FulltextIndexEditorContext.class.getClassLoader());
+            return loader.loadAutoDetectParser();
         }
         return defaultParser;
     }
 
     private static AutoDetectParser createDefaultParser() {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
         TikaConfigHolder configHolder = null;
         try {
             configHolder = initializeTikaConfig(null);
-            Thread.currentThread().setContextClassLoader(FulltextIndexEditorContext.class.getClassLoader());
+            TikaLoader loader = TikaLoader.load(configHolder.config, FulltextIndexEditorContext.class.getClassLoader());
             log.info("Loaded default Tika Config from classpath {}", configHolder);
-            return new AutoDetectParser(configHolder.config);
+            return new AutoDetectParser(loader.loadAutoDetectParser(), loader.loadParsers());
         } catch (Exception e) {
             log.warn("Tika configuration not available : {}", configHolder, e);
-        } finally {
-            Thread.currentThread().setContextClassLoader(current);
         }
         return new AutoDetectParser();
     }
 
     private static final class TikaConfigHolder {
-        final TikaConfig config;
+        final TikaJsonConfig config;
         final String sourceInfo;
 
-        public TikaConfigHolder(TikaConfig config, String sourceInfo) {
+        public TikaConfigHolder(TikaJsonConfig config, String sourceInfo) {
             this.config = config;
             this.sourceInfo = sourceInfo;
         }

@@ -2332,7 +2332,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
 [JCR-2989]: https://issues.apache.org/jira/browse/JCR-2989?focusedCommentId=13051101
 [solr-analyzer]: https://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters#Specifying_an_Analyzer_in_the_schema
-[default-config]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-lucene/src/main/resources/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.xml
+[default-config]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-lucene/src/main/resources/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.json
 [lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
 [tika-download]: https://tika.apache.org/download.html
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika

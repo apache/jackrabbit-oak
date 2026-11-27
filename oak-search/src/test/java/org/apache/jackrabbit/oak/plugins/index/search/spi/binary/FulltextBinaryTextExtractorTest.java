@@ -40,13 +40,6 @@ public class FulltextBinaryTextExtractorTest {
     private final ExtractedTextCache cache = new ExtractedTextCache(1000, 10000);
 
     @Test
-    public void tikaConfigServiceLoader() throws Exception {
-        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn, false);
-        assertTrue(extractor.getTikaConfig().getServiceLoader().isDynamic());
-    }
-
-    @Test
     public void concurrentTest() throws Exception {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn, false);
