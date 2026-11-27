@@ -29,23 +29,22 @@ import javax.jcr.Session;
 
 import java.io.IOException;
 
-public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
+public class CopyVersionHistorySidegradeTest extends AbstractCopyVersionHistoryTest {
 
-    private static NodeStore sourceNodeStore;
+    private final NodeStore sourceNodeStore = new MemoryNodeStore();
 
     @Before
-    @Override
-    public void upgradeRepository() throws Exception {
-        if (sourceNodeStore == null) {
-            sourceNodeStore = new MemoryNodeStore();
-            RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(sourceNodeStore)).createRepository();
+    public void createSourceRepository() throws Exception {
+        RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(sourceNodeStore)).createRepository();
+        try {
             Session session = repository.login(CREDENTIALS);
             try {
                 createSourceContent(session);
             } finally {
                 session.logout();
-                repository.shutdown();
             }
+        } finally {
+            repository.shutdown();
         }
     }
 

@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
 import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
@@ -76,12 +75,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
@@ -107,17 +100,17 @@ public class RepositorySidegrade {
     /**
      * Paths to include during the copy process. Defaults to the root path "/".
      */
-    private Set<String> includePaths = DEFAULT_INCLUDE_PATHS;
+    private Set<String> includePaths = MigrationUtils.DEFAULT_INCLUDE_PATHS;
 
     /**
      * Paths to exclude during the copy process. Empty by default.
      */
-    private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+    private Set<String> excludePaths = MigrationUtils.DEFAULT_EXCLUDE_PATHS;
 
     /**
      * Paths to merge during the copy process. Empty by default.
      */
-    private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
+    private Set<String> mergePaths = MigrationUtils.DEFAULT_MERGE_PATHS;
 
     private boolean skipCheckpoints = false;
 
@@ -440,10 +433,10 @@ public class RepositorySidegrade {
         }
         // type validation, reference and indexing hooks
         hooks.add(new EditorHook(new CompositeEditorProvider(
-                createTypeEditorProvider(),
-                createIndexEditorProvider()
+                MigrationUtils.createTypeEditorProvider(LOG),
+                MigrationUtils.createIndexEditorProvider(LOG)
         )));
-        target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+        target.merge(targetRoot, MigrationUtils.loggingCompositeHook(hooks, LOG), CommitInfo.EMPTY);
         removeVersions();
     }
 
@@ -460,11 +453,13 @@ public class RepositorySidegrade {
     }
 
     private boolean isCompleteMigration() {
-        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
+        return includePaths.equals(MigrationUtils.DEFAULT_INCLUDE_PATHS)
+                && excludePaths.equals(MigrationUtils.DEFAULT_EXCLUDE_PATHS)
+                && mergePaths.equals(MigrationUtils.DEFAULT_MERGE_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
-        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
+        final Set<String> includes = MigrationUtils.calculateEffectiveIncludePaths(includePaths, sourceRoot);
         Set<String> excludes = new LinkedHashSet<>(excludePaths);
         if (!versionCopyConfiguration.isCopyAll()) {
             excludes.add("/jcr:system/jcr:versionStorage");

@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
-import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.NONE;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
@@ -33,10 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -80,12 +76,6 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
@@ -103,10 +93,7 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -152,11 +139,11 @@ public class RepositoryUpgrade {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
-    public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
+    public static final Set<String> DEFAULT_INCLUDE_PATHS = MigrationUtils.DEFAULT_INCLUDE_PATHS;
 
-    public static final Set<String> DEFAULT_EXCLUDE_PATHS = NONE;
+    public static final Set<String> DEFAULT_EXCLUDE_PATHS = MigrationUtils.DEFAULT_EXCLUDE_PATHS;
 
-    public static final Set<String> DEFAULT_MERGE_PATHS = NONE;
+    public static final Set<String> DEFAULT_MERGE_PATHS = MigrationUtils.DEFAULT_MERGE_PATHS;
 
     /**
      * Source repository context.
@@ -542,11 +529,15 @@ public class RepositoryUpgrade {
 
             // type validation, reference and indexing hooks
             hooks.add(new EditorHook(new CompositeEditorProvider(
-                createTypeEditorProvider(),
-                createIndexEditorProvider()
+                MigrationUtils.createTypeEditorProvider(logger),
+                MigrationUtils.createIndexEditorProvider(logger)
             )));
 
-            target.merge(targetBuilder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
+            CommitHook migrationHook = MigrationUtils.loggingCompositeHook(hooks, logger);
+            if (overrideEarlyShutdown()) {
+                migrationHook = withEarlyShutdown(migrationHook);
+            }
+            target.merge(targetBuilder, migrationHook, CommitInfo.EMPTY);
             logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
 
             removeVersions();
@@ -592,49 +583,20 @@ public class RepositoryUpgrade {
         return true;
     }
 
-    static EditorProvider createTypeEditorProvider() {
-        return new EditorProvider() {
+    private CommitHook withEarlyShutdown(CommitHook hook) {
+        return new CommitHook() {
+            private boolean sourceClosed;
+
+            @NotNull
             @Override
-            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
+            public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
                     throws CommitFailedException {
-                Editor rootEditor = new TypeEditorProvider(false)
-                        .getRootEditor(before, after, builder, info);
-                return ProgressNotificationEditor.wrap(rootEditor, logger, "Checking node types:");
-            }
-
-            @Override
-            public String toString() {
-                return "TypeEditorProvider";
-            }
-        };
-    }
-
-    static EditorProvider createIndexEditorProvider() {
-        final ProgressTicker ticker = new AsciiArtTicker();
-        return new EditorProvider() {
-            @Override
-            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) {
-                IndexEditorProvider editorProviders = new CompositeIndexEditorProvider(
-                        new ReferenceEditorProvider(),
-                        new PropertyIndexEditorProvider());
-
-                return new IndexUpdate(editorProviders, null, after, builder, new IndexUpdateCallback() {
-                    String progress = "Updating indexes ";
-                    long t0;
-                    @Override
-                    public void indexUpdate() {
-                        long t = System.currentTimeMillis();
-                        if (t - t0 > 2000) {
-                            logger.info("{} {}", progress, ticker.tick());
-                            t0 = t ;
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public String toString() {
-                return "IndexEditorProvider";
+                if (!sourceClosed) {
+                    logger.info("Shutting down source repository.");
+                    source.getRepository().shutdown();
+                    sourceClosed = true;
+                }
+                return hook.processCommit(before, after, info);
             }
         };
     }
@@ -939,7 +901,7 @@ public class RepositoryUpgrade {
 
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
-        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
+        final Set<String> includes = MigrationUtils.calculateEffectiveIncludePaths(includePaths, sourceRoot);
         final Set<String> excludes = SetUtils.toLinkedSet(this.excludePaths);
         excludes.add("/jcr:system/jcr:versionStorage");
 
@@ -959,19 +921,6 @@ public class RepositoryUpgrade {
         }
 
         return workspaceName;
-    }
-
-    static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
-        if (!includePaths.contains("/")) {
-            return Collections.unmodifiableSet(SetUtils.toLinkedSet(includePaths));
-        }
-
-        // include child nodes from source individually to avoid deleting other initialized content
-        final Set<String> includes = new HashSet<>();
-        for (String childNodeName : sourceRoot.getChildNodeNames()) {
-            includes.add("/" + childNodeName);
-        }
-        return includes;
     }
 
     void assertNoLongNames() throws RepositoryException {
@@ -1036,36 +985,4 @@ public class RepositoryUpgrade {
         return true;
     }
 
-    static class LoggingCompositeHook implements CommitHook {
-        private final Collection<CommitHook> hooks;
-        private boolean started = false;
-        private final boolean earlyShutdown;
-        private final RepositoryContext source;
-
-        public LoggingCompositeHook(Collection<CommitHook> hooks,
-                  RepositoryContext source, boolean earlyShutdown) {
-            this.hooks = hooks;
-            this.earlyShutdown = earlyShutdown;
-            this.source = source;
-        }
-
-        @NotNull
-        @Override
-        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
-            NodeState newState = after;
-            Stopwatch watch = Stopwatch.createStarted();
-            if (earlyShutdown && source != null && !started) {
-                logger.info("Shutting down source repository.");
-                source.getRepository().shutdown();
-                started = true;
-            }
-            for (CommitHook hook : hooks) {
-                logger.info("Processing commit via {}", hook);
-                newState = hook.processCommit(before, newState, info);
-                logger.info("Commit hook {} processed commit in {}", hook, watch);
-                watch.reset().start();
-            }
-            return newState;
-        }
-    }
 }

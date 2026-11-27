@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.upgrade;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
-import java.io.IOException;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -33,78 +32,49 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Before;
 
-public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTest {
+public class RepeatedRepositorySidegradeTest extends AbstractRepeatedRepositoryMigrationTest {
 
-    @Before
-    public synchronized void upgradeRepository() throws Exception {
-        if (!upgradeComplete) {
-            final File sourceDir = new File(getTestDirectory(), "jackrabbit2");
+    @Override
+    protected void copyTwice(File source, NodeStore target, FileStore targetStore) throws Exception {
+        updateSource(source, this::createSourceContent);
+        sidegrade(source, target);
 
-            sourceDir.mkdirs();
+        updateSource(source, this::modifySourceContent);
+        sidegrade(source, target);
+    }
 
-            FileStore fileStore = fileStoreBuilder(sourceDir).build();
-            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-            RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
-            Session session = repository.login(CREDENTIALS);
+    private void updateSource(File source, SourceUpdate update) throws Exception {
+        try (FileStore fileStore = fileStoreBuilder(source).build()) {
+            SegmentNodeStore sourceStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(sourceStore)).createRepository();
             try {
-                createSourceContent(session);
+                Session session = repository.login(CREDENTIALS);
+                try {
+                    update.apply(session);
+                } finally {
+                    session.logout();
+                }
             } finally {
-                session.save();
-                session.logout();
                 repository.shutdown();
-                fileStore.close();
             }
-
-            final NodeStore target = getTargetNodeStore();
-            doUpgradeRepository(sourceDir, target, false);
-
-            fileStore = fileStoreBuilder(sourceDir).build();
-            segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-            repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
-            session = repository.login(CREDENTIALS);
-            try {
-                modifySourceContent(session);
-            } finally {
-                session.save();
-                session.logout();
-                repository.shutdown();
-                fileStore.close();
-            }
-
-            doUpgradeRepository(sourceDir, target, true);
-
-            upgradeComplete = true;
         }
     }
 
-    @Override
-    protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
-        FileStore fileStore;
-        try {
-            fileStore = fileStoreBuilder(source).build();
-        } catch (InvalidFileStoreVersionException e) {
-            throw new IllegalStateException(e);
-        }
-        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-        try {
-            final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);
-
+    private void sidegrade(File source, NodeStore target) throws Exception {
+        try (FileStore fileStore = fileStoreBuilder(source).build()) {
+            SegmentNodeStore sourceStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             NodeBuilder builder = target.getRoot().builder();
             builder.child("foo").child("bar");
             target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            repositoryUpgrade.copy();
+            new RepositorySidegrade(sourceStore, target).copy();
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
-        } finally {
-            fileStore.close();
         }
     }
 }
