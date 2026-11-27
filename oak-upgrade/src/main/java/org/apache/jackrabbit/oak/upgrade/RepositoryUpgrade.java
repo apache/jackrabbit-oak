@@ -529,11 +529,11 @@ public class RepositoryUpgrade {
 
             // type validation, reference and indexing hooks
             hooks.add(new EditorHook(new CompositeEditorProvider(
-                MigrationUtils.createTypeEditorProvider(logger),
-                MigrationUtils.createIndexEditorProvider(logger)
+                MigrationUtils.createTypeEditorProvider(),
+                MigrationUtils.createIndexEditorProvider()
             )));
 
-            CommitHook migrationHook = MigrationUtils.loggingCompositeHook(hooks, logger);
+            CommitHook migrationHook = MigrationUtils.loggingCompositeHook(hooks);
             if (overrideEarlyShutdown()) {
                 migrationHook = withEarlyShutdown(migrationHook);
             }

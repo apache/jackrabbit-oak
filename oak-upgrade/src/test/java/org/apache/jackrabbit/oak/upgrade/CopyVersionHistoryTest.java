@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.upgrade;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -77,12 +78,15 @@ public class CopyVersionHistoryTest extends AbstractCopyVersionHistoryTest {
             RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
             upgrade.setEarlyShutdown(true);
             upgrade.setCopyVersions(null);
+            AtomicBoolean hookRan = new AtomicBoolean();
             upgrade.setCustomCommitHooks(List.of((before, after, info) -> {
                 Assert.assertTrue(after.hasChildNode("versionables"));
                 Assert.assertThrows(RepositoryException.class, () -> context.getRepository().login(CREDENTIALS).logout());
+                hookRan.set(true);
                 return after;
             }));
             upgrade.copy(null);
+            Assert.assertTrue("The custom hook must observe the source after early shutdown", hookRan.get());
         } finally {
             context.getRepository().shutdown();
         }
@@ -97,15 +101,18 @@ public class CopyVersionHistoryTest extends AbstractCopyVersionHistoryTest {
             RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
             upgrade.setEarlyShutdown(true);
             upgrade.setCopyOrphanedVersions(null);
+            AtomicBoolean hookRan = new AtomicBoolean();
             upgrade.setCustomCommitHooks(List.of((before, after, info) -> {
                 try {
                     context.getRepository().login(CREDENTIALS).logout();
                 } catch (RepositoryException e) {
                     throw new AssertionError("Source must remain open during selective version copy", e);
                 }
+                hookRan.set(true);
                 return after;
             }));
             upgrade.copy(null);
+            Assert.assertTrue("The custom hook must observe the source during selective version copy", hookRan.get());
         } finally {
             context.getRepository().shutdown();
         }

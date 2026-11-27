@@ -433,10 +433,10 @@ public class RepositorySidegrade {
         }
         // type validation, reference and indexing hooks
         hooks.add(new EditorHook(new CompositeEditorProvider(
-                MigrationUtils.createTypeEditorProvider(LOG),
-                MigrationUtils.createIndexEditorProvider(LOG)
+                MigrationUtils.createTypeEditorProvider(),
+                MigrationUtils.createIndexEditorProvider()
         )));
-        target.merge(targetRoot, MigrationUtils.loggingCompositeHook(hooks, LOG), CommitInfo.EMPTY);
+        target.merge(targetRoot, MigrationUtils.loggingCompositeHook(hooks), CommitInfo.EMPTY);
         removeVersions();
     }
 

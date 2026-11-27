@@ -17,12 +17,16 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.event.Level;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -45,6 +49,20 @@ public class CopyVersionHistorySidegradeTest extends AbstractCopyVersionHistoryT
             }
         } finally {
             repository.shutdown();
+        }
+    }
+
+    /** Keeps hook progress visible to users who configure the historical migration logger. */
+    @Test
+    public void logsHookProgressUnderHistoricalCategory() throws RepositoryException, IOException {
+        LogCustomizer logs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade")
+                .enable(Level.INFO).contains("Processing commit via").create();
+        logs.starting();
+        try {
+            new RepositorySidegrade(sourceNodeStore, new MemoryNodeStore()).copy();
+            Assert.assertFalse("Expected sidegrade progress from the historical migration logger", logs.getLogs().isEmpty());
+        } finally {
+            logs.finished();
         }
     }
 

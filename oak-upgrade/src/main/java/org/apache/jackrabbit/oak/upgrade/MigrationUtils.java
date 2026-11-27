@@ -40,12 +40,16 @@ import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class MigrationUtils {
 
     static final Set<String> DEFAULT_INCLUDE_PATHS = FilteringNodeState.ALL;
     static final Set<String> DEFAULT_EXCLUDE_PATHS = FilteringNodeState.NONE;
     static final Set<String> DEFAULT_MERGE_PATHS = FilteringNodeState.NONE;
+
+    // Keep existing logging filters working without a dependency on the Classic class.
+    private static final Logger LOG = LoggerFactory.getLogger("org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade");
 
     private MigrationUtils() {
     }
@@ -63,14 +67,14 @@ final class MigrationUtils {
         return includes;
     }
 
-    static EditorProvider createTypeEditorProvider(Logger logger) {
+    static EditorProvider createTypeEditorProvider() {
         return new EditorProvider() {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
                     throws CommitFailedException {
                 Editor rootEditor = new TypeEditorProvider(false)
                         .getRootEditor(before, after, builder, info);
-                return ProgressNotificationEditor.wrap(rootEditor, logger, "Checking node types:");
+                return ProgressNotificationEditor.wrap(rootEditor, LOG, "Checking node types:");
             }
 
             @Override
@@ -80,7 +84,7 @@ final class MigrationUtils {
         };
     }
 
-    static EditorProvider createIndexEditorProvider(Logger logger) {
+    static EditorProvider createIndexEditorProvider() {
         final ProgressTicker ticker = new AsciiArtTicker();
         return new EditorProvider() {
             @Override
@@ -96,7 +100,7 @@ final class MigrationUtils {
                     public void indexUpdate() {
                         long t = System.currentTimeMillis();
                         if (t - t0 > 2000) {
-                            logger.info("Updating indexes  {}", ticker.tick());
+                            LOG.info("Updating indexes  {}", ticker.tick());
                             t0 = t;
                         }
                     }
@@ -110,14 +114,14 @@ final class MigrationUtils {
         };
     }
 
-    static CommitHook loggingCompositeHook(List<CommitHook> hooks, Logger logger) {
+    static CommitHook loggingCompositeHook(List<CommitHook> hooks) {
         return (before, after, info) -> {
             NodeState newState = after;
             Stopwatch watch = Stopwatch.createStarted();
             for (CommitHook hook : hooks) {
-                logger.info("Processing commit via {}", hook);
+                LOG.info("Processing commit via {}", hook);
                 newState = hook.processCommit(before, newState, info);
-                logger.info("Commit hook {} processed commit in {}", hook, watch);
+                LOG.info("Commit hook {} processed commit in {}", hook, watch);
                 watch.reset().start();
             }
             return newState;
