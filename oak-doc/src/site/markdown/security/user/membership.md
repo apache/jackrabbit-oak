@@ -124,14 +124,13 @@ will limit the size of the multi value properties and create overflow
 implementation detail and might even vary depending on the underlying persistence layer.
 In Oak 1.0 the threshold value is set to 100.
 
-#### Upgrading Groups from Jackrabbit 2.x to Oak content structure
+#### Group structure after migration from Jackrabbit 2.x
 
-Upon upgrade from a Jackrabbit 2.x repository to OAK the group member lists that
-adjusted to reflect the new content structure as created by the OAK user management
-implementation; this means that the group member node structure will be changed
-by the migration process. Applications that rely on these implementation
-details of Jackrabbit 2.x user management instead of use the corresponding
-API calls will need to be modified accordingly.
+When migrating from Jackrabbit 2.x with the Classic upgrade tool in Oak 2.8.0,
+group membership is converted to Oak's content structure. Applications that
+depend on the Jackrabbit 2.x node layout instead of the user management API
+must be updated. See [Repository migration](../../migration.html) for the
+supported migration paths.
 
 #### XML Import of Group Members
 

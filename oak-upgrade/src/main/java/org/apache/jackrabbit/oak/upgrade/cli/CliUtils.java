@@ -29,7 +29,7 @@ public class CliUtils {
     private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);
 
     public static void displayUsage() throws IOException {
-        System.out.println(getUsage().replace("${command}", "java -jar oak-upgrade-*.jar upgrade"));
+        System.out.println(getUsage().replace("${command}", "java -jar oak-upgrade-*.jar"));
     }
 
     public static String getUsage() throws IOException {

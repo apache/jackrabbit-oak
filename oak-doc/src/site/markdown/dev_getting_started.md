@@ -88,7 +88,7 @@ The build consists of the following components:
   - oak-store-document - Oak DocumentNodeStore implementation on MongoDB and RDB
   - oak-store-composite - CompositeNodeStore implementation
 
-  - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak and sidegrading Oak to Oak
+  - oak-upgrade       - tooling for copying content between Oak repositories
    
   - oak-run           - runnable jar packaging
   - oak-run-commons   - utilities shared by oak-run and oak-benchmarks

@@ -26,11 +26,7 @@ public class OptionParserFactory {
 
     public static final String DISABLE_MMAP = "disable-mmap";
 
-    public static final String FAIL_ON_ERROR = "fail-on-error";
-
     public static final String IGNORE_MISSING_BINARIES = "ignore-missing-binaries";
-
-    public static final String EARLY_SHUTDOWN = "early-shutdown";
 
     public static final String CACHE_SIZE = "cache";
 
@@ -79,10 +75,6 @@ public class OptionParserFactory {
     public static final String EXCLUDE_PATHS = "exclude-paths";
 
     public static final String MERGE_PATHS = "merge-paths";
-
-    public static final String SKIP_INIT = "skip-init";
-
-    public static final String SKIP_NAME_CHECK = "skip-name-check";
 
     public static final String VERIFY = "verify";
 
@@ -163,12 +155,7 @@ public class OptionParserFactory {
 
     private static void addMiscOptions(OptionParser op) {
         op.accepts(DISABLE_MMAP, "Disable memory mapped file access for Segment Store");
-        op.accepts(FAIL_ON_ERROR, "Fail completely if nodes can't be read from the source repo");
-        op.accepts(EARLY_SHUTDOWN,
-                "Shutdown the source repository after nodes are copied and before the commit hooks are applied");
         op.accepts(CACHE_SIZE, "Cache size in MB").withRequiredArg().ofType(Integer.class).defaultsTo(256);
-        op.accepts(SKIP_INIT, "Skip the repository initialization; only copy data");
-        op.accepts(SKIP_NAME_CHECK, "Skip the initial phase of testing node name lengths");
         op.accepts(VERIFY, "After the sidegrade check whether the source repository is exactly the same as destination");
         op.accepts(ONLY_VERIFY, "Performs only --" + VERIFY + ", without copying content");
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");

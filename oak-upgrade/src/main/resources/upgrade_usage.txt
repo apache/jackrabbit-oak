@@ -13,30 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-Usage: ${command} [options] jcr2_source [destination]
-       (to upgrade a JCR 2 repository)
+Usage: ${command} [options] source destination
 
-       ${command} [options] source destination
-       (to migrate an Oak repository)
-
-# jcr2_source
-
-It's a path to the repository directory and optionally the repository.xml file,
-for instance:
-
-  crx-quickstart/repository
-  my-instance/repository somewhere-else/repository.xml
-
-If there is no destination, repository will be converted to a segment node store
-in-place. Old files will be moved to the repository/crx2 directory.
+Copy content between Oak repositories. For Jackrabbit Classic migration,
+use oak-upgrade from Oak 2.8.0.
 
 # source / destination
 
-An descriptor of the Oak node store. Possible options:
+A descriptor of the Oak node store. Possible options:
 
   * path to the segment-tar store
   * az:https://myaccount.blob.core.windows.net/container/repo (don't forget to set AZURE_SECRET_KEY env variable)
-  * segment-old:/path/to/classic/segment
+  * segment-old:/path/to/old/oak/repository
   * jdbc:... (requires passing username and password as separate parameters)
   * mongodb://host:port/database
 
@@ -54,10 +42,6 @@ An descriptor of the Oak node store. Possible options:
 
 --copy-binaries           Copy binary content. Use this to disable use of
                             existing DataStore in new repo
---early-shutdown          Shutdown the source JCR2 repository after nodes are
-                            copied and before the commit hooks are applied
---fail-on-error           Fail completely if nodes can't be read from the
-                            source repo
 --ignore-missing-binaries Proceed with the migration even if the binaries
                             are missing
 
@@ -95,6 +79,3 @@ An descriptor of the Oak node store. Possible options:
 # other options
 
 -?, -h, --help            Show help
---skip-init               Don't initialize the destination repository
---skip-name-check         Don't look for long-named nodes at the beginning of
-                          the migration

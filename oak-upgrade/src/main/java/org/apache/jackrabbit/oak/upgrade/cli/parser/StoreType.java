@@ -26,71 +26,20 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_AZURE_PREFIX;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.NodeStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentAzureFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentTarFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.MigrationDirection;
 
 public enum StoreType {
-    JCR2_XML {
-        @Override
-        public boolean matches(String argument) {
-            return isRepositoryXml(argument);
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
-    JCR2_DIR {
-        @Override
-        public boolean matches(String argument) {
-            return isJcr2Repository(argument);
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
-    JCR2_DIR_XML {
-        @Override
-        public boolean matches(String argument) {
-            return false;
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new Jackrabbit2Factory(paths[0], paths[1]));
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
     JDBC {
         @Override
         public boolean matches(String argument) {
@@ -98,7 +47,7 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
+        public NodeStoreFactory createFactory(String path, MigrationDirection direction, MigrationOptions migrationOptions) {
             String username, password;
             if (direction == MigrationDirection.SRC) {
                 username = migrationOptions.getSrcUser();
@@ -107,8 +56,7 @@ public enum StoreType {
                 username = migrationOptions.getDstUser();
                 password = migrationOptions.getDstPassword();
             }
-            return new StoreFactory(
-                    new JdbcFactory(paths[0], migrationOptions.getCacheSizeInMB(), username, password, direction == MigrationDirection.SRC));
+            return new JdbcFactory(path, migrationOptions.getCacheSizeInMB(), username, password, direction == MigrationDirection.SRC);
         }
 
         @Override
@@ -123,8 +71,8 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new MongoFactory(paths[0], migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC));
+        public NodeStoreFactory createFactory(String path, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new MongoFactory(path, migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC);
         }
 
         @Override
@@ -139,9 +87,9 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            String path = removeStart(paths[0], SEGMENT_OLD_PREFIX);
-            return new StoreFactory(new SegmentFactory(path, migrationOptions.isDisableMmap(), direction == MigrationDirection.SRC));
+        public NodeStoreFactory createFactory(String path, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new SegmentFactory(removeStart(path, SEGMENT_OLD_PREFIX), migrationOptions.isDisableMmap(),
+                    direction == MigrationDirection.SRC);
         }
 
         @Override
@@ -156,30 +104,27 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            String path = removeStart(paths[0], SEGMENT_AZURE_PREFIX);
+        public NodeStoreFactory createFactory(String path, MigrationDirection direction, MigrationOptions migrationOptions) {
+            String azurePath = removeStart(path, SEGMENT_AZURE_PREFIX);
 
-            if (isCustomAzureConnectionString(path)) {
+            if (isCustomAzureConnectionString(azurePath)) {
                 // azure configuration specified through connection string
-                Map<String, String> config = parseAzureConfigurationFromCustomConnection(path);
-                return new StoreFactory(
-                        new SegmentAzureFactory.Builder(config.get(KEY_DIR), migrationOptions.getCacheSizeInMB(),
-                                direction == MigrationDirection.SRC)
+                Map<String, String> config = parseAzureConfigurationFromCustomConnection(azurePath);
+                return new SegmentAzureFactory.Builder(config.get(KEY_DIR), migrationOptions.getCacheSizeInMB(),
+                        direction == MigrationDirection.SRC)
                         .connectionString(config.get(KEY_CONNECTION_STRING))
                         .containerName(config.get(KEY_CONTAINER_NAME))
-                        .build()
-                );
+                        .build();
             } else {
                 // azure configuration specified through URI
-                Map<String, String> config = parseAzureConfigurationFromUri(path);
+                Map<String, String> config = parseAzureConfigurationFromUri(azurePath);
 
-                return new StoreFactory(new SegmentAzureFactory.Builder(config.get(KEY_DIR),
+                return new SegmentAzureFactory.Builder(config.get(KEY_DIR),
                         migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC)
                         .accountName(config.get(KEY_ACCOUNT_NAME))
                         .sasToken(config.get(KEY_SHARED_ACCESS_SIGNATURE))
                         .uri(config.get(KEY_STORAGE_URI))
-                        .build()
-                );
+                        .build();
             }
         }
 
@@ -195,9 +140,9 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap(),
-                    migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC));
+        public NodeStoreFactory createFactory(String path, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new SegmentTarFactory(path, migrationOptions.isDisableMmap(), migrationOptions.getCacheSizeInMB(),
+                    direction == MigrationDirection.SRC);
         }
 
         @Override
@@ -217,7 +162,7 @@ public enum StoreType {
 
     public abstract boolean matches(String argument);
 
-    public abstract StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions);
+    public abstract NodeStoreFactory createFactory(String path, MigrationDirection direction, MigrationOptions migrationOptions);
 
     public abstract boolean isSupportLongNames();
 
