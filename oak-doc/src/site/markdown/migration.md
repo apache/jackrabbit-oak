@@ -19,7 +19,7 @@
 
 Use `oak-upgrade` to copy content between Oak repositories. To move binaries gradually between blob stores without taking the repository offline for an extended period, use `SplitBlobStore`.
 
-Migration from Jackrabbit Classic (Jackrabbit 2.x) is no longer supported by the current tool. For a Classic repository, use the historical [oak-upgrade-2.8.0.jar](https://repo.maven.apache.org/maven2/org/apache/jackrabbit/oak-upgrade/2.8.0/oak-upgrade-2.8.0.jar) first, then sidegrade the resulting Oak repository if needed.
+For Jackrabbit Classic (Jackrabbit 2.x) migration, see the [historical upgrade instructions](#upgrade).
 
 ## Offline migration using oak-upgrade
 
@@ -57,6 +57,25 @@ Examples:
         --user=sa --password=sa \
         mongodb://localhost:27017/oak \
         jdbc:h2:path/to/repo
+
+### Upgrade
+
+**Note:** Oak 2.8.0 was the last release to support Jackrabbit Classic migration.
+Use [oak-upgrade-2.8.0.jar](https://repo.maven.apache.org/maven2/org/apache/jackrabbit/oak-upgrade/2.8.0/oak-upgrade-2.8.0.jar)
+for the commands below. Newer releases of `oak-upgrade` still support Oak-to-Oak
+sidegrade, so you can sidegrade the resulting Oak repository if needed.
+
+Pass the path to the Jackrabbit Classic `repository` directory as the source.
+You can optionally pass the path to `repository.xml` as a separate argument.
+
+    java -jar oak-upgrade-2.8.0.jar \
+        path/to/the/jr2/repository \
+        path/to/repository.xml \
+        path/to/the/new/repository
+
+    java -jar oak-upgrade-2.8.0.jar \
+        path/to/the/jr2/repository \
+        mongodb://localhost:27017/oak
 
 ### Migrating blob store
 
