@@ -21,9 +21,10 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import joptsimple.OptionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -39,9 +40,11 @@ import org.junit.rules.TemporaryFolder;
 
 public class StoreArgumentsTest {
 
-    private static final String[] REMOVED_OPTIONS = {
+    private static final List<String> RETIRED_OPTIONS = List.of(
             "--early-shutdown", "--fail-on-error", "--skip-init", "--skip-name-check"
-    };
+    );
+
+    private static final String RETIRED_OPTIONS_WARNING = "Warning: ignoring retired Jackrabbit Classic options:";
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -55,31 +58,55 @@ public class StoreArgumentsTest {
         Assert.assertTrue(error.getMessage().contains("same repository"));
     }
 
+    /** Old commands still copy Oak content and report all ignored flags in one warning. */
     @Test
-    public void testRemovedOptionsAreRejected() {
-        for (String option : REMOVED_OPTIONS) {
-            Assert.assertThrows(option, OptionException.class,
-                    () -> OptionParserFactory.create().parse(option, "source", "destination"));
-        }
-    }
+    public void testRetiredFlagsDoNotPreventSidegrade() throws Exception {
+        NodeStoreContainer source = new SegmentTarNodeStoreContainer(tmp.newFolder("oak-source"));
+        populateOakSource(source);
+        File destination = new File(tmp.getRoot(), "destination");
+        List<String> args = new ArrayList<>(RETIRED_OPTIONS);
+        args.add("--skip-init");
+        args.add(source.getDescription());
+        args.add(destination.getPath());
 
-    /** Retired flags fail at the CLI boundary with guidance rather than a stack trace. */
-    @Test
-    public void testRemovedOptionsReportMigrationGuidance() throws Exception {
-        for (String option : REMOVED_OPTIONS) {
-            String message = runWithInvalidOption(option);
-            Assert.assertTrue(message, message.contains(option + " was removed"));
-            Assert.assertTrue(message, message.contains("Oak 2.8.0"));
-            Assert.assertFalse(message, message.contains("UnrecognizedOptionException"));
-        }
+        String output = runCli(0, args.toArray(String[]::new));
+
+        List<String> warnings = output.lines().filter(line -> line.startsWith(RETIRED_OPTIONS_WARNING)).toList();
+        Assert.assertEquals(output, List.of(RETIRED_OPTIONS_WARNING + " " + String.join(", ", RETIRED_OPTIONS) + "."), warnings);
+        Assert.assertTrue(output, output.contains("https://repo.maven.apache.org/maven2/org/apache/jackrabbit/"
+                + "oak-upgrade/2.8.0/oak-upgrade-2.8.0.jar"));
+        assertCopiedTo(destination);
     }
 
     /** A typo in an option is not mistaken for a retired Classic flag. */
     @Test
     public void testUnrelatedOptionKeepsParserError() throws Exception {
-        String message = runWithInvalidOption("--not-an-oak-option");
-        Assert.assertTrue(message, message.contains("UnrecognizedOptionException"));
-        Assert.assertFalse(message, message.contains("Oak 2.8.0"));
+        File destination = new File(tmp.getRoot(), "destination");
+        String output = runCli(1, "--skip-init", "--not-an-oak-option", "source", destination.getPath());
+        Assert.assertTrue(output, output.contains("UnrecognizedOptionException"));
+        Assert.assertFalse(output, output.contains(RETIRED_OPTIONS_WARNING));
+        Assert.assertFalse(destination.exists());
+    }
+
+    /** Only parsed flags, not values or operands after the delimiter, trigger a warning. */
+    @Test
+    public void testFlagLikeOperandsDoNotTriggerWarning() throws Exception {
+        String output = runCli(0, "--help", "--src-user", "--skip-init", "--", "--early-shutdown");
+        Assert.assertTrue(output, output.contains("Usage:"));
+        Assert.assertFalse(output, output.contains(RETIRED_OPTIONS_WARNING));
+    }
+
+    /** Accepting the retired flags does not re-enable Classic migration. */
+    @Test
+    public void testClassicSourceWithRetiredFlagStillFails() throws Exception {
+        File source = tmp.newFolder("classic-source");
+        Files.createDirectory(source.toPath().resolve("workspaces"));
+        File destination = new File(tmp.getRoot(), "destination");
+
+        String output = runCli(1, "--skip-init", source.getPath(), destination.getPath());
+
+        Assert.assertTrue(output, output.contains("Jackrabbit Classic sources are not supported"));
+        Assert.assertFalse(destination.exists());
     }
 
     @Test
@@ -96,7 +123,7 @@ public class StoreArgumentsTest {
         Assert.assertTrue(help.contains("Usage: java -jar oak-upgrade-*.jar [options] source destination"));
         Assert.assertTrue(help.contains("segment-old:"));
         Assert.assertFalse(help.contains("jcr2_source"));
-        for (String option : REMOVED_OPTIONS) {
+        for (String option : RETIRED_OPTIONS) {
             Assert.assertFalse(help.contains(option));
         }
     }
@@ -225,20 +252,18 @@ public class StoreArgumentsTest {
         Assert.assertTrue(error.getMessage(), error.getMessage().contains("Oak 2.8.0"));
     }
 
-    private String runWithInvalidOption(String option) throws Exception {
+    private String runCli(int expectedExitCode, String... args) throws Exception {
         File java = new File(System.getProperty("java.home"), "bin/java");
         String classpath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"));
         File output = tmp.newFile();
-        File source = new File(tmp.getRoot(), "source");
-        File destination = new File(tmp.getRoot(), "destination");
-        Process process = new ProcessBuilder(java.getPath(), "-cp", classpath, OakUpgrade.class.getName(),
-                option, source.getPath(), destination.getPath())
+        List<String> command = new ArrayList<>(List.of(java.getPath(), "-cp", classpath, OakUpgrade.class.getName()));
+        command.addAll(List.of(args));
+        Process process = new ProcessBuilder(command)
                 .redirectErrorStream(true).redirectOutput(output).start();
         try {
-            Assert.assertTrue("CLI timed out for " + option, process.waitFor(30, TimeUnit.SECONDS));
+            Assert.assertTrue("CLI timed out", process.waitFor(30, TimeUnit.SECONDS));
             String message = Files.readString(output.toPath());
-            Assert.assertEquals(message, 1, process.exitValue());
-            Assert.assertFalse(destination.exists());
+            Assert.assertEquals(message, expectedExitCode, process.exitValue());
             return message;
         } finally {
             if (process.isAlive()) {

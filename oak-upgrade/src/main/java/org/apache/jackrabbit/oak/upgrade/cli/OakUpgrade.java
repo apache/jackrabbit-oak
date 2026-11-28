@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.List;
 
-import joptsimple.OptionException;
+import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 import org.apache.jackrabbit.oak.commons.pio.Closer;
@@ -32,8 +32,11 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 
 public class OakUpgrade {
 
-    private static final Set<String> REMOVED_CLASSIC_OPTIONS = Set.of(
+    private static final List<String> RETIRED_CLASSIC_OPTIONS = List.of(
             "early-shutdown", "fail-on-error", "skip-init", "skip-name-check");
+
+    private static final String CLASSIC_UPGRADE_JAR_URL = "https://repo.maven.apache.org/maven2/org/apache/jackrabbit/"
+            + "oak-upgrade/2.8.0/oak-upgrade-2.8.0.jar";
 
     public static void main(String... args) throws IOException {
         try {
@@ -77,19 +80,21 @@ public class OakUpgrade {
         }
     }
 
-    /** Give guidance for retired Classic flags without accepting them again. */
-    private static OptionSet parseOptions(String... args) throws CliArgumentException {
-        try {
-            return OptionParserFactory.create().parse(args);
-        } catch (OptionException e) {
-            String removedOption = e.options().stream().filter(REMOVED_CLASSIC_OPTIONS::contains).findFirst().orElse(null);
-            if (removedOption != null) {
-                throw new CliArgumentException("Option --" + removedOption + " was removed. "
-                        + "Omit it for Oak-to-Oak sidegrade or use oak-upgrade from Oak 2.8.0 "
-                        + "for Jackrabbit Classic migration.", 1);
-            }
-            throw e;
+    /** Parse retired flags as no-ops without mistaking option values or paths for flags. */
+    private static OptionSet parseOptions(String... args) {
+        OptionParser parser = OptionParserFactory.create();
+        RETIRED_CLASSIC_OPTIONS.forEach(parser::accepts);
+        OptionSet options = parser.parse(args);
+        List<String> ignored = RETIRED_CLASSIC_OPTIONS.stream()
+                .filter(options::has)
+                .map(option -> "--" + option)
+                .toList();
+        if (!ignored.isEmpty()) {
+            System.err.printf("Warning: ignoring retired Jackrabbit Classic options: %s.%n"
+                    + "Remove them from Oak-to-Oak sidegrade commands. For Jackrabbit Classic migration, "
+                    + "download oak-upgrade from Oak 2.8.0: %s%n", String.join(", ", ignored), CLASSIC_UPGRADE_JAR_URL);
         }
+        return options;
     }
 
 }
