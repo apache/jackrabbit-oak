@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,11 +37,19 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -49,8 +58,11 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
@@ -58,7 +70,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
 import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
@@ -76,18 +87,16 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositorySidegrade {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
+
+    private static final Set<String> DEFAULT_INCLUDE_PATHS = FilteringNodeState.ALL;
+    private static final Set<String> DEFAULT_EXCLUDE_PATHS = FilteringNodeState.NONE;
+    private static final Set<String> DEFAULT_MERGE_PATHS = FilteringNodeState.NONE;
 
     static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
@@ -443,8 +452,67 @@ public class RepositorySidegrade {
                 createTypeEditorProvider(),
                 createIndexEditorProvider()
         )));
-        target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+        target.merge(targetRoot, loggingCompositeHook(hooks), CommitInfo.EMPTY);
         removeVersions();
+    }
+
+    private static EditorProvider createTypeEditorProvider() {
+        return new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
+                    throws CommitFailedException {
+                Editor rootEditor = new TypeEditorProvider(false).getRootEditor(before, after, builder, info);
+                return ProgressNotificationEditor.wrap(rootEditor, LOG, "Checking node types:");
+            }
+
+            @Override
+            public String toString() {
+                return "TypeEditorProvider";
+            }
+        };
+    }
+
+    private static EditorProvider createIndexEditorProvider() {
+        final ProgressTicker ticker = new AsciiArtTicker();
+        return new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) {
+                IndexEditorProvider editorProviders = new CompositeIndexEditorProvider(
+                        new ReferenceEditorProvider(), new PropertyIndexEditorProvider());
+                return new IndexUpdate(editorProviders, null, after, builder, new IndexUpdateCallback() {
+                    long t0;
+
+                    @Override
+                    public void indexUpdate() {
+                        long t = System.currentTimeMillis();
+                        if (t - t0 > 2000) {
+                            LOG.info("Updating indexes  {}", ticker.tick());
+                            t0 = t;
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public String toString() {
+                return "IndexEditorProvider";
+            }
+        };
+    }
+
+    /** Keep the original base for every hook, while passing along each hook's changes. */
+    private static CommitHook loggingCompositeHook(List<CommitHook> hooks) {
+        return (before, after, info) -> {
+            NodeState newState = after;
+            Stopwatch watch = Stopwatch.createStarted();
+            for (CommitHook hook : hooks) {
+                LOG.info("Processing commit via {}", hook);
+                newState = hook.processCommit(before, newState, info);
+                LOG.info("Commit hook {} processed commit in {}", hook, watch);
+                watch.reset().start();
+            }
+            return newState;
+        };
     }
 
     private void removeVersions() throws CommitFailedException {
@@ -483,6 +551,19 @@ public class RepositorySidegrade {
         if (includePaths.contains("/")) {
             copyProperties(sourceRoot, targetRoot);
         }
+    }
+
+    private static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
+        if (!includePaths.contains("/")) {
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet(includePaths));
+        }
+
+        // Include source children individually to preserve unrelated initialized content.
+        Set<String> includes = new HashSet<>();
+        for (String childNodeName : sourceRoot.getChildNodeNames()) {
+            includes.add("/" + childNodeName);
+        }
+        return includes;
     }
 
     private String getWorkspaceName() throws RepositoryException {

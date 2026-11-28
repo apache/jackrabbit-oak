@@ -29,7 +29,7 @@
 
   <artifactId>oak-upgrade</artifactId>
   <name>Oak upgrade</name>
-  <description>Tooling for upgrading Jackrabbit repositories to Oak</description>
+  <description>Tooling for copying content between Oak repositories</description>
   <properties>
     <slf4j.api.version>${slf4j.version}</slf4j.api.version>
     <logback.version>${logback.runtime.version}</logback.version>
@@ -151,28 +151,6 @@
           <version>${jackrabbit.version}</version>
       </dependency>
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-spi</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-
-    <!-- it has to match the version used in jackrabbit-core,
-         (https://issues.apache.org/jira/browse/OAK-6306).
-         Jackrabbit currently uses 3.6.2 as per
-         https://issues.apache.org/jira/browse/JCR-4352,
-         same as Oak thus commented out: https://issues.apache.org/jira/browse/OAK-12238 -->
-    <!-- <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>3.6.0</version>
-    </dependency> -->
-
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
@@ -265,19 +243,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- test dependency of classic Jackrabbit -->
-    <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derby</artifactId>
-      <version>${derby.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derbytools</artifactId>
-      <version>${derby.version}</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>

@@ -16,29 +16,23 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
-import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.NodeStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
 
 public class StoreArguments {
 
-    private static final String DEFAULT_CRX2_REPO = "crx-quickstart/repository";
-
-    private static final String REPOSITORY_XML = "repository.xml";
+    private static final String CLASSIC_MIGRATION_GUIDANCE =
+            "For Jackrabbit Classic migration, use oak-upgrade from Oak 2.8.0.";
 
     public static final String SEGMENT_OLD_PREFIX = "segment-old:";
 
@@ -55,11 +49,14 @@ public class StoreArguments {
     private Boolean srcHasExternalBlobRefs;
 
     public StoreArguments(MigrationOptions options, List<String> arguments) throws CliArgumentException {
+        if (arguments.size() != 2) {
+            throw new CliArgumentException("Expected exactly two Oak node store arguments: source and destination. "
+                    + CLASSIC_MIGRATION_GUIDANCE, 1);
+        }
         this.options = options;
-        List<StoreDescriptor> descriptors = createStoreDescriptors(arguments, options);
-
-        src = descriptors.get(0);
-        dst = descriptors.get(1);
+        src = new StoreDescriptor(arguments.get(0));
+        dst = new StoreDescriptor(arguments.get(1));
+        validateDescriptors(src, dst);
 
         if (options.getSrcExternalBlobs() != null) {
             srcHasExternalBlobRefs = options.getSrcExternalBlobs();
@@ -75,11 +72,11 @@ public class StoreArguments {
         }
     }
 
-    public StoreFactory getSrcStore() {
+    public NodeStoreFactory getSrcStore() {
         return src.getFactory(MigrationDirection.SRC, options);
     }
 
-    public StoreFactory getDstStore() {
+    public NodeStoreFactory getDstStore() {
         return dst.getFactory(MigrationDirection.DST, options);
     }
 
@@ -99,17 +96,6 @@ public class StoreArguments {
         return dst.toString();
     }
 
-    public boolean isInPlaceUpgrade() {
-        if (src.getType() == JCR2_DIR_XML && dst.getType() == SEGMENT_TAR) {
-            return src.getPath().equals(dst.getPath());
-        }
-        return false;
-    }
-
-    public String[] getSrcPaths() {
-        return src.getPaths();
-    }
-
     public boolean srcUsesEmbeddedDatastore() throws IOException {
         if (srcHasExternalBlobRefs == null) {
             srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, options).hasExternalBlobReferences();
@@ -117,102 +103,47 @@ public class StoreArguments {
         return !srcHasExternalBlobRefs;
     }
 
-    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments, MigrationOptions options) throws CliArgumentException {
-        List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
-        mergeCrx2Descriptors(descriptors);
-        addSegmentAsDestination(descriptors);
-        validateDescriptors(descriptors, options);
-        return descriptors;
-    }
-
-    private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) throws CliArgumentException {
-        List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
-        boolean jcr2Dir = false;
-        boolean jcr2Xml = false;
-        for (String argument : arguments) {
-            StoreType type = getMatchingType(argument);
-            if (type == JCR2_DIR) {
-                if (jcr2Dir) {
-                    type = SEGMENT_TAR;
-                }
-                jcr2Dir = true;
-            }
-            if (type == JCR2_DIR_XML) {
-                if (jcr2Xml) {
-                    throw new CliArgumentException("Too many repository.xml files passed as arguments", 1);
-                }
-                jcr2Xml = true;
-            }
-            descriptors.add(new StoreDescriptor(type, argument));
-        }
-        return descriptors;
-    }
-
-    private static void mergeCrx2Descriptors(List<StoreDescriptor> descriptors) {
-        int crx2DirIndex = -1;
-        int crx2XmlIndex = -1;
-        for (int i = 0; i < descriptors.size(); i++) {
-            StoreType type = descriptors.get(i).getType();
-            if (type == JCR2_DIR) {
-                crx2DirIndex = i;
-            } else if (type == JCR2_XML) {
-                crx2XmlIndex = i;
-            }
-        }
-
-        if (crx2DirIndex > -1 || crx2XmlIndex > -1) {
-            String repoDir;
-            if (crx2DirIndex > -1) {
-                repoDir = descriptors.get(crx2DirIndex).getPath();
-                descriptors.set(crx2DirIndex, null);
-            } else {
-                repoDir = DEFAULT_CRX2_REPO;
-            }
-            String repoXml;
-            if (crx2XmlIndex > -1) {
-                repoXml = descriptors.get(crx2XmlIndex).getPath();
-                descriptors.set(crx2XmlIndex, null);
-            } else {
-                repoXml = repoDir + "/" + REPOSITORY_XML;
-            }
-            descriptors.add(0, new StoreDescriptor(JCR2_DIR_XML, repoDir, repoXml));
-
-            Iterator<StoreDescriptor> it = descriptors.iterator();
-            while (it.hasNext()) {
-                if (it.next() == null) {
-                    it.remove();
-                }
-            }
-        }
-    }
-
-    private static void addSegmentAsDestination(List<StoreDescriptor> descriptors) {
-        if (descriptors.size() == 1) {
-            StoreType type = descriptors.get(0).getType();
-            if (type == JCR2_DIR_XML) {
-                String crx2Dir = descriptors.get(0).getPath();
-                descriptors.add(new StoreDescriptor(SEGMENT_TAR, crx2Dir));
-                log.info("In place migration between JCR2 and SegmentNodeStore in {}", crx2Dir);
-            }
-        }
-    }
-
-    private static void validateDescriptors(List<StoreDescriptor> descriptors, MigrationOptions options) throws CliArgumentException {
-        if (descriptors.size() < 2) {
-            throw new CliArgumentException("Not enough node store arguments: " + descriptors.toString(), 1);
-        } else if (descriptors.size() > 2) {
-            throw new CliArgumentException("Too much node store arguments: " + descriptors.toString(), 1);
-        } else if (descriptors.get(1).getType() == JCR2_DIR_XML) {
-            throw new CliArgumentException("Can't use CRX2 as a destination", 1);
-        }
-        StoreDescriptor src = descriptors.get(0);
-        StoreDescriptor dst = descriptors.get(1);
-        if (src.getType() == dst.getType() && src.getPath().equals(dst.getPath())) {
+    /**
+     * Check local paths before opening either store. An Oak journal takes precedence
+     * over leftover Classic files, but a new destination does not need a journal.
+     */
+    private static void validateDescriptors(StoreDescriptor src, StoreDescriptor dst) throws CliArgumentException {
+        if (src.getType() == dst.getType() && src.path.equals(dst.path)) {
             throw new CliArgumentException("The source and the destination is the same repository.", 1);
         }
-        if (src.getType() == StoreType.JCR2_DIR_XML && options.isSrcBlobStoreDefined()) {
-            throw new CliArgumentException("The --src-datastore can't be used for the repository upgrade. Source datastore configuration is placed in the repository.xml file.", 1);
+
+        File source = src.getLocalPath();
+        File destination = dst.getLocalPath();
+        if ((source != null && source.isFile()) || (destination != null && destination.isFile())) {
+            throw new CliArgumentException("Use repository directories, not files, for local Oak stores. "
+                    + CLASSIC_MIGRATION_GUIDANCE, 1);
         }
+        if (source != null) {
+            validateLocalSource(source);
+        }
+        if (destination != null && !hasOakSegmentStore(destination) && hasClassicMarkers(destination)) {
+            throw new CliArgumentException("Jackrabbit Classic destinations are not supported. "
+                    + CLASSIC_MIGRATION_GUIDANCE, 1);
+        }
+    }
+
+    private static void validateLocalSource(File source) throws CliArgumentException {
+        if (hasOakSegmentStore(source)) {
+            return;
+        }
+        if (hasClassicMarkers(source)) {
+            throw new CliArgumentException("Jackrabbit Classic sources are not supported. "
+                    + CLASSIC_MIGRATION_GUIDANCE, 1);
+        }
+        throw new CliArgumentException("The source does not contain an Oak segment store: expected segmentstore/journal.log.", 1);
+    }
+
+    private static boolean hasOakSegmentStore(File home) {
+        return new File(home, "segmentstore/journal.log").isFile();
+    }
+
+    private static boolean hasClassicMarkers(File home) {
+        return new File(home, "repository.xml").isFile() || new File(home, "workspaces").isDirectory();
     }
 
     private static void logSegmentVersion() {
@@ -231,38 +162,35 @@ public class StoreArguments {
 
     private static class StoreDescriptor {
 
-        private final String[] paths;
+        private final String path;
 
         private final StoreType type;
 
-        public StoreDescriptor(StoreType type, String... paths) {
-            this.type = type;
-            this.paths = paths;
-        }
-
-        public String[] getPaths() {
-            return paths;
-        }
-
-        public String getPath() {
-            return paths[0];
+        StoreDescriptor(String path) {
+            this.path = path;
+            this.type = getMatchingType(path);
         }
 
         public StoreType getType() {
             return type;
         }
 
-        public StoreFactory getFactory(MigrationDirection direction, MigrationOptions options) {
-            return type.createFactory(paths, direction, options);
+        File getLocalPath() {
+            if (type == SEGMENT_TAR) {
+                return new File(path);
+            } else if (type == SEGMENT) {
+                return new File(path.substring(SEGMENT_OLD_PREFIX.length()));
+            }
+            return null;
+        }
+
+        public NodeStoreFactory getFactory(MigrationDirection direction, MigrationOptions options) {
+            return type.createFactory(path, direction, options);
         }
 
         @Override
         public String toString() {
-            if (paths.length == 1) {
-                return String.format("%s[%s]", type, getPath());
-            } else {
-                return String.format("%s%s", type, Arrays.toString(getPaths()));
-            }
+            return String.format("%s[%s]", type, path);
         }
 
     }

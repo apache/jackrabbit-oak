@@ -17,15 +17,15 @@
 
 # Repository migration
 
-Oak offers a few tools which can be used to migrate the old, Jackrabbit 2 repository and also to copy content between Oak instances. `oak-upgrade` is a Swiss army knife for copying content between virtually any repositories. On the other hand, the `SplitBlobStore` allows to copy the binaries gradually, from one blob store to another, without having a long repository downtime.
+Use `oak-upgrade` to copy content between Oak repositories. To move binaries gradually between blob stores without taking the repository offline for an extended period, use `SplitBlobStore`.
+
+For Jackrabbit Classic (Jackrabbit 2.x) migration, see the [historical upgrade instructions](#upgrade).
 
 ## Offline migration using oak-upgrade
 
-![oak-upgrade chart](img/migration-general.png)
+Sidegrade works between Oak node stores of the same or different types. The tool also supports:
 
-The `oak-upgrade` module allows to do an upgrade from the classic Jackrabbit 2.0 repository to the Oak node store and also to sidegrade from one nodestore type to another. Besides from that it has a number of features that can be useful in everyday system maintenance:
-
-* copying only a selcted subtree from one repository to another,
+* copying only a selected subtree from one repository to another,
 * precise control over version histories migration,
 * migrating binaries from one blobstore to another.
 
@@ -35,17 +35,22 @@ The `oak-upgrade` module allows to do an upgrade from the classic Jackrabbit 2.0
 
     java -jar oak-upgrade-*.jar [options] source destination
 
+Sidegrade ignores `--early-shutdown`, `--fail-on-error`, `--skip-init`, and
+`--skip-name-check` and prints a warning if any are present. Remove them
+from existing sidegrade commands; they only applied to Jackrabbit Classic
+migration.
+
 The `source` and `destination` are the node store paths/URIs. Following node stores are supported:
 
-* `SegmentNodeStore` - use a path to the `repository` directory,
-* old `SegmentNodeStore` (Oak < 1.6) - use the `segment-old:` prefix and the path to the `repository` directory,
+* Segment Tar - use a path to the Oak `repository` directory,
+* old Oak Segment store (Oak < 1.6) - use the `segment-old:` prefix and the path to the `repository` directory,
 * `DocumentNodeStore` with MongoDB - `mongodb://host:port/database`,
 * `DocumentNodeStore` with a RDB - `jdbc:...`. It requires passing user and password with separate parameters.
 
 Following parameters should be used for the JDBC node store:
 
 * Source database: `--src-password=... --src-user=...`
-* Desination database: `--user=... --password=...`
+* Destination database: `--user=... --password=...`
 
 Examples:
 
@@ -60,14 +65,20 @@ Examples:
 
 ### Upgrade
 
-In order to upgrade Jackrabbit 2 repository to the new node store, pass the path to the `repository` directory as the `source` parameter. Optionally, you may also pass the path to the `repository.xml` file as a separate parameter. Examples:
+**Note:** Oak 2.8.0 was the last release to support Jackrabbit Classic migration.
+Use [oak-upgrade-2.8.0.jar](https://repo.maven.apache.org/maven2/org/apache/jackrabbit/oak-upgrade/2.8.0/oak-upgrade-2.8.0.jar)
+for the commands below. Newer releases of `oak-upgrade` still support Oak-to-Oak
+sidegrade, so you can sidegrade the resulting Oak repository if needed.
 
-    java -jar oak-upgrade-*.jar \
+Pass the path to the Jackrabbit Classic `repository` directory as the source.
+You can optionally pass the path to `repository.xml` as a separate argument.
+
+    java -jar oak-upgrade-2.8.0.jar \
         path/to/the/jr2/repository \
         path/to/repository.xml \
         path/to/the/new/repository
 
-    java -jar oak-upgrade-*.jar \
+    java -jar oak-upgrade-2.8.0.jar \
         path/to/the/jr2/repository \
         mongodb://localhost:27017/oak
 
@@ -191,20 +202,18 @@ If an existing repository is passed as the destination, then only a diff between
 
 The migration might be stop at any time using `^C`. Resume the migration running the same command which was used to start it.
 
-### Custom initializers and commit hooks
+### Custom commit hooks
 
-It's possible to inject custom logic into the upgrade process, by implementing
-[`RepositoryInitializer`](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/lifecycle/RepositoryInitializer.html) or [`CommitHook`](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/commit/CommitHook.html).
+To run custom logic during sidegrade, implement
+[`CommitHook`](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/commit/CommitHook.html).
 
 In order to do that, create a new Maven project, with appropriate implementation. Then create following file:
 
     src/main/resources/META-INF/services/org.apache.jackrabbit.oak.spi.commit.CommitHook
 
-The file should contain just one line - the name of the class with the `CoomitHook` implementation. Build the project and attach the JAR to the oak-upgrade class path:
+The file should contain the fully qualified name of your `CommitHook` implementation. Build the project and add its JAR to the `oak-upgrade` class path. Replace `oak-upgrade.jar` with the actual name of the executable JAR:
 
-    java -cp my-commit-hook.jar:oak-upgrade-*.jar org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade [normal oak-upgrade parameters]
-
-A custom `RepositoryInitializer` can be injected in a similar way.
+    java -cp my-commit-hook.jar:oak-upgrade.jar org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade [normal oak-upgrade parameters]
 
 ### Other parameters
 

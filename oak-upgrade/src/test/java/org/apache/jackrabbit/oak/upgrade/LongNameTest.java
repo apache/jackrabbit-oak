@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import org.apache.jackrabbit.core.RepositoryContext;
-import org.apache.jackrabbit.core.RepositoryImpl;
-import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -32,20 +29,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,9 +66,6 @@ public class LongNameTest {
     private final String nodeName;
 
     private final boolean shouldBeSkipped;
-
-    @Rule
-    public final TemporaryFolder crxRepo = new TemporaryFolder(new File("target"));
 
     public LongNameTest(String name, int parentPathLength, int nodeNameLength, boolean shouldBeSkipped) {
         this.parentPath = generatePath(parentPathLength);
@@ -120,57 +107,6 @@ public class LongNameTest {
                 LOG.warn("Unexpected exception", e);
                 fail("It should be possible to create a node");
             }
-        }
-    }
-
-    @Test
-    @Ignore
-    public void testUpgradeToDocStore() throws IOException, CommitFailedException, RepositoryException {
-        File root = crxRepo.newFolder();
-        File source = new File(root, "source");
-        source.mkdirs();
-        RepositoryImpl sourceRepository = RepositoryContext.create(RepositoryConfig.install(source)).getRepository();
-        Session session = sourceRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        try {
-            Node node = session.getRootNode();
-            for (String s : PathUtils.elements(parentPath)) {
-                node = node.addNode(s);
-            }
-            node.addNode(nodeName);
-            session.save();
-        } finally {
-            session.logout();
-        }
-        sourceRepository.shutdown();
-
-        DocumentNodeStore dst = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder().build();
-        RepositoryContext ctx = RepositoryContext.create(RepositoryConfig.install(source));
-        RepositoryUpgrade upgrade = new RepositoryUpgrade(ctx, dst);
-        upgrade.setCheckLongNames(true);
-        try {
-            upgrade.copy(null);
-            if (shouldBeSkipped) {
-                fail("Jackrabbit2 Lucene index should be used to inform about the node with long name");
-            }
-        } catch (Exception e) {
-            if (!shouldBeSkipped) {
-                LOG.warn("Unexpected exception", e);
-                fail("Upgrade should be successful");
-            }
-        }
-
-        ctx.getRepository().shutdown();
-        ctx = RepositoryContext.create(RepositoryConfig.install(source));
-        upgrade = new RepositoryUpgrade(ctx, dst);
-        upgrade.setCheckLongNames(false);
-        upgrade.copy(null);
-
-        NodeState parent = getParent(dst);
-        Assert.assertTrue("Parent should exists", parent.exists());
-        if (shouldBeSkipped) {
-            Assert.assertFalse("Node shouldn't exists", parent.hasChildNode(nodeName));
-        } else {
-            Assert.assertTrue("Node should exists", parent.hasChildNode(nodeName));
         }
     }
 

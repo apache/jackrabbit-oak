@@ -50,14 +50,6 @@ public class MigrationOptions {
 
     private final String[] mergePaths;
 
-    private final boolean failOnError;
-
-    private final boolean earlyShutdown;
-
-    private final boolean skipInitialization;
-
-    private final boolean skipNameCheck;
-
     private final boolean ignoreMissingBinaries;
 
     private final boolean verify;
@@ -128,10 +120,6 @@ public class MigrationOptions {
         this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
         this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
         this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
-        this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
-        this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
-        this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
-        this.skipNameCheck = args.hasOption(OptionParserFactory.SKIP_NAME_CHECK);
         this.ignoreMissingBinaries = args.hasOption(OptionParserFactory.IGNORE_MISSING_BINARIES);
         this.verify = args.hasOption(OptionParserFactory.VERIFY);
         this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
@@ -200,22 +188,6 @@ public class MigrationOptions {
 
     public String[] getMergePaths() {
         return mergePaths;
-    }
-
-    public boolean isFailOnError() {
-        return failOnError;
-    }
-
-    public boolean isEarlyShutdown() {
-        return earlyShutdown;
-    }
-
-    public boolean isSkipInitialization() {
-        return skipInitialization;
-    }
-
-    public boolean isSkipNameCheck() {
-        return skipNameCheck;
     }
 
     public boolean isIgnoreMissingBinaries() {
@@ -370,22 +342,6 @@ public class MigrationOptions {
 
         if (excludePaths != null) {
             log.info("paths to exclude: {}", (Object) excludePaths);
-        }
-
-        if (failOnError) {
-            log.info("Unreadable nodes will cause failure of the entire transaction");
-        }
-
-        if (earlyShutdown) {
-            log.info("Source repository would be shutdown post copying of nodes");
-        }
-
-        if (skipInitialization) {
-            log.info("The repository initialization will be skipped");
-        }
-
-        if (skipNameCheck) {
-            log.info("Test for long-named nodes will be disabled");
         }
 
         if (ignoreMissingBinaries) {

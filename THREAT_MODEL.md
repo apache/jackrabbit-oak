@@ -39,9 +39,10 @@ also ships a set of bundles that are consumed by *both* Oak and
 filevault (and by jackrabbit-core), so a finding in one of them is
 relevant to more than one model and must be cross-referenced rather than
 silently claimed by one: the Jackrabbit `commons` library, the JCR
-`commons`/SPI interface bundles, and everything in the `oak-run` /
-`oak-upgrade` migration path that bridges JR2 and Oak *(maintainer —
-reschke)*. A vulnerability in a shared bundle is in-model for Oak when
+`commons`/SPI interface bundles. The same cross-referencing applies to
+findings in the historical JR2-to-Oak migration path *(maintainer —
+reschke)*; current `oak-upgrade` only copies Oak repositories.
+A vulnerability in a shared bundle is in-model for Oak when
 Oak's calling pattern reaches it, but the fix may land in a
 Jackrabbit-commons artefact shared with filevault; triagers should check
 the companion models before closing. (The Java-version correction that
@@ -178,7 +179,7 @@ Following §2 of the output-structure rubric (in-process-library split):
 | `oak-run` — operator CLI **and `server` HTTP mode** | `oak-run.jar` (`server` listens on `:8080` per `README.md`) | OS / FS / **inbound HTTP in `server` mode** / network depending on subcommand | **see §3** (in-model for the command-driven contract *and* for the `server` listener's in-process request handling; out-of-model for "operator runs it as the wrong user") |
 | `oak-pojosr` — POJO service-registry launcher | embedded repository | filesystem | **yes** for code; deployment is operator's |
 | `oak-standalone` (lives under `oak-examples/standalone`) — repository launcher | embedded repository | filesystem | **see §3 item 7** — as an `oak-examples` sub-module it is an example/launcher, not a supported product component; named explicitly here to resolve the naming clash (per maintainer — rishabhdaim) |
-| `oak-upgrade` — JR2 → Oak migration | offline migration job | filesystem | **yes** for code; the migration source is a trusted JR2 repository |
+| `oak-upgrade` — Oak-to-Oak sidegrade | offline migration job | repository storage | **yes** for code |
 | `oak-it`, `oak-it-osgi`, `oak-bench-*`, `oak-jcr-tests`, `oak-test-bundle`, `oak-exercise` | integration tests, benchmarks, training | varies | **out of model** — unsupported components *(§3)* |
 | `oak-examples`, `oak-doc-railroad-macro`, `oak-doc` | examples and docs | none | **out of model** *(§3)* |
 | Archived MicroKernel modules (`oak-mk-*`) | n/a | n/a | **out of model** — explicitly archived *(documented: README — "MicroKernel-related modules have been archived")* |
@@ -247,10 +248,9 @@ Reports requiring any of these will be closed with the cited disposition:
    `oak-standalone` artefact name as a separate, in-model component.
 8. **Original `jackrabbit` / `jackrabbit-core` code.** Oak migrated away
    from the JR2 codebase; jackrabbit-core has a separate threat model.
-   The `oak-upgrade` module imports from jackrabbit-core as a one-shot
-   migration source; a bug in the JR2-side code is jackrabbit-core's
-   threat-model problem. → `OUT-OF-MODEL: unsupported-component` (with
-   cross-reference).
+   Current `oak-upgrade` no longer reads JR2 repositories. A bug in
+   jackrabbit-core is covered by its separate threat model.
+   → `OUT-OF-MODEL: unsupported-component` (with cross-reference).
 9. **`jackrabbit-filevault` package import** — filevault has its own
    threat model. A vulnerable filevault install hook is filevault's
    problem; Oak's role is to honour the JCR session privileges that
