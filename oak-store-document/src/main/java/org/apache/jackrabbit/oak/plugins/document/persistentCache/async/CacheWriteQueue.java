@@ -20,6 +20,9 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.function.BooleanSupplier;
 
 public class CacheWriteQueue<K extends CacheValue, V extends CacheValue> {
 
@@ -37,6 +40,32 @@ public class CacheWriteQueue<K extends CacheValue, V extends CacheValue> {
 
     public boolean addPut(K key, V value) {
         return dispatcher.add(new PutToCacheAction<K, V>(key, value, this));
+    }
+
+    /**
+     * Queues a write whose entry can be retired before the dispatcher reaches it.
+     * @param key persistent cache key
+     * @param value original serialized value
+     * @param valid checks whether the entry still qualifies for persistence
+     * @param writeOrder serializes the write with explicit invalidation
+     * @return whether the bounded dispatcher accepted the write
+     */
+    public boolean addPut(K key, V value, BooleanSupplier valid, Lock writeOrder) {
+        return addPut(key, value, valid, writeOrder, () -> { });
+    }
+
+    /**
+     * Records a successful write only after generation selection and persistence.
+     * @param key persistent cache key
+     * @param value original serialized value
+     * @param valid checks whether the entry still qualifies for persistence
+     * @param writeOrder serializes the write with explicit invalidation
+     * @param written runs only after a successful write
+     * @return whether the bounded dispatcher accepted the write
+     */
+    public boolean addPut(K key, V value, BooleanSupplier valid, Lock writeOrder, Runnable written) {
+        return dispatcher.add(new GuardedPutToCacheAction<>(key, value, this,
+                Objects.requireNonNull(valid), Objects.requireNonNull(writeOrder), Objects.requireNonNull(written)));
     }
 
     public boolean addInvalidate(Iterable<K> keys) {
