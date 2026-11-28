@@ -77,6 +77,7 @@ public class OakUpgrade {
         }
     }
 
+    /** Give guidance for retired Classic flags without accepting them again. */
     private static OptionSet parseOptions(String... args) throws CliArgumentException {
         try {
             return OptionParserFactory.create().parse(args);

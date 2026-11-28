@@ -103,6 +103,10 @@ public class StoreArguments {
         return !srcHasExternalBlobRefs;
     }
 
+    /**
+     * Check local paths before opening either store. An Oak journal takes precedence
+     * over leftover Classic files, but a new destination does not need a journal.
+     */
     private static void validateDescriptors(StoreDescriptor src, StoreDescriptor dst) throws CliArgumentException {
         if (src.getType() == dst.getType() && src.path.equals(dst.path)) {
             throw new CliArgumentException("The source and the destination is the same repository.", 1);

@@ -503,6 +503,7 @@ public class RepositorySidegrade {
         };
     }
 
+    /** Keep the original base for every hook, while passing along each hook's changes. */
     private static CommitHook loggingCompositeHook(List<CommitHook> hooks) {
         return (before, after, info) -> {
             NodeState newState = after;
