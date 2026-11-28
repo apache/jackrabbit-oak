@@ -60,7 +60,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -184,11 +183,8 @@ public class CopyVersionHistorySidegradeTest {
 
     @Test
     public void copyAllVersions() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                // copying all versions is enabled by default
-            }
+        Session session = performCopy(config -> {
+            // copying all versions is enabled by default
         });
 
         assertVersionableProperties(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
@@ -200,12 +196,7 @@ public class CopyVersionHistorySidegradeTest {
 
     @Test
     public void referencedSinceDate() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyVersions(betweenHistories);
-            }
-        });
+        Session session = performCopy(config -> config.setCopyVersions(betweenHistories));
 
         assertVersionableProperties(session, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
@@ -216,12 +207,7 @@ public class CopyVersionHistorySidegradeTest {
 
     @Test
     public void referencedOlderThanOrphaned() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyOrphanedVersions(betweenHistories);
-            }
-        });
+        Session session = performCopy(config -> config.setCopyOrphanedVersions(betweenHistories));
 
         assertVersionableProperties(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
@@ -232,27 +218,19 @@ public class CopyVersionHistorySidegradeTest {
 
     @Test
     public void onlyReferenced() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyOrphanedVersions(null);
-            }
-        });
+        Session session = performCopy(config -> config.setCopyOrphanedVersions(null));
         assertVersionableProperties(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
-        assertVersionablePaths(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);;
+        assertVersionablePaths(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertMissingHistories(session, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG_ORPHANED);
         assertVersionsCanBeRestored(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
     }
 
     @Test
     public void onlyReferencedAfterDate() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyVersions(betweenHistories);
-                config.setCopyOrphanedVersions(null);
-            }
+        Session session = performCopy(config -> {
+            config.setCopyVersions(betweenHistories);
+            config.setCopyOrphanedVersions(null);
         });
         assertVersionableProperties(session, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_YOUNG);
@@ -290,12 +268,9 @@ public class CopyVersionHistorySidegradeTest {
 
     @Test
     public void overrideOrphaned() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyVersions(null);
-                config.setCopyOrphanedVersions(betweenHistories);
-            }
+        Session session = performCopy(config -> {
+            config.setCopyVersions(null);
+            config.setCopyOrphanedVersions(betweenHistories);
         });
 
         assertMissingHistories(session,
@@ -304,12 +279,9 @@ public class CopyVersionHistorySidegradeTest {
 
     @Test
     public void dontCopyVersionHistory() throws RepositoryException, IOException {
-        Session session = performCopy(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyVersions(null);
-                config.setCopyOrphanedVersions(null);
-            }
+        Session session = performCopy(config -> {
+            config.setCopyVersions(null);
+            config.setCopyOrphanedVersions(null);
         });
 
         assertMissingHistories(session,
@@ -321,17 +293,11 @@ public class CopyVersionHistorySidegradeTest {
     @Test
     public void removeVersionHistory() throws RepositoryException, IOException {
         final NodeStore targetNodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        migrate(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-            }
+        migrate((VersionCopySetup) config -> {
         }, targetNodeStore, PathUtils.ROOT_PATH);
-        migrate(new VersionCopySetup() {
-            @Override
-            public void setup(VersionCopyConfiguration config) {
-                config.setCopyVersions(null);
-                config.setCopyOrphanedVersions(null);
-            }
+        migrate((VersionCopySetup) config -> {
+            config.setCopyVersions(null);
+            config.setCopyOrphanedVersions(null);
         }, targetNodeStore, "/versionables");
         repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
         Session s = repository.login(CREDENTIALS);
@@ -351,7 +317,7 @@ public class CopyVersionHistorySidegradeTest {
     }
 
     private void migrate(VersionCopySetup setup, NodeStore target, String includePath)
-            throws RepositoryException, IOException {
+            throws RepositoryException {
         RepositorySidegrade sidegrade = new RepositorySidegrade(sourceNodeStore, target);
         sidegrade.setIncludes(includePath);
         setup.setup(sidegrade.versionCopyConfiguration);

@@ -27,7 +27,7 @@ public final class MigrationCliArguments {
 
     private final List<String> arguments;
 
-    public MigrationCliArguments(OptionSet options) throws CliArgumentException {
+    public MigrationCliArguments(OptionSet options) {
         this.options = options;
         this.arguments = getNonOptionArguments();
     }

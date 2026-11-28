@@ -258,16 +258,17 @@ public class StoreArgumentsTest {
         File output = tmp.newFile();
         List<String> command = new ArrayList<>(List.of(java.getPath(), "-cp", classpath, OakUpgrade.class.getName()));
         command.addAll(List.of(args));
-        Process process = new ProcessBuilder(command)
-                .redirectErrorStream(true).redirectOutput(output).start();
-        try {
-            Assert.assertTrue("CLI timed out", process.waitFor(30, TimeUnit.SECONDS));
-            String message = Files.readString(output.toPath());
-            Assert.assertEquals(message, expectedExitCode, process.exitValue());
-            return message;
-        } finally {
-            if (process.isAlive()) {
-                process.destroyForcibly();
+        try (Process process = new ProcessBuilder(command)
+                .redirectErrorStream(true).redirectOutput(output).start()) {
+            try {
+                Assert.assertTrue("CLI timed out", process.waitFor(30, TimeUnit.SECONDS));
+                String message = Files.readString(output.toPath());
+                Assert.assertEquals(message, expectedExitCode, process.exitValue());
+                return message;
+            } finally {
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                }
             }
         }
     }
@@ -286,7 +287,7 @@ public class StoreArgumentsTest {
         Assert.assertTrue(error.getMessage(), error.getMessage().contains("segmentstore"));
     }
 
-    private static MigrationCliArguments parse(String... args) throws CliArgumentException {
+    private static MigrationCliArguments parse(String... args) {
         return new MigrationCliArguments(OptionParserFactory.create().parse(args));
     }
 }

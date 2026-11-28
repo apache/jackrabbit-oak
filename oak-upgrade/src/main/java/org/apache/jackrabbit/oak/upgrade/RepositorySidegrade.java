@@ -94,9 +94,6 @@ public class RepositorySidegrade {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
 
-    // Keep progress visible to users who configure the historical migration logger.
-    private static final Logger PROGRESS_LOG = LoggerFactory.getLogger("org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade");
-
     private static final Set<String> DEFAULT_INCLUDE_PATHS = FilteringNodeState.ALL;
     private static final Set<String> DEFAULT_EXCLUDE_PATHS = FilteringNodeState.NONE;
     private static final Set<String> DEFAULT_MERGE_PATHS = FilteringNodeState.NONE;
@@ -465,7 +462,7 @@ public class RepositorySidegrade {
             public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
                     throws CommitFailedException {
                 Editor rootEditor = new TypeEditorProvider(false).getRootEditor(before, after, builder, info);
-                return ProgressNotificationEditor.wrap(rootEditor, PROGRESS_LOG, "Checking node types:");
+                return ProgressNotificationEditor.wrap(rootEditor, LOG, "Checking node types:");
             }
 
             @Override
@@ -489,7 +486,7 @@ public class RepositorySidegrade {
                     public void indexUpdate() {
                         long t = System.currentTimeMillis();
                         if (t - t0 > 2000) {
-                            PROGRESS_LOG.info("Updating indexes  {}", ticker.tick());
+                            LOG.info("Updating indexes  {}", ticker.tick());
                             t0 = t;
                         }
                     }
@@ -509,9 +506,9 @@ public class RepositorySidegrade {
             NodeState newState = after;
             Stopwatch watch = Stopwatch.createStarted();
             for (CommitHook hook : hooks) {
-                PROGRESS_LOG.info("Processing commit via {}", hook);
+                LOG.info("Processing commit via {}", hook);
                 newState = hook.processCommit(before, newState, info);
-                PROGRESS_LOG.info("Commit hook {} processed commit in {}", hook, watch);
+                LOG.info("Commit hook {} processed commit in {}", hook, watch);
                 watch.reset().start();
             }
             return newState;
