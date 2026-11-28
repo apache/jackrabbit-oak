@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
 
 import joptsimple.OptionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -60,6 +61,25 @@ public class StoreArgumentsTest {
             Assert.assertThrows(option, OptionException.class,
                     () -> OptionParserFactory.create().parse(option, "source", "destination"));
         }
+    }
+
+    /** Retired flags fail at the CLI boundary with guidance rather than a stack trace. */
+    @Test
+    public void testRemovedOptionsReportMigrationGuidance() throws Exception {
+        for (String option : REMOVED_OPTIONS) {
+            String message = runWithInvalidOption(option);
+            Assert.assertTrue(message, message.contains(option + " was removed"));
+            Assert.assertTrue(message, message.contains("Oak 2.8.0"));
+            Assert.assertFalse(message, message.contains("UnrecognizedOptionException"));
+        }
+    }
+
+    /** A typo in an option is not mistaken for a retired Classic flag. */
+    @Test
+    public void testUnrelatedOptionKeepsParserError() throws Exception {
+        String message = runWithInvalidOption("--not-an-oak-option");
+        Assert.assertTrue(message, message.contains("UnrecognizedOptionException"));
+        Assert.assertFalse(message, message.contains("Oak 2.8.0"));
     }
 
     @Test
@@ -203,6 +223,28 @@ public class StoreArgumentsTest {
         CliArgumentException error = Assert.assertThrows(CliArgumentException.class, () -> OakUpgrade.migrate(parse(args)));
         Assert.assertTrue(error.getMessage(), error.getMessage().contains("Jackrabbit Classic destinations are not supported"));
         Assert.assertTrue(error.getMessage(), error.getMessage().contains("Oak 2.8.0"));
+    }
+
+    private String runWithInvalidOption(String option) throws Exception {
+        File java = new File(System.getProperty("java.home"), "bin/java");
+        String classpath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"));
+        File output = tmp.newFile();
+        File source = new File(tmp.getRoot(), "source");
+        File destination = new File(tmp.getRoot(), "destination");
+        Process process = new ProcessBuilder(java.getPath(), "-cp", classpath, OakUpgrade.class.getName(),
+                option, source.getPath(), destination.getPath())
+                .redirectErrorStream(true).redirectOutput(output).start();
+        try {
+            Assert.assertTrue("CLI timed out for " + option, process.waitFor(30, TimeUnit.SECONDS));
+            String message = Files.readString(output.toPath());
+            Assert.assertEquals(message, 1, process.exitValue());
+            Assert.assertFalse(destination.exists());
+            return message;
+        } finally {
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
     }
 
     private static void assertClassicMigrationRejected(String... descriptors) {

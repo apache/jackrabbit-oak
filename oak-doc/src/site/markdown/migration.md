@@ -35,6 +35,10 @@ Sidegrade works between Oak node stores of the same or different types. The tool
 
     java -jar oak-upgrade-*.jar [options] source destination
 
+Remove `--early-shutdown`, `--fail-on-error`, `--skip-init`, and
+`--skip-name-check` from existing sidegrade commands. These options only
+applied to Jackrabbit Classic migration.
+
 The `source` and `destination` are the node store paths/URIs. Following node stores are supported:
 
 * Segment Tar - use a path to the Oak `repository` directory,

@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
+import java.util.Set;
 
+import joptsimple.OptionException;
 import joptsimple.OptionSet;
 
 import org.apache.jackrabbit.oak.commons.pio.Closer;
@@ -30,10 +32,12 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 
 public class OakUpgrade {
 
+    private static final Set<String> REMOVED_CLASSIC_OPTIONS = Set.of(
+            "early-shutdown", "fail-on-error", "skip-init", "skip-name-check");
+
     public static void main(String... args) throws IOException {
-        OptionSet options = OptionParserFactory.create().parse(args);
         try {
-            MigrationCliArguments cliArguments = new MigrationCliArguments(options);
+            MigrationCliArguments cliArguments = new MigrationCliArguments(parseOptions(args));
             if (cliArguments.hasOption(OptionParserFactory.HELP) || cliArguments.getArguments().isEmpty()) {
                 CliUtils.displayUsage();
                 return;
@@ -70,6 +74,20 @@ public class OakUpgrade {
             throw closer.rethrow(t);
         } finally {
             closer.close();
+        }
+    }
+
+    private static OptionSet parseOptions(String... args) throws CliArgumentException {
+        try {
+            return OptionParserFactory.create().parse(args);
+        } catch (OptionException e) {
+            String removedOption = e.options().stream().filter(REMOVED_CLASSIC_OPTIONS::contains).findFirst().orElse(null);
+            if (removedOption != null) {
+                throw new CliArgumentException("Option --" + removedOption + " was removed. "
+                        + "Omit it for Oak-to-Oak sidegrade or use oak-upgrade from Oak 2.8.0 "
+                        + "for Jackrabbit Classic migration.", 1);
+            }
+            throw e;
         }
     }
 
